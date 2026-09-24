@@ -1,0 +1,41 @@
+<?php
+
+// Messages de validation en français (tutoiement, comme l'app).
+return [
+    'array' => 'Le champ :attribute est invalide.',
+    'between' => ['numeric' => ':attribute doit être entre :min et :max.'],
+    'boolean' => 'Le champ :attribute doit être vrai ou faux.',
+    'digits' => ':attribute doit contenir :digits chiffres.',
+    'email' => ':attribute doit être une adresse e-mail valide.',
+    'enum' => ':attribute est invalide.',
+    'exists' => ':attribute est introuvable.',
+    'image' => ':attribute doit être une image.',
+    'in' => ':attribute est invalide.',
+    'integer' => ':attribute doit être un nombre entier.',
+    'max' => ['file' => ':attribute ne doit pas dépasser :max Ko.', 'numeric' => ':attribute ne doit pas dépasser :max.', 'string' => ':attribute ne doit pas dépasser :max caractères.'],
+    'min' => ['numeric' => ':attribute doit être au moins :min.', 'string' => ':attribute doit contenir au moins :min caractères.'],
+    'required' => 'Le champ :attribute est obligatoire.',
+    'required_if' => 'Le champ :attribute est obligatoire.',
+    'required_unless' => 'Le champ :attribute est obligatoire.',
+    'string' => ':attribute doit être du texte.',
+    'regex' => ':attribute contient des caractères non autorisés.',
+    'required_with' => 'Le champ :attribute est obligatoire.',
+
+    'attributes' => [
+        'phone' => 'Le numéro',
+        'code' => 'Le code',
+        'months' => 'La durée',
+        'method' => 'Le moyen de paiement',
+        'serviceId' => 'Le service',
+        'amount' => 'Le montant',
+        'seats' => 'Le nombre de places',
+        'price' => 'Le prix',
+        'mode' => 'Le mode d’accès',
+        'email' => 'L’e-mail',
+        'password' => 'Le mot de passe',
+        'proof' => 'La preuve',
+        'name' => 'Le nom',
+        'firstName' => 'Le prénom',
+        'lastName' => 'Le nom',
+    ],
+];

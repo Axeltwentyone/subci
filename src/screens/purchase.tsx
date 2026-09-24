@@ -1,0 +1,316 @@
+import { useEffect, useRef, useState } from 'react'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
+import { IconCheck, IconLock } from '../components/icons'
+import { PayMethodPicker } from '../components/inputs'
+import { Sheet } from '../components/Sheet'
+import { useToast } from '../components/Toast'
+import { Button, Card, Row, Screen, StepBar, StickyAction, TopBar, cx } from '../components/ui'
+import { DURATIONS, durationPrice, getMethod, getService, type PayMethodId } from '../lib/data'
+import type { PendingPayment } from '../lib/api'
+import { fcfa, haptic, maskPhone, shortDate } from '../lib/format'
+import { mmss, useOnline } from '../lib/hooks'
+import { useBack } from '../lib/nav'
+import { errorMessage, useStore } from '../lib/store'
+import { NotFound } from './discover'
+
+/* ---------- 08 · Checkout ---------- */
+
+/** Un seul écran utile : durée + moyen. Dernier moyen pré-sélectionné, numéro pré-rempli. */
+export function Checkout() {
+  const { id = '' } = useParams()
+  const navigate = useNavigate()
+  const { state, actions } = useStore()
+  const toast = useToast()
+  const online = useOnline()
+  const s = getService(id)
+  const [months, setMonths] = useState(3)
+  const [method, setMethod] = useState<PayMethodId>(state.lastMethod)
+  const [phone, setPhone] = useState(state.user?.phone ?? '')
+  const [loading, setLoading] = useState(false)
+
+  if (!s) return <NotFound />
+  const amount = durationPrice(s.price, months)
+
+  const pay = async () => {
+    if (!online) {
+      toast({ tone: 'error', text: 'Pas de réseau — le paiement reprendra dès le retour de la connexion' })
+      return
+    }
+    if (method !== 'card' && phone.length < 10) {
+      toast({ tone: 'error', text: `Numéro ${getMethod(method).name} incomplet — il manque ${10 - phone.length} chiffres` })
+      return
+    }
+    setLoading(true)
+    try {
+      const payment = await actions.checkout(s.id, months, method, phone)
+      navigate(`/pay/${payment.ref}`, { state: payment, viewTransition: true })
+    } catch (e) {
+      toast({ tone: 'error', text: errorMessage(e) })
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Screen>
+      <TopBar title={s.name} right={<span className="text-[13px] font-bold text-muted">2/3</span>} />
+      <StepBar step={2} total={3} />
+      <div className="flex flex-col gap-[22px] px-5 pt-5">
+        <section className="flex flex-col gap-2.5">
+          <h2 className="t-section">Durée</h2>
+          <div role="radiogroup" aria-label="Durée" className="grid grid-cols-3 gap-2">
+            {DURATIONS.map((d) => {
+              const on = d.months === months
+              return (
+                <button
+                  key={d.months}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setMonths(d.months)}
+                  className={cx('pressable relative flex flex-col gap-1 rounded-btn bg-white p-3 text-left', on ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
+                >
+                  <span className="text-sm font-bold">{d.months} mois</span>
+                  <span className="font-display text-base font-extrabold">{fcfa(durationPrice(s.price, d.months))}</span>
+                  {d.discount > 0 && (
+                    <span className={cx('absolute -top-2.5 right-2 rounded-md px-[7px] py-0.5 text-[11px] font-extrabold', on ? 'bg-brand text-ink' : 'bg-brand-soft text-brand-ink')}>
+                      -{d.discount * 100} %
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </section>
+        <section className="flex flex-col gap-2.5">
+          <h2 className="t-section">Payer avec</h2>
+          <PayMethodPicker value={method} onChange={setMethod} phone={phone} onPhone={setPhone} />
+        </section>
+      </div>
+      <StickyAction className="flex flex-col gap-2.5">
+        <div className="flex justify-between text-sm font-semibold text-muted">
+          <span>
+            {months} mois · frais 0 FCFA
+          </span>
+          <span className="flex items-center gap-1.5">
+            <IconLock size={14} />
+            Sécurisé
+          </span>
+        </div>
+        <Button onClick={pay} loading={loading}>
+          {loading ? 'Paiement…' : `Payer ${fcfa(amount)} FCFA`}
+        </Button>
+      </StickyAction>
+    </Screen>
+  )
+}
+
+/* ---------- 09 · Paiement en cours ---------- */
+
+function secondsLeft(p?: PendingPayment) {
+  return p?.expiresAt ? Math.max(0, Math.round((p.expiresAt - Date.now()) / 1000)) : 0
+}
+
+/** Pas de spinner muet : quoi faire, où, et combien de temps il reste. Interroge l'API toutes les 2 s. */
+export function Paying() {
+  const { ref = '' } = useParams()
+  const loc = useLocation()
+  const navigate = useNavigate()
+  const back = useBack()
+  const { actions } = useStore()
+  const toast = useToast()
+  const [p, setP] = useState<PendingPayment | undefined>(loc.state as PendingPayment | undefined)
+  const [left, setLeft] = useState(() => secondsLeft(loc.state as PendingPayment | undefined))
+  const [help, setHelp] = useState(false)
+  const [resending, setResending] = useState(false)
+  const done = useRef(false)
+  const shownAt = useRef(Date.now())
+
+  // Polling du statut côté opérateur.
+  useEffect(() => {
+    let alive = true
+    const tick = async () => {
+      try {
+        const next = await actions.payment(ref)
+        if (!alive || done.current) return
+        setP(next)
+        if (next.status === 'succeeded') {
+          done.current = true
+          navigate(`/success/${ref}`, { replace: true, state: next, viewTransition: true })
+        } else if (next.status === 'expired' || next.status === 'failed') {
+          done.current = true
+          toast({ tone: 'error', text: 'Demande expirée — aucun montant débité. Réessaie.' })
+          back()
+        }
+      } catch {
+        /* réseau instable : on réessaie au prochain tour */
+      }
+    }
+    tick()
+    const t = setInterval(tick, 2000)
+    return () => {
+      alive = false
+      clearInterval(t)
+    }
+  }, [ref, actions, navigate, toast, back])
+
+  useEffect(() => {
+    const t = setInterval(() => setLeft(secondsLeft(p)), 1000)
+    setLeft(secondsLeft(p))
+    return () => clearInterval(t)
+  }, [p])
+
+  if (!p) return <Screen><div className="grid flex-1 place-items-center"><span className="size-6 rounded-full border-[3px] border-line border-t-brand animate-spin-fast" /></div></Screen>
+  const s = getService(p.serviceId)
+  if (!s) return <Navigate to="/explore" replace />
+  const m = getMethod(p.method)
+  // Étape 2 (« saisis ton code ») mise en avant après quelques secondes.
+  const step = Date.now() - shownAt.current > 2500 ? 2 : 1
+
+  const steps = p.method === 'card'
+    ? ['Confirme sur la page 3-D Secure', 'Valide avec ta banque', 'On confirme automatiquement']
+    : [`Ouvre la demande ${m.name}`, 'Saisis ton code secret', 'On confirme automatiquement']
+
+  return (
+    <Screen>
+      <div className="flex flex-col items-center gap-6 px-6 pt-10 text-center">
+        <div className="relative grid size-[180px] place-items-center" aria-hidden>
+          <span className="absolute inset-5 rounded-full animate-ring" style={{ background: m.color }} />
+          <span className="absolute inset-5 rounded-full animate-ring [animation-delay:.9s]" style={{ background: m.color }} />
+          <span className="relative grid size-24 place-items-center rounded-[28px] text-[28px] font-extrabold" style={{ background: m.color, color: m.fg }}>
+            {m.mono}
+          </span>
+        </div>
+        <div className="flex flex-col gap-2.5">
+          <h1 className="t-title">Valide sur ton téléphone</h1>
+          <p className="text-base leading-normal font-medium text-pretty text-muted">
+            Une demande de <b className="text-ink">{fcfa(p.amount)} FCFA</b> a été envoyée {p.method === 'card' ? 'à ta banque' : <>au {maskPhone(p.phone)}</>}.
+          </p>
+        </div>
+        <Card className="w-full px-[18px] py-1.5 text-left">
+          {steps.map((t, i) => {
+            const n = i + 1
+            return (
+              <div key={t} className="flex items-center gap-3.5 border-b border-line-soft py-3 last:border-b-0">
+                <span className={cx('grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-extrabold transition-colors duration-300', n <= 2 ? 'bg-ink text-white' : 'bg-line')}>
+                  {n < step ? <IconCheck size={14} /> : n}
+                </span>
+                <span className={cx('text-[15px] font-semibold', n > 2 && 'text-muted')}>{t}</span>
+              </div>
+            )
+          })}
+        </Card>
+        <div className="flex items-center gap-2.5 text-sm font-bold text-muted" aria-live="polite">
+          <span className="size-4 rounded-full border-[2.5px] border-line border-t-brand animate-spin-fast" aria-hidden />
+          En attente · expire dans {mmss(left)}
+        </div>
+      </div>
+      <div className="mt-auto flex flex-col gap-1.5 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+40px)]">
+        <Button variant="outline" size="md" onClick={() => setHelp(true)}>
+          Je n’ai rien reçu
+        </Button>
+        <Button
+          variant="text"
+          size="link"
+          onClick={() => {
+            done.current = true
+            actions.cancelPayment(ref)
+            back()
+          }}
+        >
+          Annuler
+        </Button>
+      </div>
+
+      <Sheet open={help} onClose={() => setHelp(false)} label="Je n’ai rien reçu">
+        <div className="flex flex-col gap-4">
+          <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Pas de demande reçue ?</h2>
+          <p className="text-[15px] leading-normal font-medium text-muted">
+            Vérifie que ton téléphone a du réseau et que le numéro {maskPhone(p.phone)} est bien ton compte {m.name}.
+          </p>
+          {m.ussd && (
+            <div className="flex items-center justify-between rounded-btn bg-sand p-4">
+              <span className="flex flex-col gap-0.5">
+                <span className="text-[13px] font-semibold text-muted">Ou compose le code</span>
+                <span className="font-display text-2xl font-extrabold">{m.ussd}</span>
+              </span>
+              <a href={`tel:${encodeURIComponent(m.ussd)}`} className="pressable flex h-11 items-center rounded-[14px] bg-ink px-4 text-sm font-bold text-white">
+                Appeler
+              </a>
+            </div>
+          )}
+          <Button
+            loading={resending}
+            onClick={async () => {
+              setResending(true)
+              try {
+                setP(await actions.resendPayment(ref))
+                shownAt.current = Date.now()
+                setHelp(false)
+                toast({ text: 'Nouvelle demande envoyée' })
+              } catch (e) {
+                toast({ tone: 'error', text: errorMessage(e) })
+              } finally {
+                setResending(false)
+              }
+            }}
+          >
+            Renvoyer la demande
+          </Button>
+        </div>
+      </Sheet>
+    </Screen>
+  )
+}
+
+/* ---------- 10 · Paiement réussi ---------- */
+
+/** Écran Ink = moment fort. Le check se dessine (400 ms) + vibration 20 ms. */
+export function Success() {
+  const { ref = '' } = useParams()
+  const loc = useLocation()
+  const navigate = useNavigate()
+  const { state, actions } = useStore()
+  const [p, setP] = useState<PendingPayment | undefined>(loc.state as PendingPayment | undefined)
+
+  useEffect(() => haptic(20), [])
+  // Rechargement de la page : on relit le paiement.
+  useEffect(() => {
+    if (!p) actions.payment(ref).then(setP).catch(() => navigate('/home', { replace: true }))
+  }, [p, ref, actions, navigate])
+
+  if (!p) return <Screen dark><span /></Screen>
+  const s = getService(p.serviceId)
+  const pendingInvite = state.subs.find((x) => x.id === p.subscriptionId)?.state === 'pending'
+  if (!s || p.status !== 'succeeded') return <Navigate to="/home" replace />
+
+  return (
+    <Screen dark>
+      <div className="flex flex-col gap-7 px-6 pt-14">
+        <div className="grid size-[88px] place-items-center rounded-full bg-brand animate-pop">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#16130F" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="m5 12.5 4.5 4.5L19 7.5" strokeDasharray="24" className="animate-draw" />
+          </svg>
+        </div>
+        <div className="flex flex-col gap-2.5">
+          <span className="t-over tracking-[0.1em] text-brand">Paiement confirmé</span>
+          <h1 className="t-display">Bienvenue dans {s.name}.</h1>
+        </div>
+        <div className="rounded-card bg-ink-2 px-[18px] py-1">
+          <Row dark label="Montant" value={`${fcfa(p.amount)} FCFA`} />
+          {p.periodStart && p.periodEnd && <Row dark label="Période" value={`${shortDate(p.periodStart)} → ${shortDate(p.periodEnd)}`} />}
+          <Row dark label="Référence" value={p.ref} />
+        </div>
+        <p className="flex items-center gap-3 text-[15px] leading-[1.4] font-semibold text-ink-soft">
+          <span className="size-2.5 shrink-0 rounded-full bg-ok-glow" />
+          {pendingInvite ? 'Ton hôte t’envoie l’invitation famille. On te prévient dès que c’est actif.' : 'Tes accès sont prêts. Reçu envoyé par SMS.'}
+        </p>
+      </div>
+      <div className="mt-auto flex flex-col gap-1.5 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+40px)]">
+        <Button onClick={() => navigate(p.subscriptionId ? `/subs/${p.subscriptionId}` : '/subs', { replace: true, viewTransition: true })}>Voir mes accès</Button>
+        <Button variant="ghost-dark" size="link" onClick={() => navigate('/home', { replace: true })}>
+          Retour à l’accueil
+        </Button>
+      </div>
+    </Screen>
+  )
+}
