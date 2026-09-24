@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type
 import { ApiError, UNAUTHORIZED_EVENT, api, getToken, setToken, toNotif, toOffer, toPayment, toPending, toSub, type ApiHost, type ApiUser, type Bootstrap, type PendingPayment } from './api'
 import { getService, setCatalog, type PayMethodId, type Service } from './data'
 import { daysLeft } from './format'
+import { subscribePush, unsubscribePush } from './push'
 
 export type SubStatus = 'active' | 'due' | 'pending' | 'expired'
 
@@ -256,9 +257,12 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
       setToken(res.token)
       dispatch({ type: 'patch', patch: { ...userPart(res.user), onboarded: true } })
       await sync().catch(() => {})
+      // Permission déjà accordée sur cet appareil (ancien compte) : on rattache le push au nouveau.
+      subscribePush().catch(() => {})
       return res
     },
     async logout() {
+      await unsubscribePush()
       await api.logout().catch(() => {})
       setToken(null)
       dispatch({ type: 'signedOut' })
@@ -359,6 +363,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const run = () => actions.sync().catch(() => {})
     run()
+    // Appareil déjà autorisé : on (ré)enregistre l'abonnement push (clé renouvelée, nouveau navigateur…).
+    if (getToken()) subscribePush().catch(() => {})
     const onVisible = () => document.visibilityState === 'visible' && Date.now() - ref.current.lastSync > 60_000 && run()
     const onUnauthorized = () => dispatch({ type: 'signedOut' })
     window.addEventListener('online', run)

@@ -202,6 +202,11 @@ export const api = {
   archiveNotif: (id: string) => request<unknown>('POST', `/notifications/${id}/archive`),
   restoreNotif: (id: string) => request<unknown>('POST', `/notifications/${id}/restore`),
 
+  pushKey: () => request<{ publicKey: string | null }>('GET', '/push/key'),
+  savePush: (body: { endpoint: string; keys: { p256dh: string; auth: string }; contentEncoding: string }) =>
+    request<{ ok: boolean }>('POST', '/push/subscriptions', body),
+  deletePush: (endpoint: string) => request<{ ok: boolean }>('DELETE', '/push/subscriptions', { endpoint }),
+
   publishOffer: (form: FormData) => request<Data<ApiOffer>>('POST', '/host/offers', form),
   updateOffer: (offerId: string, body: { price?: number; seats?: number; email?: string; password?: string }) =>
     request<Data<ApiOffer>>('PATCH', `/host/offers/${offerId}`, body),

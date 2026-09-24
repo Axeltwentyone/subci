@@ -19,7 +19,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'badge-96.png'],
       manifest: {
         name: 'Sub.ci',
         short_name: 'Sub.ci',
@@ -43,6 +43,8 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
+        // Réception et clic des notifications push.
+        importScripts: ['push-sw.js'],
         // Les appels API ne passent jamais par le shell en cache.
         navigateFallbackDenylist: [/^\/api\//],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\HostController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PushController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\SubscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -16,10 +17,14 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/verify', [AuthController::class, 'verify'])->middleware('throttle:otp-verify');
     Route::get('services', [ServiceController::class, 'index']);
     Route::get('services/{service}', [ServiceController::class, 'show']);
+    Route::get('push/key', [PushController::class, 'key']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('bootstrap', BootstrapController::class);
+
+        Route::post('push/subscriptions', [PushController::class, 'store']);
+        Route::delete('push/subscriptions', [PushController::class, 'destroy']);
 
         Route::get('me', [MeController::class, 'show']);
         Route::patch('me', [MeController::class, 'update']);

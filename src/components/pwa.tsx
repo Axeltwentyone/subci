@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { useInstall } from '../lib/hooks'
+import { enablePush } from '../lib/push'
 import { useStore } from '../lib/store'
 import { IconBell, IconDownload, IconPhone, IconShare } from './icons'
 import { Sheet } from './Sheet'
@@ -138,7 +139,7 @@ export function NotifSheet({ open, onClose }: { open: boolean; onClose: () => vo
             onClick={async () => {
               let result: NotificationPermission = 'denied'
               try {
-                result = await Notification.requestPermission()
+                result = await enablePush()
               } catch {
                 /* navigateur sans API */
               }

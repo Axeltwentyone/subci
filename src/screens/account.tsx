@@ -10,6 +10,7 @@ import { BackButton, Card, Chip, ListLink, MethodLogo, RoundIconButton, Screen, 
 import { getMethod } from '../lib/data'
 import { DAY, clock, fcfa, formatPhone, shortDate } from '../lib/format'
 import { isStandalone } from '../lib/hooks'
+import { subscribePush } from '../lib/push'
 import { errorMessage, useSavings, useStore, type Notif, type Settings } from '../lib/store'
 import { ConfirmModal } from './manage'
 
@@ -260,6 +261,7 @@ export function SettingsScreen() {
   const notifToggle = (key: 'notifDue' | 'notifSeats' | 'notifPromo') => (v: boolean) => {
     set(key, v)
     if (v && canAskNotifications()) setAskNotif(true)
+    else if (v) subscribePush().catch(() => {})
   }
 
   const cycleData = () => set('dataSaver', s.dataSaver === 'auto' ? 'on' : s.dataSaver === 'on' ? 'off' : 'auto')

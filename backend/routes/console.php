@@ -26,3 +26,20 @@ Illuminate\Support\Facades\Schedule::call(function () {
     ->everyMinute()
     ->name('subscriptions:sweep')
     ->withoutOverlapping();
+
+// Rappels d'échéance J-3 / J-1 (push + onglet Activité).
+Illuminate\Support\Facades\Artisan::command('subscriptions:remind', function () {
+    $this->info(app(App\Services\ExpiryReminder::class)->run().' rappel(s) envoyé(s).');
+})->purpose('Envoyer les rappels d’échéance');
+
+Illuminate\Support\Facades\Schedule::command('subscriptions:remind')
+    ->hourly()
+    ->between('8:00', '20:00') // pas de notification la nuit (heure d'Abidjan = UTC)
+    ->withoutOverlapping();
+
+// Clés VAPID pour le Web Push : à mettre dans .env (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY).
+Illuminate\Support\Facades\Artisan::command('push:vapid', function () {
+    $keys = Minishlink\WebPush\VAPID::createVapidKeys();
+    $this->line('VAPID_PUBLIC_KEY='.$keys['publicKey']);
+    $this->line('VAPID_PRIVATE_KEY='.$keys['privateKey']);
+})->purpose('Générer une paire de clés VAPID');

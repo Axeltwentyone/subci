@@ -125,7 +125,13 @@ class PaymentService
             if (! $isNew) {
                 $sub = Subscription::whereKey($payment->subscription_id)->lockForUpdate()->firstOrFail();
                 $from = $sub->ends_at->isFuture() ? $sub->ends_at->copy() : now();
-                $sub->update(['ends_at' => $from->copy()->addMonths($payment->months), 'pay_method' => $payment->method]);
+                $sub->update([
+                    'ends_at' => $from->copy()->addMonths($payment->months),
+                    'pay_method' => $payment->method,
+                    // Nouvelle échéance : les rappels J-3 / J-1 repartent de zéro.
+                    'reminded_j3_at' => null,
+                    'reminded_j1_at' => null,
+                ]);
             } else {
                 $from = now();
                 $family = $offer?->access_mode === AccessMode::Family;

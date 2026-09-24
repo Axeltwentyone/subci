@@ -49,13 +49,35 @@ implémenter `App\Contracts\PaymentGateway` et l'enregistrer dans `AppServicePro
 | `GET subscriptions`, `PATCH subscriptions/{id}`, `POST …/cancel` | Abonnements (accès chiffrés en base) |
 | `POST payments`, `GET payments/{ref}`, `POST …/resend`, `POST …/cancel` | Checkout et suivi du paiement |
 | `GET notifications`, `POST …/read`, `…/read-all`, `…/archive`, `…/restore` | Onglet Activité |
+| `GET push/key`, `POST/DELETE push/subscriptions` | Abonnement de l'appareil aux notifications push |
 | `GET host`, `POST host/offers`, `POST host/withdrawals` | Partager & gagner |
 | `PATCH host/offers/{id}` | Modifier prix, places, identifiants (poussés dans le coffre des membres) |
 | `DELETE host/offers/{id}/members/{member}`, `POST host/offers/{id}/invite` | Membres |
 | `POST host/offers/{id}/pause` · `resume` · `close` | Pause, reprise, arrêt du partage |
 
-Tâche planifiée : `subscriptions:sweep` (chaque minute) active les accès prêts et
-expire les abonnements échus — lancer `php artisan schedule:work` en local.
+## Tâches de fond
+
+En local, dans deux terminaux de plus :
+
+```bash
+cd backend && php artisan queue:work      # envoi des notifications push
+cd backend && php artisan schedule:work   # tâches planifiées ci-dessous
+```
+
+| Tâche | Fréquence | Rôle |
+|---|---|---|
+| `subscriptions:sweep` | chaque minute | Active les accès prêts, expire les abonnements échus, met en ligne les offres validées |
+| `subscriptions:remind` | toutes les heures, 8 h – 20 h | Rappels d'échéance J-3 et J-1 (push + onglet Activité), une fois chacun |
+| `offers:approve {id}` | à la main | Valide la preuve d'une offre hôte (modération) |
+
+## Notifications push
+
+Web Push standard (VAPID), sans Firebase côté code. Les clés sont dans `backend/.env`
+(`php artisan push:vapid` pour en générer). Le service worker n'existe qu'en build :
+tester avec `npm run build && npm run preview`, pas `npm run dev`.
+
+Un push est envoyé pour chaque notification de l'onglet Activité si l'appareil est abonné
+et que le réglage correspondant est actif (Échéances & paiements, Places libérées, Bons plans).
 
 ## Tests
 

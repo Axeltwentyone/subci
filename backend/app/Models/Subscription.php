@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'user_id', 'service_id', 'host_offer_id', 'status', 'starts_at', 'ends_at', 'activates_at', 'auto_renew', 'pay_method',
+    'user_id', 'service_id', 'host_offer_id', 'status', 'starts_at', 'ends_at', 'activates_at', 'auto_renew', 'reminded_j3_at', 'reminded_j1_at', 'pay_method',
     'profile_label', 'access_email', 'access_password', 'access_pin',
 ])]
 #[Hidden(['access_email', 'access_password', 'access_pin'])]
@@ -25,6 +25,8 @@ class Subscription extends Model
             'ends_at' => 'datetime',
             'activates_at' => 'datetime',
             'auto_renew' => 'boolean',
+            'reminded_j3_at' => 'datetime',
+            'reminded_j1_at' => 'datetime',
             // Coffre des accès chiffré au repos avec APP_KEY.
             'access_email' => 'encrypted',
             'access_password' => 'encrypted',
