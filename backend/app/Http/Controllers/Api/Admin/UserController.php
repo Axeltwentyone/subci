@@ -65,6 +65,7 @@ class UserController extends Controller
             'payments' => $user->payments->map(fn ($p) => Presenter::payment($p)),
             'requests' => $user->joinRequests->map(fn ($r) => Presenter::request($r)),
             'devices' => \App\Models\PushSubscription::where('user_id', $user->id)->count(),
+            'referral' => app(\App\Services\ReferralService::class)->summary($user),
         ]]);
     }
 

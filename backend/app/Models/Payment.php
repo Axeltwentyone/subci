@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'service_fee', 'gross', 'months',
+    'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'service_fee', 'credit_used', 'credit_restored_at', 'gross', 'months',
     'method', 'phone', 'invite_email', 'provider_reference', 'checkout_url', 'return_url', 'period_start', 'period_end', 'expires_at', 'available_at', 'held_at',
     'confirmed_at', 'refunded_at',
 ])]
@@ -48,6 +48,8 @@ class Payment extends Model
             'amount' => 'integer',
             'gross' => 'integer',
             'service_fee' => 'integer',
+            'credit_used' => 'integer',
+            'credit_restored_at' => 'datetime',
             'invite_email' => 'encrypted',
             'available_at' => 'datetime',
             'held_at' => 'datetime',
@@ -77,10 +79,10 @@ class Payment extends Model
         $query->where('type', PaymentType::Earning)->where('status', PaymentStatus::Pending);
     }
 
-    /** Part qui revient au cercle (prix de l'hôte), hors frais de service Sub.ci. */
+    /** Part qui revient au cercle (prix de l'hôte), hors frais de service et avant crédit parrainage (pris en charge par Sub.ci). */
     public function offerAmount(): int
     {
-        return $this->amount - (int) $this->service_fee;
+        return $this->amount - (int) $this->service_fee + (int) $this->credit_used;
     }
 
     public function source(): BelongsTo

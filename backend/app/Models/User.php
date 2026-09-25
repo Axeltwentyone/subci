@@ -70,6 +70,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'settings' => 'array',
             'balance' => 'integer',
+            'referral_credit' => 'integer',
             'removals_count' => 'integer',
             'suspended_at' => 'datetime',
             'payout_changed_at' => 'datetime',

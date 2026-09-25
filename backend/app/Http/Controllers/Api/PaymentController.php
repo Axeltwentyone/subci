@@ -9,6 +9,7 @@ use App\Http\Resources\PaymentResource;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Services\PaymentService;
+use App\Services\ReferralService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
@@ -78,6 +79,7 @@ class PaymentController extends Controller
         $this->authorizeOwner($request, $payment);
         if ($payment->status === PaymentStatus::Pending) {
             $payment->update(['status' => PaymentStatus::Failed]);
+            app(ReferralService::class)->restoreCredit($payment);
         }
 
         return new PaymentResource($payment->load('service', 'hostOffer.user', 'joinRequest'));

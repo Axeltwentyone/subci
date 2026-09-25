@@ -72,6 +72,9 @@ class OverviewController extends Controller
                 'escrow' => (int) Payment::escrowed()->sum('amount'),
                 'escrowHeld' => (int) Payment::escrowed()->whereNotNull('held_at')->sum('amount'),
                 'payoutsPending' => (int) (clone $pendingPayouts)->sum('amount'),
+                // Crédits parrainage non encore utilisés (coût futur pour Sub.ci) et parrainages récompensés ce mois.
+                'referralCredit' => (int) User::sum('referral_credit'),
+                'referralsMonth' => \App\Models\Referral::where('status', 'rewarded')->where('rewarded_at', '>=', $month)->count(),
             ],
             'todo' => [
                 'offersToReview' => HostOffer::where('status', OfferStatus::Review)->count(),

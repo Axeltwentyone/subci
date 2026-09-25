@@ -22,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 
 class PaymentService
 {
-    public function __construct(private PaymentGateway $gateway, private JoinService $joins, private Availability $availability) {}
+    public function __construct(private PaymentGateway $gateway, private JoinService $joins, private Availability $availability, private ReferralService $referrals) {}
 
     /**
      * Crée la demande de paiement et l'envoie à l'opérateur.
@@ -74,6 +74,11 @@ class PaymentService
                 }
             }
 
+            // Prix de l'hôte + frais de service Sub.ci (offerts au filleul), moins le crédit parrainage.
+            $subtotal = Service::durationPrice($offer->price, $months);
+            $fee = $this->referrals->waivesFee($user) ? 0 : (int) config('services.payments.service_fee');
+            $credit = $this->referrals->reserveCredit($user, $subtotal + $fee - (int) config('services.referral.min_payable'));
+
             return $user->payments()->create([
                 'type' => PaymentType::Subscription,
                 'status' => PaymentStatus::Pending,
@@ -81,9 +86,9 @@ class PaymentService
                 'subscription_id' => $current?->id,
                 'host_offer_id' => $offer->id,
                 'label' => "{$service->name} · {$months} mois",
-                // Prix de l'hôte + frais de service Sub.ci (payés par le membre, gardés par Sub.ci).
-                'amount' => Service::durationPrice($offer->price, $months) + (int) config('services.payments.service_fee'),
-                'service_fee' => (int) config('services.payments.service_fee'),
+                'amount' => $subtotal + $fee - $credit,
+                'service_fee' => $fee,
+                'credit_used' => $credit,
                 'months' => $months,
                 'method' => $method,
                 'phone' => $method === PayMethod::Card ? null : $phone,
@@ -106,6 +111,7 @@ class PaymentService
             $request = $this->gateway->request($payment);
         } catch (\Throwable $e) {
             $payment->update(['status' => PaymentStatus::Failed]);
+            $this->referrals->restoreCredit($payment);
             throw $e;
         }
         $payment->provider_reference = $request['reference'];
@@ -122,6 +128,7 @@ class PaymentService
         }
         $payment->status = PaymentStatus::Pending;
         $payment->expires_at = now()->addSeconds(config('services.payments.request_ttl'));
+        DB::transaction(fn () => $this->referrals->reapplyCredit($payment));
         $this->send($payment);
 
         return $payment;
@@ -209,10 +216,12 @@ class PaymentService
             $ref->update(['status' => $status->value]);
             if ($current && $payment->status === PaymentStatus::Pending) {
                 $payment->update(['status' => $status]);
+                $this->referrals->restoreCredit($payment);
             }
         } elseif ($current && $payment->status === PaymentStatus::Pending && $payment->expires_at?->lt(now()->subMinutes(10))) {
             // Plus de réponse 10 min après l'expiration : expiré côté app, mais la demande reste surveillée 24 h.
             $payment->update(['status' => PaymentStatus::Expired]);
+            $this->referrals->restoreCredit($payment);
         }
     }
 
@@ -290,6 +299,8 @@ class PaymentService
                 return $payment;
             }
             $payment->update(['status' => PaymentStatus::Succeeded, 'confirmed_at' => now()]);
+            // Confirmé après avoir été abandonné : le crédit parrainage rendu est repris.
+            $this->referrals->reapplyCredit($payment);
             $this->alertAdmins($payment);
 
             if ($payment->subscription_id === null) {

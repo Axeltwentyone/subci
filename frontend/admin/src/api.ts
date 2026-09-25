@@ -164,6 +164,7 @@ export type UserDetail = AdminUser &
     payments: PaymentRow[]
     requests: RequestRow[]
     devices: number
+    referral?: { code: string; credit: number; friends: number; pending: number; referredBy: string | null; feeWaived: boolean }
   }
 
 export type Overview = {
@@ -175,7 +176,7 @@ export type Overview = {
     hosts: { value: number }
     newUsers: { value: number; previous: number }
   }
-  money: { held: number; hostBalances: number; escrow: number; escrowHeld: number; payoutsPending: number }
+  money: { held: number; hostBalances: number; escrow: number; escrowHeld: number; payoutsPending: number; referralCredit?: number; referralsMonth?: number }
   todo: { offersToReview: number; disputes: number; payouts: number; requests: number; requestsExpiringSoon: number; paymentsPending: number }
   series: { date: string; gmv: number; payments: number; users: number }[]
   services: { id: string; name: string; color: string; gmv: number; members: number; offers: number }[]

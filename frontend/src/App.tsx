@@ -2,7 +2,7 @@ import { Navigate, Outlet, RouterProvider, ScrollRestoration, createBrowserRoute
 import { AppShell } from './components/AppShell'
 import { InstallGate, UpdateToast } from './components/pwa'
 import { ToastProvider } from './components/Toast'
-import { StoreProvider, useStore } from './lib/store'
+import { REF_KEY, StoreProvider, useStore } from './lib/store'
 import { Splash } from './screens/Splash'
 import { Home } from './screens/Home'
 
@@ -14,6 +14,17 @@ const entry = () => import('./screens/entry')
 const host = () => import('./screens/host')
 const manage = () => import('./screens/manage')
 const purchase = () => import('./screens/purchase')
+
+/** Lien de parrainage (…/?ref=AYA-7K2) : on garde le code pour l'inscription. */
+function captureReferral() {
+  try {
+    const ref = new URLSearchParams(window.location.search).get('ref')
+    if (ref && /^[A-Z0-9-]{4,16}$/i.test(ref)) localStorage.setItem(REF_KEY, ref.toUpperCase())
+  } catch {
+    /* stockage indisponible */
+  }
+}
+captureReferral()
 
 function Root() {
   return (

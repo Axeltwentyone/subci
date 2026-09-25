@@ -93,6 +93,12 @@ type ApiRequest = {
 export type ApiUser = {
   id: string; name: string | null; firstName: string | null; lastName: string | null; phone: string; referralCode: string; balance: number
   payout: { method: PayMethodId; phone: string }; lastMethod: PayMethodId; settings: Settings
+  referral?: Referral
+}
+/** Parrainage : code à partager, crédit Sub.ci, filleuls, frais offerts (filleul). */
+export type Referral = {
+  code: string; credit: number; reward: number; friends: number; pending: number
+  feeWaived: boolean; referredBy: string | null; canApply: boolean
 }
 type ApiService = Omit<Service, 'category'> & { category: Category }
 export type ApiHost = {
@@ -289,6 +295,7 @@ export const api = {
     request<Data<ApiOffer>>('POST', `/host/offers/${offerId}/members/${memberId}/invite`, link ? { link } : {}),
   payoutCode: () => request<{ sent: boolean; ttl: number; debugCode: string | null }>('POST', '/me/payout/code'),
   updatePayout: (payout: { method: PayMethodId; phone: string; code: string }) => request<Data<ApiUser>>('PATCH', '/me', { payout }),
+  applyReferral: (code: string) => request<Data<ApiUser>>('POST', '/me/referral', { code }),
   logoutOthers: () => request<{ ok: boolean; revoked: number }>('POST', '/auth/logout-others'),
   reportIssue: (subId: string, reason: IssueReason, message?: string) => request<Data<ApiSub>>('POST', `/subscriptions/${subId}/dispute`, { reason, message }),
   solveIssue: (subId: string) => request<Data<ApiSub>>('POST', `/subscriptions/${subId}/dispute/solve`),

@@ -79,6 +79,16 @@ return [
         'private_key' => env('VAPID_PRIVATE_KEY'),
     ],
 
+    'referral' => [
+        // Crédit Sub.ci du parrain quand son filleul est accepté par un hôte (déduit de ses paiements, non retirable).
+        'reward' => (int) env('REFERRAL_REWARD', 500),
+        'monthly_cap' => (int) env('REFERRAL_MONTHLY_CAP', 10),
+        // Frais de service offerts au filleul jusqu'à sa première acceptation.
+        'waive_fee' => (bool) env('REFERRAL_WAIVE_FEE', true),
+        // Montant minimum réellement payé après crédit (la passerelle refuse les paiements à 0).
+        'min_payable' => (int) env('REFERRAL_MIN_PAYABLE', 200),
+    ],
+
     'admin' => [
         // Double authentification obligatoire pour l'administration.
         'require_2fa' => (bool) env('ADMIN_REQUIRE_2FA', true),

@@ -97,6 +97,12 @@ export function UserPage() {
             <span>· Code {u.referralCode}</span>
             <span>· Inscrit le {date(u.createdAt)}</span>
             <span>· {u.devices} appareil(s) avec notifications</span>
+            {u.referral && (
+              <span>
+                · {u.referral.friends} filleul(s){u.referral.credit ? ` · ${fcfa(u.referral.credit)} F de crédit` : ''}
+                {u.referral.referredBy ? ` · parrainé·e par ${u.referral.referredBy}` : ''}
+              </span>
+            )}
           </p>
         </div>
         {u.suspendedAt ? (

@@ -23,7 +23,7 @@ class JoinService
 {
     private const MEMBER_COLORS = ['#FFB38F', '#9FD7BE', '#C9B8F2', '#F7D774', '#9CC7F2'];
 
-    public function __construct(private EarningService $earnings) {}
+    public function __construct(private EarningService $earnings, private ReferralService $referrals) {}
 
     /** Appelé quand le paiement d'un nouvel arrivant est confirmé. */
     public function open(Payment $payment): JoinRequest
@@ -87,6 +87,8 @@ class JoinService
 
             // Séquestre : versé à l'hôte mois par mois (voir EarningService).
             $this->earnings->schedule($offer, $payment, $member, $from);
+            // Premier « oui » d'un hôte pour un filleul : son parrain est récompensé.
+            $this->referrals->reward($member);
 
             $short = Str::before($offer->service->name, ' ');
             $host = $offer->user->shortName();
@@ -129,6 +131,8 @@ class JoinService
             // Pas d'API de remboursement chez la passerelle : remboursement manuel (payouts:*).
             $manual = (bool) config('services.payments.manual_payouts');
             $payment->update(['refunded_at' => now()]);
+            // Le membre récupère ce qu'il a payé, et son crédit parrainage.
+            $this->referrals->restoreCredit($payment);
             $member->payments()->create([
                 'type' => PaymentType::Refund,
                 'status' => $manual ? PaymentStatus::Pending : PaymentStatus::Succeeded,

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
-import { ApiError, UNAUTHORIZED_EVENT, api, getToken, setToken, toJoinRequest, toNotif, toOffer, toPayment, toPending, toSub, type ApiHost, type ApiUser, type Bootstrap, type IssueReason, type PendingPayment } from './api'
+import { ApiError, UNAUTHORIZED_EVENT, api, getToken, setToken, toJoinRequest, toNotif, toOffer, toPayment, toPending, toSub, type ApiHost, type ApiUser, type Bootstrap, type IssueReason, type PendingPayment, type Referral } from './api'
 import { getService, setCatalog, type Device, type PayMethodId, type Service } from './data'
 import { daysLeft } from './format'
 import { subscribePush, unsubscribePush } from './push'
@@ -139,6 +139,7 @@ export type State = {
   holdHours: number
   /** Frais de service Sub.ci ajoutés à chaque paiement */
   serviceFee: number
+  referral: Referral | null
   payout: { method: PayMethodId; phone: string }
   offers: HostOffer[]
   requests: JoinRequest[]
@@ -155,6 +156,8 @@ export type State = {
 }
 
 const KEY = 'subci:v2'
+/** Code de parrainage reçu par lien (?ref=), appliqué après l'inscription. */
+export const REF_KEY = 'subci:ref'
 
 const DEFAULT_SETTINGS: Settings = { notifDue: true, notifSeats: true, notifPromo: false, biometric: true, hideAccess: 'always', dataSaver: 'auto' }
 
@@ -174,6 +177,7 @@ function empty(): State {
     trusted: false,
     holdHours: 48,
     serviceFee: 200,
+    referral: null,
     payout: { method: 'wave', phone: '' },
     offers: [],
     requests: [],
@@ -210,6 +214,7 @@ function userPart(u: ApiUser): Partial<State> {
     user: { id: u.id, name: u.name, firstName: u.firstName, lastName: u.lastName, phone: u.phone, referralCode: u.referralCode },
     balance: u.balance,
     payout: u.payout,
+    referral: u.referral ?? null,
     lastMethod: u.lastMethod,
     settings: u.settings,
   }
@@ -429,6 +434,16 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
       const { data } = await api.updatePayout({ method, phone, code })
       dispatch({ type: 'patch', patch: userPart(data) })
       await sync().catch(() => {})
+    },
+    /** Code d'un ami : frais de service offerts jusqu'à la 1re acceptation. */
+    async applyReferral(code: string) {
+      const { data } = await api.applyReferral(code)
+      dispatch({ type: 'patch', patch: userPart(data) })
+      try {
+        localStorage.removeItem(REF_KEY)
+      } catch {
+        /* stockage indisponible */
+      }
     },
     async logoutOthers() {
       return (await api.logoutOthers()).revoked

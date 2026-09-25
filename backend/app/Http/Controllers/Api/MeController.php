@@ -8,6 +8,7 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Notifications\AppNotification;
 use App\Services\OtpService;
+use App\Services\ReferralService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -27,6 +28,15 @@ class MeController extends Controller
             'ttl' => config('services.otp.ttl'),
             'debugCode' => config('services.otp.expose_code') ? $code : null,
         ]);
+    }
+
+    /** Saisir le code de parrainage d'un ami (avant le premier abonnement). */
+    public function referral(Request $request, ReferralService $referrals): UserResource
+    {
+        $data = $request->validate(['code' => ['required', 'string', 'max:16']]);
+        $referrals->apply($request->user(), $data['code']);
+
+        return new UserResource($request->user()->fresh());
     }
 
     /** « Déconnecter mes autres appareils » (téléphone perdu, session volée). */

@@ -187,11 +187,12 @@ export function Profile() {
   const code = user.referralCode
 
   const share = async () => {
-    const text = `Rejoins-moi sur Sub.ci avec le code ${code} : 1 000 FCFA offerts chacun.`
+    const url = `${location.origin}/?ref=${encodeURIComponent(code)}`
+    const text = `Rejoins-moi sur Sub.ci : tes abonnements (Netflix, Spotify…) à prix partagé, en mobile money. Avec mon code ${code}, tes frais de service sont offerts.`
     try {
-      if (navigator.share) await navigator.share({ title: 'Sub.ci', text, url: location.origin })
+      if (navigator.share) await navigator.share({ title: 'Sub.ci', text, url })
       else {
-        await navigator.clipboard.writeText(text)
+        await navigator.clipboard.writeText(`${text} ${url}`)
         toast({ tone: 'ink', text: 'Code copié', action: { label: 'OK', onClick: () => {} } })
       }
     } catch {
@@ -239,15 +240,7 @@ export function Profile() {
             </>
           )}
         </div>
-        <div className="flex flex-col gap-3 rounded-card bg-brand p-[18px]">
-          <span className="font-display text-xl leading-[1.15] font-bold">Invite un ami, gagnez 1 000 FCFA chacun</span>
-          <div className="flex gap-2">
-            <span className="flex h-11 flex-1 items-center rounded-tile bg-white px-3.5 text-[15px] font-extrabold tracking-[0.06em]">{code}</span>
-            <button type="button" onClick={share} className="pressable flex h-11 items-center rounded-tile bg-ink px-4 text-sm font-bold text-white">
-              Partager
-            </button>
-          </div>
-        </div>
+        <ReferralCard code={code} onShare={share} />
         <Card className="px-[18px]">
           <ListLink label="Partager & gagner" hint={state.offers.length ? `${fcfa(state.balance)} FCFA` : undefined} onClick={() => navigate(state.offers.length ? '/subs?mode=host' : '/host', { viewTransition: true })} />
           <ListLink label="Moyens de paiement" hint={getMethod(state.lastMethod).name} onClick={() => navigate('/settings', { viewTransition: true })} />
@@ -394,5 +387,83 @@ function Stat({ value, label, hint, onClick }: { value: string; label: string; h
         {hint && <span className="text-[12px] font-bold text-brand-ink">{hint}</span>}
       </Card>
     </button>
+  )
+}
+
+/** Parrainage : l'ami ne paie pas les frais, le parrain gagne du crédit à son 1er « oui » d'un hôte. */
+function ReferralCard({ code, onShare }: { code: string; onShare: () => void }) {
+  const { state, actions } = useStore()
+  const toast = useToast()
+  const r = state.referral
+  const reward = r?.reward ?? 500
+  const [friend, setFriend] = useState('')
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <div className="flex flex-col gap-3 rounded-card bg-brand p-[18px]">
+      <div className="flex flex-col gap-1">
+        <span className="font-display text-xl leading-[1.15] font-bold">Invite un ami, gagne {fcfa(reward)} FCFA</span>
+        <span className="text-[13px] leading-snug font-semibold text-ink/75">
+          Ton ami ne paie pas les frais de service. Toi, tu reçois {fcfa(reward)} F de crédit dès qu’un hôte l’accepte, déduits de ton prochain paiement.
+        </span>
+      </div>
+      <div className="flex gap-2">
+        <span className="flex h-11 flex-1 items-center rounded-tile bg-white px-3.5 text-[15px] font-extrabold tracking-[0.06em]">{code}</span>
+        <button type="button" onClick={onShare} className="pressable flex h-11 items-center rounded-tile bg-ink px-4 text-sm font-bold text-white">
+          Partager
+        </button>
+      </div>
+      {r && (r.friends > 0 || r.pending > 0 || r.credit > 0) && (
+        <div className="grid grid-cols-2 gap-2 text-ink">
+          <span className="flex flex-col rounded-tile bg-white/55 px-3 py-2">
+            <span className="font-display text-lg leading-none font-extrabold">{r.friends}</span>
+            <span className="text-[12px] font-semibold">
+              ami{r.friends > 1 ? 's' : ''} parrainé{r.friends > 1 ? 's' : ''}{r.pending > 0 ? ` · ${r.pending} en route` : ''}
+            </span>
+          </span>
+          <span className="flex flex-col rounded-tile bg-white/55 px-3 py-2">
+            <span className="font-display text-lg leading-none font-extrabold">{fcfa(r.credit)} F</span>
+            <span className="text-[12px] font-semibold">de crédit à utiliser</span>
+          </span>
+        </div>
+      )}
+      {r?.referredBy && <span className="text-[12px] font-semibold text-ink/75">Parrainé·e par {r.referredBy}{r.feeWaived ? ' · tes frais de service sont offerts' : ''}</span>}
+      {r?.canApply &&
+        (open ? (
+          <form
+            className="flex gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              setBusy(true)
+              try {
+                await actions.applyReferral(friend)
+                toast({ tone: 'success', text: 'Code appliqué : tes frais de service sont offerts' })
+                setOpen(false)
+              } catch (err) {
+                toast({ tone: 'error', text: errorMessage(err) })
+              } finally {
+                setBusy(false)
+              }
+            }}
+          >
+            <input
+              autoFocus
+              value={friend}
+              onChange={(e) => setFriend(e.target.value.toUpperCase().slice(0, 16))}
+              placeholder="Code de ton ami"
+              aria-label="Code de parrainage d’un ami"
+              className="h-11 min-w-0 flex-1 rounded-tile bg-white px-3.5 text-[15px] font-bold tracking-[0.06em] outline-none placeholder:font-medium placeholder:tracking-normal"
+            />
+            <button type="submit" disabled={busy || friend.length < 4} className="pressable h-11 rounded-tile bg-ink px-4 text-sm font-bold text-white disabled:opacity-50">
+              OK
+            </button>
+          </form>
+        ) : (
+          <button type="button" onClick={() => setOpen(true)} className="self-start text-[13px] font-bold underline">
+            Un ami t’a donné son code ?
+          </button>
+        ))}
+    </div>
   )
 }

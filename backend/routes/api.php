@@ -89,6 +89,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('me', [MeController::class, 'show']);
         Route::patch('me', [MeController::class, 'update']);
+        Route::post('me/referral', [MeController::class, 'referral'])->middleware('throttle:5,1');
         Route::post('me/payout/code', [MeController::class, 'payoutCode'])->middleware('throttle:3,1');
         Route::post('auth/logout-others', [MeController::class, 'logoutOthers']);
 

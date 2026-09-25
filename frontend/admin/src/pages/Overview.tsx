@@ -71,6 +71,9 @@ export function Overview() {
             />
             <MoneyRow label="Soldes des hôtes" value={money.hostBalances} hint="dû aux hôtes, retirable" />
             <MoneyRow label="Versements à faire" value={money.payoutsPending} hint="remboursements + retraits demandés" strong />
+            {money.referralCredit !== undefined && (
+              <MoneyRow label="Crédits parrainage" value={money.referralCredit} hint={`non utilisés · ${money.referralsMonth ?? 0} parrainage(s) ce mois`} />
+            )}
           </div>
         </Panel>
       </div>

@@ -40,7 +40,7 @@ function Field({ label, value, onChange, error, autoComplete, autoFocus, placeho
 }
 
 /** Prénom + nom — validés et mis en forme côté API (« n'guessan » → « N'Guessan »). */
-export function NameForm({ submitLabel, onDone, footer, className }: { submitLabel: string; onDone: () => void; footer?: ReactNode; className?: string }) {
+export function NameForm({ submitLabel, onDone, footer, extra, className }: { submitLabel: string; onDone: () => void; footer?: ReactNode; extra?: ReactNode; className?: string }) {
   const { state, actions } = useStore()
   const [first, setFirst] = useState(state.user?.firstName ?? '')
   const [last, setLast] = useState(state.user?.lastName ?? '')
@@ -77,6 +77,7 @@ export function NameForm({ submitLabel, onDone, footer, className }: { submitLab
         <Field label="Prénom" value={first} onChange={(v) => { setFirst(v); setErrors((x) => ({ ...x, first: undefined })) }} error={errors.first} autoComplete="given-name" placeholder="Aya" autoFocus />
         <Field label="Nom" value={last} onChange={(v) => { setLast(v); setErrors((x) => ({ ...x, last: undefined })) }} error={errors.last} autoComplete="family-name" placeholder="Koné" />
         {errors.global && <span className="text-[13px] font-semibold text-err-ink">{errors.global}</span>}
+        {extra}
       </div>
       <div className={cx('flex flex-col gap-3.5', footer !== undefined ? 'mt-auto pt-8' : 'pt-5')}>
         <Button type="submit" loading={loading} disabled={!first.trim() || !last.trim()}>

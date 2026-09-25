@@ -5,7 +5,7 @@ import { NameForm } from '../components/NameForm'
 import { useToast } from '../components/Toast'
 import { Button, Screen, Wordmark, cx } from '../components/ui'
 import { useCountdown, mmss } from '../lib/hooks'
-import { errorMessage, useStore } from '../lib/store'
+import { REF_KEY, errorMessage, useStore } from '../lib/store'
 
 /* ---------- 02 · Onboarding ---------- */
 
@@ -254,8 +254,29 @@ export function Login() {
 /** Juste après la vérification du numéro : on sait à qui on parle. */
 export function NameSetup() {
   const navigate = useNavigate()
-  const { state } = useStore()
+  const toast = useToast()
+  const { state, actions } = useStore()
+  const [ref, setRef] = useState(() => {
+    try {
+      return localStorage.getItem(REF_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  })
   if (state.user?.firstName && state.user?.lastName) return <Navigate to="/home" replace />
+
+  const done = async () => {
+    const code = ref.trim()
+    if (code && state.referral?.canApply !== false) {
+      try {
+        await actions.applyReferral(code)
+        toast({ tone: 'success', text: 'Code appliqué : tes frais de service sont offerts' })
+      } catch (e) {
+        toast({ tone: 'error', text: `Code de parrainage : ${errorMessage(e)}` })
+      }
+    }
+    navigate('/home', { replace: true })
+  }
 
   return (
     <Screen>
@@ -267,7 +288,25 @@ export function NameSetup() {
             <p className="text-base leading-normal font-medium text-muted">Ton nom apparaît auprès des membres de tes groupes et sur tes reçus.</p>
           </div>
         </div>
-        <NameForm className="flex-1 pt-7" submitLabel="C’est parti" footer={null} onDone={() => navigate('/home', { replace: true })} />
+        <NameForm
+          className="flex-1 pt-7"
+          submitLabel="C’est parti"
+          footer={null}
+          extra={
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-bold text-muted">Code d’un ami (facultatif)</span>
+              <input
+                value={ref}
+                onChange={(e) => setRef(e.target.value.toUpperCase().slice(0, 16))}
+                placeholder="AYA-7K2"
+                autoCapitalize="characters"
+                className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 text-base font-bold tracking-[0.06em] outline-none placeholder:font-medium placeholder:tracking-normal placeholder:text-subtle focus:border-2 focus:border-ink"
+              />
+              <span className="text-[12px] font-semibold text-muted">Tes frais de service sont offerts ; ton ami gagne du crédit.</span>
+            </label>
+          }
+          onDone={done}
+        />
       </div>
     </Screen>
   )

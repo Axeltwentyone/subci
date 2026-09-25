@@ -77,6 +77,8 @@ class DisputeService
 
             if ($status === DisputeStatus::Refunded) {
                 [$amount, $paidUntil] = $this->earnings->refundUnreleased($sub, "{$short} · souci d’accès");
+                // Filleul remboursé peu après son arrivée : la récompense du parrain est reprise.
+                app(ReferralService::class)->cancelIfRefunded($sub->user);
                 // L'accès s'arrête là où l'hôte a été payé ; le membre est sorti du cercle.
                 $ends = $paidUntil && $paidUntil->isFuture() ? $paidUntil : now();
                 $sub->update(['ends_at' => $ends->min($sub->ends_at), 'auto_renew' => false, 'host_offer_id' => null]);

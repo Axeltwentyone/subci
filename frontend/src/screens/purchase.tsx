@@ -56,8 +56,11 @@ export function Checkout() {
 
   const monthly = current ? current.price : s.chooseOffer ? offer?.price : s.price
   const subtotal = monthly ? durationPrice(monthly, months) : 0
-  // Frais de service Sub.ci, payés par le membre à chaque paiement.
-  const amount = subtotal ? subtotal + state.serviceFee : 0
+  // Frais de service Sub.ci (offerts au filleul), moins le crédit parrainage (le serveur recalcule tout).
+  const feeWaived = !!state.referral?.feeWaived
+  const fee = feeWaived ? 0 : state.serviceFee
+  const credit = subtotal ? Math.max(0, Math.min(state.referral?.credit ?? 0, subtotal + fee - 200)) : 0
+  const amount = subtotal ? subtotal + fee - credit : 0
   // Apple Music : l'hôte invite l'identifiant Apple du membre dans son Partage familial.
   const needsAppleId = !current && (offer?.invite ?? s.invite) === 'email'
   const appleIdOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(appleId.trim())
@@ -179,8 +182,14 @@ export function Checkout() {
           </div>
           {state.serviceFee > 0 && (
             <div className="flex justify-between">
-              <span>Frais de service Sub.ci</span>
-              <span className="tabular-nums">{fcfa(state.serviceFee)} FCFA</span>
+              <span>Frais de service Sub.ci{feeWaived ? ' · offerts (parrainage)' : ''}</span>
+              <span className="tabular-nums">{feeWaived ? <s>{fcfa(state.serviceFee)} FCFA</s> : `${fcfa(fee)} FCFA`}</span>
+            </div>
+          )}
+          {credit > 0 && (
+            <div className="flex justify-between text-ok-ink">
+              <span>Crédit parrainage</span>
+              <span className="tabular-nums">−{fcfa(credit)} FCFA</span>
             </div>
           )}
           <div className="flex justify-between text-ink">
