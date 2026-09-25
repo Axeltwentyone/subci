@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // API en jeton (Sanctum) : pas de redirection vers une page de login, un 401 JSON.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/');
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'member' => \App\Http\Middleware\EnsureMember::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

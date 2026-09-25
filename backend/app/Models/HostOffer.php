@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id', 'service_id', 'plan', 'plan_label', 'devices', 'quality', 'seats', 'price', 'access_mode', 'access_email', 'access_password',
-    'proof_path', 'status', 'approved_at',
+    'proof_path', 'status', 'approved_at', 'rejection_reason',
 ])]
 #[Hidden(['access_email', 'access_password', 'proof_path'])]
 class HostOffer extends Model

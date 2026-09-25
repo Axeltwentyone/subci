@@ -1,0 +1,10 @@
+/* Mêmes tokens que la PWA (couleurs, typo, rayons), sans rien dupliquer. */
+@import '../../src/index.css';
+@source '../../src';
+@source '.';
+
+@layer base {
+  body { background: var(--color-canvas); overscroll-behavior-y: auto; }
+}
+
+@utility tabular { font-variant-numeric: tabular-nums; }

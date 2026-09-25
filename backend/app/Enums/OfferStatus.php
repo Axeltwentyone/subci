@@ -11,6 +11,8 @@ enum OfferStatus: string
     case Paused = 'paused';
     /** L'hôte arrête de partager : les membres gardent l'accès jusqu'à leur échéance. */
     case Closed = 'closed';
+    /** Preuve refusée en modération (motif dans rejection_reason). */
+    case Rejected = 'rejected';
 
     /** Les places libres de l'offre sont-elles proposées dans le catalogue ? */
     public function isOpen(): bool

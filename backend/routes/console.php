@@ -80,3 +80,17 @@ Illuminate\Support\Facades\Artisan::command('payouts:done {reference}', function
 Illuminate\Support\Facades\Artisan::command('payments:reconcile', function () {
     $this->info(app(App\Services\PaymentService::class)->reconcile().' paiement(s) en attente relu(s).');
 })->purpose('Relire les paiements en attente chez la passerelle');
+
+// Créer (ou réinitialiser) un compte d'administration.
+Illuminate\Support\Facades\Artisan::command('admin:create {email} {--name=}', function (string $email) {
+    $password = $this->secret('Mot de passe (12 caractères minimum)');
+    if (strlen((string) $password) < 12) {
+        return $this->error('Mot de passe trop court (12 caractères minimum).');
+    }
+    $admin = App\Models\Admin::updateOrCreate(['email' => strtolower($email)], [
+        'name' => $this->option('name') ?: Illuminate\Support\Str::before($email, '@'),
+        'password' => $password,
+    ]);
+    $admin->tokens()->delete();
+    $this->info("Compte admin prêt : {$admin->email}");
+})->purpose('Créer un compte d’administration');

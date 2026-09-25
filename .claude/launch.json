@@ -37,6 +37,15 @@
         "--strictPort"
       ],
       "port": 4173
+    },
+    {
+      "name": "subci-admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "admin:dev"
+      ],
+      "port": 5174
     }
   ]
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BootstrapController;
 use App\Http\Controllers\Api\GeniusPayWebhookController;
@@ -15,6 +16,44 @@ use App\Http\Controllers\Api\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+    // ---------- Administration (comptes Admin, jamais les membres) ----------
+    Route::prefix('admin')->group(function () {
+        Route::post('auth/login', [Admin\AuthController::class, 'login'])->middleware('throttle:10,1');
+
+        Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+            Route::get('auth/me', [Admin\AuthController::class, 'me']);
+            Route::post('auth/logout', [Admin\AuthController::class, 'logout']);
+
+            Route::get('overview', Admin\OverviewController::class);
+            Route::get('search', [Admin\MiscController::class, 'search']);
+
+            Route::get('offers', [Admin\OfferController::class, 'index']);
+            Route::get('offers/{offer}', [Admin\OfferController::class, 'show']);
+            Route::get('offers/{offer}/proof', [Admin\OfferController::class, 'proof']);
+            Route::post('offers/{offer}/approve', [Admin\OfferController::class, 'approve']);
+            Route::post('offers/{offer}/reject', [Admin\OfferController::class, 'reject']);
+            Route::post('offers/{offer}/toggle', [Admin\OfferController::class, 'toggle']);
+
+            Route::get('payments', [Admin\PaymentController::class, 'index']);
+            Route::get('payouts', [Admin\PaymentController::class, 'payouts']);
+            Route::post('payments/{payment}/paid', [Admin\PaymentController::class, 'markPaid']);
+            Route::post('payments/{payment}/reconcile', [Admin\PaymentController::class, 'reconcile']);
+
+            Route::get('users', [Admin\UserController::class, 'index']);
+            Route::get('users/{user}', [Admin\UserController::class, 'show']);
+            Route::post('users/{user}/suspend', [Admin\UserController::class, 'suspend']);
+            Route::post('users/{user}/unsuspend', [Admin\UserController::class, 'unsuspend']);
+
+            Route::get('requests', [Admin\MiscController::class, 'requests']);
+            Route::post('requests/{joinRequest}/decline', [Admin\MiscController::class, 'declineRequest']);
+
+            Route::get('services', [Admin\MiscController::class, 'services']);
+            Route::patch('services/{service:id}', [Admin\MiscController::class, 'updateService']);
+
+            Route::get('audit', [Admin\MiscController::class, 'audit']);
+        });
+    });
+
     // Public
     Route::post('auth/otp', [AuthController::class, 'sendCode'])->middleware('throttle:otp');
     Route::post('auth/verify', [AuthController::class, 'verify'])->middleware('throttle:otp-verify');
@@ -24,7 +63,7 @@ Route::prefix('v1')->group(function () {
     Route::get('push/key', [PushController::class, 'key']);
     Route::post('webhooks/geniuspay', GeniusPayWebhookController::class)->middleware('throttle:120,1');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'member'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('bootstrap', BootstrapController::class);
 

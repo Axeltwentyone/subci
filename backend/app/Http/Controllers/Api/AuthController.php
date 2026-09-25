@@ -42,6 +42,7 @@ class AuthController extends Controller
         }
 
         $user = User::firstOrCreate(['phone' => $data['phone']]);
+        abort_if($user->suspended_at !== null, 403, 'Ton compte est suspendu. Contacte le support Sub.ci.');
         $user->forceFill(['phone_verified_at' => now()])->save();
 
         return response()->json([

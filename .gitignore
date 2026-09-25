@@ -30,3 +30,4 @@ dist-ssr
 
 # Service worker généré par vite-plugin-pwa en dev
 dev-dist
+dist-admin

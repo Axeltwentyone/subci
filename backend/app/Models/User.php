@@ -70,6 +70,7 @@ class User extends Authenticatable
             'settings' => 'array',
             'balance' => 'integer',
             'removals_count' => 'integer',
+            'suspended_at' => 'datetime',
             'payout_method' => PayMethod::class,
             'last_pay_method' => PayMethod::class,
         ];
