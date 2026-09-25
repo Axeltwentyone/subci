@@ -217,6 +217,12 @@ function Split({ id, amount }: { id: number; amount: number }) {
           <span className="text-muted">Payé par le membre</span>
           <span className="tabular font-bold">{fcfa(amount)} FCFA</span>
         </div>
+        {data.serviceFee > 0 && (
+          <div className="flex justify-between font-semibold">
+            <span className="text-muted">Frais de service Sub.ci</span>
+            <span className="tabular font-bold">{fcfa(data.serviceFee)} FCFA</span>
+          </div>
+        )}
         <div className="flex justify-between font-semibold">
           <span className="text-muted">Commission Sub.ci (10 %)</span>
           <span className="tabular font-bold">{fcfa(data.commission)} FCFA</span>

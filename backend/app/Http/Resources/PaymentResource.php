@@ -21,6 +21,7 @@ class PaymentResource extends JsonResource
             'status' => $this->status,
             'label' => $this->label,
             'amount' => $this->amount,
+            'serviceFee' => (int) $this->service_fee,
             'months' => $this->months,
             'method' => $this->method,
             'phone' => $this->phone,

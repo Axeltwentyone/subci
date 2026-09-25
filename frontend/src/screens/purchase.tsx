@@ -55,7 +55,9 @@ export function Checkout() {
   if (!current && !offerId && s.chooseOffer) return <Navigate to={`/service/${id}`} replace />
 
   const monthly = current ? current.price : s.chooseOffer ? offer?.price : s.price
-  const amount = monthly ? durationPrice(monthly, months) : 0
+  const subtotal = monthly ? durationPrice(monthly, months) : 0
+  // Frais de service Sub.ci, payés par le membre à chaque paiement.
+  const amount = subtotal ? subtotal + state.serviceFee : 0
   // Apple Music : l'hôte invite l'identifiant Apple du membre dans son Partage familial.
   const needsAppleId = !current && (offer?.invite ?? s.invite) === 'email'
   const appleIdOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(appleId.trim())
@@ -170,14 +172,24 @@ export function Checkout() {
         </div>
       </div>
       <StickyAction className="flex flex-col gap-2.5">
-        <div className="flex justify-between text-sm font-semibold text-muted">
-          <span>
-            {months} mois · frais 0 FCFA
-          </span>
-          <span className="flex items-center gap-1.5">
-            <IconLock size={14} />
-            Sécurisé
-          </span>
+        <div className="flex flex-col gap-1 text-sm font-semibold text-muted">
+          <div className="flex justify-between">
+            <span>Abonnement · {months} mois</span>
+            <span className="tabular-nums">{fcfa(subtotal)} FCFA</span>
+          </div>
+          {state.serviceFee > 0 && (
+            <div className="flex justify-between">
+              <span>Frais de service Sub.ci</span>
+              <span className="tabular-nums">{fcfa(state.serviceFee)} FCFA</span>
+            </div>
+          )}
+          <div className="flex justify-between text-ink">
+            <span className="flex items-center gap-1.5 font-bold">
+              <IconLock size={14} />
+              Total sécurisé
+            </span>
+            <span className="tabular-nums font-bold">{fcfa(amount)} FCFA</span>
+          </div>
         </div>
         <Button onClick={pay} loading={loading} disabled={!monthly}>
           {loading ? 'Paiement…' : `Payer ${fcfa(amount)} FCFA`}

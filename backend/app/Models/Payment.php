@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'gross', 'months',
+    'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'service_fee', 'gross', 'months',
     'method', 'phone', 'invite_email', 'provider_reference', 'checkout_url', 'return_url', 'period_start', 'period_end', 'expires_at', 'available_at', 'held_at',
     'confirmed_at', 'refunded_at',
 ])]
@@ -47,6 +47,7 @@ class Payment extends Model
             'method' => PayMethod::class,
             'amount' => 'integer',
             'gross' => 'integer',
+            'service_fee' => 'integer',
             'invite_email' => 'encrypted',
             'available_at' => 'datetime',
             'held_at' => 'datetime',
@@ -74,6 +75,12 @@ class Payment extends Model
     public function scopeEscrowed(Builder $query): void
     {
         $query->where('type', PaymentType::Earning)->where('status', PaymentStatus::Pending);
+    }
+
+    /** Part qui revient au cercle (prix de l'hôte), hors frais de service Sub.ci. */
+    public function offerAmount(): int
+    {
+        return $this->amount - (int) $this->service_fee;
     }
 
     public function source(): BelongsTo

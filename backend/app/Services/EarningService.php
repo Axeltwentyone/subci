@@ -28,13 +28,15 @@ class EarningService
     {
         $host = $offer->user;
         $months = max(1, (int) $payment->months);
-        $base = intdiv($payment->amount, $months);
+        // L'hôte touche 90 % du prix de son offre ; les frais de service restent à Sub.ci.
+        $total = $payment->offerAmount();
+        $base = intdiv($total, $months);
         $hold = $host->holdHours();
         $short = Str::before($offer->service->name, ' ');
 
         for ($k = 0; $k < $months; $k++) {
             // Le dernier mois récupère l'arrondi.
-            $gross = $k === $months - 1 ? $payment->amount - $base * ($months - 1) : $base;
+            $gross = $k === $months - 1 ? $total - $base * ($months - 1) : $base;
             $host->payments()->create([
                 'type' => PaymentType::Earning,
                 'status' => PaymentStatus::Pending,
@@ -53,7 +55,7 @@ class EarningService
             ]);
         }
 
-        $net = (int) round($payment->amount * (1 - HostOffer::FEE));
+        $net = (int) round($total * (1 - HostOffer::FEE));
         $first = $from->copy()->addHours($hold);
         $host->notify(new AppNotification('host', 'Paiement reçu',
             '+'.self::fcfa($net)." · {$short}, {$payment->months} mois. Disponible ".($months > 1 ? 'mois par mois, dès le ' : 'le ').$first->translatedFormat('j M').'.'));

@@ -46,6 +46,8 @@ return [
         'request_ttl' => (int) env('PAYMENTS_REQUEST_TTL', 102),
         // GeniusPay n'expose pas d'API de remboursement ni de versement à un tiers :
         // remboursements et retraits des hôtes sont alors traités à la main (payouts:*).
+        // Frais de service Sub.ci ajoutés à chaque paiement de membre (couvrent les frais fixes de la passerelle).
+        'service_fee' => (int) env('SERVICE_FEE', 200),
         // Séquestre : chaque mois payé est versé à l'hôte au début du mois + ce délai (litige possible avant).
         'hold_hours' => (int) env('PAYMENTS_HOLD_HOURS', 48),
         // Hôte fiable (3 mois d'activité, 3 mois déjà versés, aucun souci fondé depuis 90 jours) : délai réduit.

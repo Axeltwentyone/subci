@@ -106,6 +106,33 @@ class CheckoutTest extends TestCase
         $this->assertSame(4104, $this->host->fresh()->balance);
     }
 
+    public function test_service_fee_is_paid_by_member_kept_by_subci_and_refunded_if_declined(): void
+    {
+        config(['services.payments.service_fee' => 200]);
+        $offer = $this->offer();
+        $member = User::factory()->create();
+        $this->actingAs($member);
+        $this->getJson('/api/v1/bootstrap')->assertJsonPath('config.serviceFee', 200);
+
+        // 3 mois à 2 400 : 6 840 pour le cercle + 200 de frais de service = 7 040 payés.
+        $request = $this->payFor($offer, 3);
+        $payment = $request->payment;
+        $this->assertSame(7040, $payment->amount);
+        $this->assertSame(200, $payment->service_fee);
+        $this->asHost()->getJson('/api/v1/host')->assertJsonPath('data.offers.0.requests.0.amount', 6840);
+
+        // L'hôte touche 90 % du prix de son offre, sans rien sur les frais.
+        $this->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk();
+        $this->assertSame(6156, $this->getJson('/api/v1/host')->json('data.pending'));
+
+        // Refusé : le membre récupère tout, frais compris.
+        $other = User::factory()->create();
+        $this->actingAs($other);
+        $second = $this->payFor($offer, 1);
+        $this->asHost()->postJson("/api/v1/host/requests/{$second->id}/decline")->assertOk();
+        $this->assertSame(2600, $other->payments()->where('type', 'refund')->value('amount'));
+    }
+
     public function test_decline_refunds_member_and_frees_seat(): void
     {
         $offer = $this->offer('netflix', ['seats' => 1]);

@@ -36,6 +36,9 @@ class OverviewController extends Controller
             ->whereBetween('created_at', [$from, $to])->sum('amount');
         // Commission = part gardée sur les paiements reversés aux hôtes (gain = montant × 90 %).
         $commission = fn (int $earned) => (int) round($earned / (1 - HostOffer::FEE) * HostOffer::FEE);
+        // Frais de service payés par les membres (paiements aboutis, non remboursés).
+        $fees = fn ($from, $to) => (int) Payment::where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)
+            ->whereNull('refunded_at')->whereBetween('confirmed_at', [$from, $to])->sum('service_fee');
 
         $gmv = $collected($month, $now);
         $gmvPrev = $collected($prev, $prev->endOfMonth());
@@ -54,7 +57,9 @@ class OverviewController extends Controller
         return response()->json([
             'kpis' => [
                 'gmv' => ['value' => $gmv, 'previous' => $gmvPrev],
-                'commission' => ['value' => $commission($earned), 'previous' => $commission($earnedPrev)],
+                // Revenu Sub.ci = 10 % des gains des hôtes + frais de service.
+                'commission' => ['value' => $commission($earned) + $fees($month, $now), 'previous' => $commission($earnedPrev) + $fees($prev, $prev->endOfMonth())],
+                'fees' => ['value' => $fees($month, $now), 'previous' => $fees($prev, $prev->endOfMonth())],
                 'members' => ['value' => Subscription::where('status', '!=', SubscriptionStatus::Expired)->distinct('user_id')->count('user_id')],
                 'hosts' => ['value' => HostOffer::where('status', OfferStatus::Live)->distinct('user_id')->count('user_id')],
                 'newUsers' => ['value' => User::where('created_at', '>=', $month)->count(), 'previous' => User::whereBetween('created_at', [$prev, $prev->endOfMonth()])->count()],

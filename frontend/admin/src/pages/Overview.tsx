@@ -27,7 +27,14 @@ export function Overview() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4 [&>:first-child]:max-lg:col-span-2">
         <Stat tone="ink" label="Encaissé ce mois" value={fcfa(kpis.gmv.value)} unit="FCFA" current={kpis.gmv.value} previous={kpis.gmv.previous} hint="vs mois dernier" />
-        <Stat label="Commission Sub.ci" value={fcfa(kpis.commission.value)} unit="FCFA" current={kpis.commission.value} previous={kpis.commission.previous} hint="10 % des paiements reversés" />
+        <Stat
+          label="Revenu Sub.ci"
+          value={fcfa(kpis.commission.value)}
+          unit="FCFA"
+          current={kpis.commission.value}
+          previous={kpis.commission.previous}
+          hint={kpis.fees ? `10 % + ${fcfa(kpis.fees.value)} F de frais de service` : '10 % des paiements reversés'}
+        />
         <Stat label="Membres actifs" value={fcfa(kpis.members.value)} hint="avec un abonnement en cours" />
         <Stat label="Hôtes actifs" value={fcfa(kpis.hosts.value)} hint="au moins une offre en ligne" />
         <Stat label="Inscriptions" value={fcfa(kpis.newUsers.value)} current={kpis.newUsers.value} previous={kpis.newUsers.previous} hint="ce mois" />

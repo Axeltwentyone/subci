@@ -2,13 +2,14 @@
 
 namespace App\Http\Resources;
 
+use App\Models\JoinRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Demande vue par le membre (onglet Mes abos) ou par l'hôte (Gérer l'offre).
  *
- * @mixin \App\Models\JoinRequest
+ * @mixin JoinRequest
  */
 class JoinRequestResource extends JsonResource
 {
@@ -21,7 +22,8 @@ class JoinRequestResource extends JsonResource
             'offerId' => (string) $this->host_offer_id,
             'serviceId' => $this->offer->service->slug,
             'status' => $this->status,
-            'amount' => $this->payment->amount,
+            // Ce qui revient au cercle (sans les frais de service Sub.ci).
+            'amount' => $this->payment->offerAmount(),
             'months' => $this->payment->months,
             'expiresAt' => $this->expires_at->toIso8601String(),
             'at' => $this->created_at->toIso8601String(),

@@ -81,7 +81,9 @@ class PaymentService
                 'subscription_id' => $current?->id,
                 'host_offer_id' => $offer->id,
                 'label' => "{$service->name} · {$months} mois",
-                'amount' => Service::durationPrice($offer->price, $months),
+                // Prix de l'hôte + frais de service Sub.ci (payés par le membre, gardés par Sub.ci).
+                'amount' => Service::durationPrice($offer->price, $months) + (int) config('services.payments.service_fee'),
+                'service_fee' => (int) config('services.payments.service_fee'),
                 'months' => $months,
                 'method' => $method,
                 'phone' => $method === PayMethod::Card ? null : $phone,

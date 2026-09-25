@@ -240,6 +240,7 @@ export type Bootstrap = {
   notifications: ApiNotif[]
   host: ApiHost
   requests: ApiRequest[]
+  config?: { serviceFee: number }
 }
 
 type Data<T> = { data: T }

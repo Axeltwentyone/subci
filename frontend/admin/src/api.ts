@@ -97,6 +97,8 @@ export type PaymentRow = {
   joinStatus: string | null
   /** Gain d'hôte : mois couvert, versement au solde, gel, paiement du membre d'origine. */
   gross: number | null
+  /** Frais de service Sub.ci inclus dans amount (paiement de membre) */
+  serviceFee: number
   periodStart: string | null
   availableAt: string | null
   heldAt: string | null
@@ -168,6 +170,7 @@ export type Overview = {
   kpis: {
     gmv: { value: number; previous: number }
     commission: { value: number; previous: number }
+    fees?: { value: number; previous: number }
     members: { value: number }
     hosts: { value: number }
     newUsers: { value: number; previous: number }
@@ -207,6 +210,7 @@ export type AuditRow = { id: number; admin: string; action: string; subjectType:
 export type PaymentSplit = {
   host: { id: number; name: string } | null
   commission: number
+  serviceFee: number
   refunded: number
   installments: { id: number; label: string; amount: number; gross: number | null; status: PaymentRow['status']; periodStart: string | null; availableAt: string | null; heldAt: string | null }[]
 }

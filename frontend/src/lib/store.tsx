@@ -137,6 +137,8 @@ export type State = {
   withdrawLockedUntil: number | null
   trusted: boolean
   holdHours: number
+  /** Frais de service Sub.ci ajoutés à chaque paiement */
+  serviceFee: number
   payout: { method: PayMethodId; phone: string }
   offers: HostOffer[]
   requests: JoinRequest[]
@@ -171,6 +173,7 @@ function empty(): State {
     withdrawLockedUntil: null,
     trusted: false,
     holdHours: 48,
+    serviceFee: 200,
     payout: { method: 'wave', phone: '' },
     offers: [],
     requests: [],
@@ -258,6 +261,7 @@ function reducer(s: State, a: Action): State {
         payments: d.payments.map(toPayment),
         notifs: d.notifications.map(toNotif),
         requests: (d.requests ?? []).map(toJoinRequest),
+        serviceFee: d.config?.serviceFee ?? s.serviceFee,
         lastSync: Date.now(),
         syncing: false,
       }

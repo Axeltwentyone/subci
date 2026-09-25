@@ -76,6 +76,7 @@ final class Presenter
         return [
             'host' => $earnings->first()?->user ? ['id' => $earnings->first()->user->id, 'name' => $earnings->first()->user->shortName()] : null,
             'commission' => (int) ($earnings->sum('gross') - $earnings->sum('amount')),
+            'serviceFee' => (int) $p->service_fee,
             'installments' => $earnings->map(fn (Payment $e) => [
                 'id' => $e->id,
                 'label' => $e->label,
@@ -101,6 +102,7 @@ final class Presenter
             'status' => $p->status->value,
             'label' => $p->label,
             'amount' => $p->amount,
+            'serviceFee' => (int) $p->service_fee,
             'months' => $p->months,
             'method' => $p->method->value,
             'methodLabel' => $p->method->label(),
@@ -169,7 +171,7 @@ final class Presenter
             'offerId' => $r->host_offer_id,
             'service' => ['id' => $r->offer->service->slug, 'name' => $r->offer->service->name, 'color' => $r->offer->service->color, 'fg' => $r->offer->service->fg, 'mono' => $r->offer->service->mono],
             'plan' => $r->offer->plan_label,
-            'amount' => $r->payment->amount,
+            'amount' => $r->payment->offerAmount(),
             'months' => $r->payment->months,
             'paymentRef' => $r->payment->reference,
             'expiresAt' => $r->expires_at->toIso8601String(),
