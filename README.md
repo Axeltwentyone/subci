@@ -100,3 +100,15 @@ et que le réglage correspondant est actif (Échéances & paiements, Places lib�
 ```bash
 cd backend && php artisan test     # SQLite en mémoire, ne touche pas MySQL
 ```
+
+## Administration
+
+Tableau de bord séparé de la PWA (`admin/`), servi sur http://localhost:5174.
+
+```bash
+cd backend && php artisan admin:create toi@exemple.ci   # demande le mot de passe (12 caractères min.)
+npm run admin:dev                                        # dev
+npm run admin:build                                      # build dans dist-admin/
+```
+
+Offres à valider (preuve d'abonnement), versements à faire à la main (remboursements et retraits : GeniusPay n'a pas d'API de virement), demandes en attente, paiements, utilisateurs (suspension), catalogue (prix, visibilité) et journal de toutes les actions. Session de 12 h, rangée dans l'onglet uniquement.
