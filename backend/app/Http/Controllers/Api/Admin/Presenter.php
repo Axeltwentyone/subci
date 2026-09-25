@@ -70,7 +70,7 @@ final class Presenter
         }
         $earnings = Payment::with('user')->where('source_payment_id', $p->id)->orderBy('available_at')->get();
         $refunds = Payment::where('type', PaymentType::Refund)->where('user_id', $p->user_id)
-            ->where(fn ($q) => $q->where('subscription_id', $p->subscription_id ?? 0)->orWhere('label', 'like', '%'.$p->reference.'%'))
+            ->where(fn ($q) => $q->where('subscription_id', $p->subscription_id ?? 0)->orWhereLike('label', '%'.$p->reference.'%'))
             ->where('created_at', '>=', $p->created_at)->get();
 
         return [

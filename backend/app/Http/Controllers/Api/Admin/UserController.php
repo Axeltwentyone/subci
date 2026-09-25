@@ -26,7 +26,7 @@ class UserController extends Controller
             ->withCount(['hostOffers as live_offers' => fn ($q) => $q->where('status', OfferStatus::Live)])
             ->withSum(['payments as total_paid' => fn ($q) => $q->where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)->whereNull('refunded_at')], 'amount')
             ->when($data['q'] ?? null, fn ($q, $term) => $q->where(fn ($q) => $q
-                ->where('name', 'like', "%{$term}%")->orWhere('phone', 'like', '%'.preg_replace('/\D/', '', $term).'%')->orWhere('referral_code', 'like', "%{$term}%")))
+                ->whereLike('name', "%{$term}%")->orWhereLike('phone', '%'.preg_replace('/\D/', '', $term).'%')->orWhereLike('referral_code', "%{$term}%")))
             ->when(($data['filter'] ?? null) === 'members', fn ($q) => $q->whereHas('subscriptions', fn ($s) => $s->where('status', '!=', SubscriptionStatus::Expired)))
             ->when(($data['filter'] ?? null) === 'hosts', fn ($q) => $q->whereHas('hostOffers', fn ($o) => $o->where('status', OfferStatus::Live)))
             ->when(($data['filter'] ?? null) === 'suspended', fn ($q) => $q->whereNotNull('suspended_at'))

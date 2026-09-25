@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // API en jeton (Sanctum) : pas de redirection vers une page de login, un 401 JSON.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/');
+        // Render (et tout hébergeur) est derrière un proxy : vraie IP du visiteur (limites) et HTTPS (HSTS).
+        $middleware->trustProxies(at: '*');
         $middleware->append(SecurityHeaders::class);
         // Limite globale : 240 requêtes / min par compte (ou par IP sans compte).
         $middleware->throttleApi('api');

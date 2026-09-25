@@ -29,8 +29,8 @@ class OfferController extends Controller
         $offers = HostOffer::with(self::RELATIONS)
             ->when($data['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
             ->when($data['q'] ?? null, fn ($q, $term) => $q->where(fn ($q) => $q
-                ->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$term}%")->orWhere('phone', 'like', "%{$term}%"))
-                ->orWhereHas('service', fn ($s) => $s->where('name', 'like', "%{$term}%"))))
+                ->whereHas('user', fn ($u) => $u->whereLike('name', "%{$term}%")->orWhereLike('phone', "%{$term}%"))
+                ->orWhereHas('service', fn ($s) => $s->whereLike('name', "%{$term}%"))))
             // En vérification : les plus anciennes d'abord (file d'attente).
             ->when(($data['status'] ?? null) === 'review', fn ($q) => $q->oldest(), fn ($q) => $q->latest())
             ->paginate(25);

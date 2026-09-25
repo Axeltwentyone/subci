@@ -114,3 +114,22 @@ npm run admin:build                                      # build dans dist-admin
 Sur téléphone : ouvre l'admin, puis « Ajouter à l'écran d'accueil » (icône orange). Dans **Plus → Notifications**, active les alertes sur l'appareil : paiement reçu, offre à valider, versement à faire, nouvelles inscriptions (au choix). Sur iPhone, les notifications ne marchent que depuis l'app installée, en HTTPS. Les alertes partent via la file d'attente : `php artisan queue:work` doit tourner (comme pour les notifications des membres).
 
 Offres à valider (preuve d'abonnement), versements à faire à la main (remboursements et retraits : GeniusPay n'a pas d'API de virement), demandes en attente, paiements, utilisateurs (suspension), catalogue (prix, visibilité) et journal de toutes les actions. Session de 12 h, rangée dans l'onglet uniquement.
+
+## Déploiement (Vercel + Render)
+
+- **API** : Render, image Docker (`backend/Dockerfile`) décrite dans `render.yaml` avec sa base Postgres. Nginx, PHP-FPM, la file d'attente et le planificateur tournent dans le même conteneur. Au démarrage : migrations puis catalogue des services (jamais les données de démo).
+- **PWA** et **admin** : deux projets Vercel sur ce dépôt, qui partagent `vercel.json` (réécriture SPA, en-têtes de sécurité).
+- **Preuves d'abonnement** : Cloudflare R2 (bucket privé, compatible S3).
+
+| Projet Vercel | Commande de build | Dossier de sortie | Variable |
+|---|---|---|---|
+| PWA | `npm run build` | `dist` | `VITE_API_URL=https://<api>.onrender.com/api/v1` |
+| Admin | `npm run admin:build` | `dist-admin` | `VITE_API_URL=https://<api>.onrender.com/api/v1` |
+
+Après le premier déploiement de l'API (Render → Shell) :
+
+```bash
+php artisan admin:create ton@email.ci
+```
+
+Webhook GeniusPay à déclarer : `https://<api>.onrender.com/api/v1/webhooks/geniuspay`.

@@ -152,13 +152,13 @@ class MiscController extends Controller
         $digits = preg_replace('/\D/', '', $term);
 
         return response()->json([
-            'users' => User::where('name', 'like', "%{$term}%")
-                ->when(strlen($digits) >= 3, fn ($q) => $q->orWhere('phone', 'like', "%{$digits}%"))
-                ->orWhere('referral_code', 'like', "%{$term}%")
+            'users' => User::whereLike('name', "%{$term}%")
+                ->when(strlen($digits) >= 3, fn ($q) => $q->orWhereLike('phone', "%{$digits}%"))
+                ->orWhereLike('referral_code', "%{$term}%")
                 ->limit(6)->get()->map(fn (User $u) => Presenter::user($u)),
-            'payments' => Payment::with('user', 'service')->where('reference', 'like', "%{$term}%")->orWhere('provider_reference', 'like', "%{$term}%")
+            'payments' => Payment::with('user', 'service')->whereLike('reference', "%{$term}%")->orWhereLike('provider_reference', "%{$term}%")
                 ->limit(6)->get()->map(fn (Payment $p) => Presenter::payment($p)),
-            'offers' => HostOffer::with('service', 'user', 'members', 'joinRequests')->whereHas('service', fn ($s) => $s->where('name', 'like', "%{$term}%"))
+            'offers' => HostOffer::with('service', 'user', 'members', 'joinRequests')->whereHas('service', fn ($s) => $s->whereLike('name', "%{$term}%"))
                 ->where('status', OfferStatus::Review)->limit(4)->get()->map(fn ($o) => Presenter::offer($o)),
         ]);
     }

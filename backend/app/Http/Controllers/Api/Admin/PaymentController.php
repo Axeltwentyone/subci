@@ -30,10 +30,10 @@ class PaymentController extends Controller
             ->when($data['type'] ?? null, fn ($q, $t) => $q->where('type', $t))
             ->when($data['userId'] ?? null, fn ($q, $id) => $q->where('user_id', $id))
             ->when($data['q'] ?? null, fn ($q, $term) => $q->where(fn ($q) => $q
-                ->where('reference', 'like', "%{$term}%")->orWhere('provider_reference', 'like', "%{$term}%")->orWhere('phone', 'like', "%{$term}%")
-                ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$term}%")->orWhere('phone', 'like', "%{$term}%"))
+                ->whereLike('reference', "%{$term}%")->orWhereLike('provider_reference', "%{$term}%")->orWhereLike('phone', "%{$term}%")
+                ->orWhereHas('user', fn ($u) => $u->whereLike('name', "%{$term}%")->orWhereLike('phone', "%{$term}%"))
                 // Une référence de paiement retrouve aussi les versements à l'hôte qui en découlent.
-                ->orWhereHas('source', fn ($s) => $s->where('reference', 'like', "%{$term}%"))))
+                ->orWhereHas('source', fn ($s) => $s->whereLike('reference', "%{$term}%"))))
             ->latest()
             ->paginate(30);
 

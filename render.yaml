@@ -1,0 +1,91 @@
+# Render Blueprint : API Laravel (Docker) + base Postgres.
+# Render → New → Blueprint → choisir ce dépôt. Les valeurs « sync: false » sont demandées à la création.
+services:
+  - type: web
+    name: subci-api
+    runtime: docker
+    plan: free # passer à « starter » : toujours allumé (webhooks, séquestre, notifications en continu)
+    region: frankfurt # le plus proche de l'Afrique de l'Ouest
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: APP_NAME
+        value: Sub.ci
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      # php artisan key:generate --show  (ne jamais la changer ensuite : elle chiffre les identifiants partagés)
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false # https://subci-api.onrender.com
+      - key: APP_LOCALE
+        value: fr
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        fromDatabase:
+          name: subci-db
+          property: connectionString
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: SESSION_DRIVER
+        value: array
+
+      # Front (Vercel) : PWA puis admin. Plusieurs adresses séparées par des virgules.
+      - key: FRONTEND_URL
+        sync: false # https://subci.vercel.app
+      - key: ADMIN_URL
+        sync: false # https://subci-admin.vercel.app
+
+      # Preuves d'abonnement : Cloudflare R2 (compatible S3), bucket privé.
+      - key: FILESYSTEM_DISK
+        value: s3
+      - key: AWS_DEFAULT_REGION
+        value: auto
+      - key: AWS_BUCKET
+        sync: false
+      - key: AWS_ENDPOINT
+        sync: false # https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      - key: PAYMENTS_DRIVER
+        value: geniuspay
+      - key: GENIUSPAY_API_KEY
+        sync: false
+      - key: GENIUSPAY_API_SECRET
+        sync: false
+      - key: GENIUSPAY_WEBHOOK_SECRET
+        sync: false
+
+      # Notifications push : php artisan push:vapid (nouvelle paire pour la prod)
+      - key: VAPID_SUBJECT
+        value: mailto:contact@sub.ci
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+
+      - key: ADMIN_REQUIRE_2FA
+        value: "true"
+
+databases:
+  - name: subci-db
+    plan: free # la base gratuite est supprimée au bout de 30 jours : passer à « basic » avant d'ouvrir au public
+    region: frankfurt
+    databaseName: subci
+    user: subci
