@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'last_login_at'])]
+#[Fillable(['name', 'email', 'password', 'last_login_at', 'alerts'])]
 #[Hidden(['password'])]
 class Admin extends Authenticatable
 {
@@ -19,12 +19,26 @@ class Admin extends Authenticatable
         return [
             'password' => 'hashed',
             'last_login_at' => 'datetime',
+            'alerts' => 'array',
         ];
     }
 
     public function actions(): HasMany
     {
         return $this->hasMany(AdminAction::class);
+    }
+
+    /** Alertes push choisies (défauts de AdminAlerts::KINDS si jamais réglées). */
+    public function alertSettings(): array
+    {
+        return collect(\App\Services\AdminAlerts::KINDS)
+            ->map(fn ($k, $kind) => (bool) ($this->alerts[$kind] ?? $k[1]))
+            ->all();
+    }
+
+    public function wantsAlert(string $kind): bool
+    {
+        return $this->alertSettings()[$kind] ?? false;
     }
 
     /** Trace une action d'administration. */

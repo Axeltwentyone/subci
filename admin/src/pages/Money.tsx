@@ -28,7 +28,7 @@ export function Payouts() {
       ) : (
         data && (
           <>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="flex flex-col gap-1 rounded-card bg-ink p-5 text-sand">
                 <span className="text-[13px] font-semibold text-ink-muted">À envoyer</span>
                 <span className="tabular font-display text-[30px] leading-none font-extrabold">
@@ -36,7 +36,7 @@ export function Payouts() {
                 </span>
                 <span className="text-[12px] font-semibold text-ink-muted">{data.pending.length} versement(s)</span>
               </div>
-              <div className="col-span-2 flex items-center rounded-card bg-white p-5 text-[13px] leading-relaxed font-semibold text-muted">
+              <div className="flex items-center lg:col-span-2 rounded-card bg-white p-5 text-[13px] leading-relaxed font-semibold text-muted">
                 Les remboursements concernent des demandes refusées, expirées ou annulées : le membre a payé et n’a pas eu de place. Les retraits sont les gains que les hôtes
                 demandent. Délai annoncé dans l’app : 48 h.
               </div>
@@ -135,7 +135,7 @@ export function Payments() {
   return (
     <>
       <PageHeader title="Paiements" subtitle="Tous les mouvements d’argent : abonnements, gains des hôtes, retraits et remboursements." />
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
         <Segments
           value={type as '' | 'subscription' | 'earning' | 'withdrawal' | 'refund'}
           onChange={(v) => set('type', v)}
@@ -146,7 +146,7 @@ export function Payments() {
           onChange={(v) => set('status', v)}
           options={[{ value: '', label: 'Tout statut' }, ...(['pending', 'succeeded', 'failed', 'expired'] as const).map((s) => ({ value: s, label: PAYMENT_STATUS[s][0] }))]}
         />
-        <div className="ml-auto">
+        <div className="lg:ml-auto">
           <SearchInput value={q} onChange={setQ} placeholder="Référence, numéro, nom…" />
         </div>
       </div>
@@ -167,8 +167,8 @@ export function Payments() {
                       <span className="truncate">{p.label}</span>
                     </span>
                   </Td>
-                  <Td className="text-[13px] font-semibold text-muted">{PAYMENT_TYPE[p.type]}</Td>
-                  <Td className="text-[13px] font-semibold">{p.methodLabel}</Td>
+                  <Td desktop className="text-[13px] font-semibold text-muted">{PAYMENT_TYPE[p.type]}</Td>
+                  <Td desktop className="text-[13px] font-semibold">{p.methodLabel}</Td>
                   <Td className={cx('tabular font-bold', p.direction === 'in' && p.type === 'earning' && 'text-ok-ink')}>{fcfa(p.amount)}</Td>
                   <Td>
                     <StatusPill map={PAYMENT_STATUS} value={p.status} />

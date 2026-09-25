@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\AdminAlerts;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,6 +43,9 @@ class AuthController extends Controller
         }
 
         $user = User::firstOrCreate(['phone' => $data['phone']]);
+        if ($user->wasRecentlyCreated) {
+            AdminAlerts::send('signups', 'Nouvelle inscription', 'Le '.$user->phone.' vient de créer son compte.', "/users/{$user->id}", 'signups');
+        }
         abort_if($user->suspended_at !== null, 403, 'Ton compte est suspendu. Contacte le support Sub.ci.');
         $user->forceFill(['phone_verified_at' => now()])->save();
 

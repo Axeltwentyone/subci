@@ -144,6 +144,18 @@ class PaymentService
      * - nouvel arrivant → une demande part chez l'hôte (accès après acceptation) ;
      * - renouvellement → prolongé depuis l'échéance actuelle, hôte crédité.
      */
+    /** Alerte l'équipe : « 💰 3 500 FCFA · Awa K. · Netflix, 1 mois via Wave ». */
+    private function alertAdmins(Payment $payment): void
+    {
+        $payment->loadMissing('user', 'service');
+        $what = ($payment->subscription_id ? 'Renouvellement ' : '').($payment->service?->name ?? $payment->label);
+        AdminAlerts::send('payments',
+            'Paiement reçu · '.AdminAlerts::fcfa($payment->amount),
+            $payment->user->shortName()." · {$what}, {$payment->months} mois via ".$payment->method->label(),
+            '/payments?q='.urlencode($payment->reference),
+            'pay-'.$payment->id);
+    }
+
     public function confirm(Payment $payment): Payment
     {
         return DB::transaction(function () use ($payment) {
@@ -152,6 +164,7 @@ class PaymentService
                 return $payment;
             }
             $payment->update(['status' => PaymentStatus::Succeeded, 'confirmed_at' => now()]);
+            $this->alertAdmins($payment);
 
             if ($payment->subscription_id === null) {
                 $this->joins->open($payment);

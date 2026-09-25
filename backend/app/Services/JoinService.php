@@ -139,6 +139,14 @@ class JoinService
             $short = Str::before($offer->service->name, ' ');
             $amount = number_format($payment->amount, 0, ',', ' ').' FCFA';
             $host = $offer->user->shortName();
+            if ($manual) {
+                AdminAlerts::send('payouts', "Remboursement à verser · {$amount}",
+                    $member->shortName()." · {$short}, ".match ($status) {
+                        JoinStatus::Declined => "refusé par {$host}",
+                        JoinStatus::Expired => "sans réponse de {$host}",
+                        default => 'demande annulée',
+                    }, '/payouts', 'payouts');
+            }
             $refund = $manual ? "Remboursement de {$amount} en cours (sous 48 h)." : "Tu es remboursé de {$amount}.";
             [$title, $body] = match ($status) {
                 JoinStatus::Declined => ["{$host} n’a pas pu t’accepter", "{$refund} Choisis une autre offre {$short}."],

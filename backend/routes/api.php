@@ -51,6 +51,12 @@ Route::prefix('v1')->group(function () {
             Route::patch('services/{service:id}', [Admin\MiscController::class, 'updateService']);
 
             Route::get('audit', [Admin\MiscController::class, 'audit']);
+
+            Route::get('push', [Admin\PushController::class, 'show']);
+            Route::post('push/subscriptions', [Admin\PushController::class, 'store']);
+            Route::delete('push/subscriptions', [Admin\PushController::class, 'destroy']);
+            Route::patch('push/alerts', [Admin\PushController::class, 'alerts']);
+            Route::post('push/test', [Admin\PushController::class, 'test'])->middleware('throttle:6,1');
         });
     });
 

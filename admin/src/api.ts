@@ -198,6 +198,8 @@ export type ServiceRow = {
 
 export type AuditRow = { id: number; admin: string; action: string; subjectType: string | null; subjectId: number | null; meta: Record<string, unknown> | null; ip: string | null; at: string }
 
+export type PushState = { publicKey: string | null; devices: number; alerts: { kind: string; label: string; on: boolean }[] }
+
 type Page<T> = { data: T[]; meta: { total: number; page: number; pages: number } }
 
 const qs = (p: Record<string, string | number | undefined | null>) => {
@@ -238,6 +240,12 @@ export const api = {
   services: () => call<{ data: ServiceRow[] }>('GET', '/services'),
   updateService: (id: number, body: Partial<Pick<ServiceRow, 'name' | 'meta' | 'description' | 'price' | 'fullPrice' | 'isActive' | 'isPopular' | 'position'>>) =>
     call<unknown>('PATCH', `/services/${id}`, body),
+
+  push: () => call<PushState>('GET', '/push'),
+  savePush: (body: { endpoint: string; keys: { p256dh: string; auth: string }; contentEncoding: string }) => call<PushState>('POST', '/push/subscriptions', body),
+  deletePush: (endpoint: string) => call<PushState>('DELETE', '/push/subscriptions', { endpoint }),
+  setAlerts: (alerts: Record<string, boolean>) => call<PushState>('PATCH', '/push/alerts', { alerts }),
+  testPush: () => call<{ ok: boolean; devices: number }>('POST', '/push/test'),
 
   audit: (page = 1) => call<Page<AuditRow>>('GET', `/audit${qs({ page })}`),
 }

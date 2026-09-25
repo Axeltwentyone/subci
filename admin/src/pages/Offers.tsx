@@ -23,7 +23,7 @@ export function Offers() {
   return (
     <>
       <PageHeader title="Offres" subtitle="Valide les preuves d’abonnement avant que les places n’apparaissent dans le catalogue." />
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
         <Segments
           value={status}
           onChange={(v) => {
@@ -68,7 +68,7 @@ export function Offers() {
                   <Td>
                     <StatusPill map={OFFER_STATUS} value={o.status} />
                   </Td>
-                  <Td className="text-[13px] font-semibold text-muted">{ago(o.createdAt)}</Td>
+                  <Td desktop className="text-[13px] font-semibold text-muted">{ago(o.createdAt)}</Td>
                 </Tr>
               ))}
             </Table>
@@ -208,7 +208,7 @@ export function OfferDrawer({ id, onClose, onChanged }: { id: number | null; onC
           </Panel>
 
           {offer.status === 'review' && (
-            <div className="sticky bottom-0 grid grid-cols-[auto_1fr] gap-2 bg-sand pt-2">
+            <div className="sticky bottom-0 grid grid-cols-[auto_1fr] gap-2 bg-sand pt-2 pb-1">
               <Button variant="outline" block={false} className="px-5" onClick={() => setConfirm('reject')}>
                 Refuser
               </Button>

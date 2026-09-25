@@ -19,7 +19,7 @@ export function Users() {
   return (
     <>
       <PageHeader title="Utilisateurs" subtitle={data ? `${fcfa(data.meta.total)} compte(s)` : undefined} />
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <Segments
           value={filter}
           onChange={(v) => (setFilter(v), setPage(1))}
@@ -30,7 +30,7 @@ export function Users() {
             { value: 'suspended', label: 'Suspendus' },
           ]}
         />
-        <div className="ml-auto">
+        <div className="lg:ml-auto">
           <SearchInput value={q} onChange={(v) => (setQ(v), setPage(1))} placeholder="Nom, numéro, code parrain…" />
         </div>
       </div>
@@ -53,11 +53,11 @@ export function Users() {
                     </Link>
                   </Td>
                   <Td className="tabular font-semibold">{phone(u.phone)}</Td>
-                  <Td className="tabular font-semibold">{u.activeSubs ?? 0}</Td>
-                  <Td className="tabular font-semibold">{u.liveOffers ?? 0}</Td>
+                  <Td desktop className="tabular font-semibold">{u.activeSubs ?? 0}</Td>
+                  <Td desktop className="tabular font-semibold">{u.liveOffers ?? 0}</Td>
                   <Td className="tabular font-bold">{fcfa(u.totalPaid ?? 0)}</Td>
                   <Td className={cx('tabular font-bold', u.balance > 0 ? 'text-ok-ink' : 'text-muted')}>{fcfa(u.balance)}</Td>
-                  <Td className="text-[13px] font-semibold text-muted">{date(u.createdAt)}</Td>
+                  <Td desktop className="text-[13px] font-semibold text-muted">{date(u.createdAt)}</Td>
                 </Tr>
               ))}
             </Table>
@@ -85,10 +85,10 @@ export function UserPage() {
       <Link to="/users" className="-mb-3 text-[13px] font-bold text-muted hover:text-ink">
         ← Utilisateurs
       </Link>
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <Avatar name={u.name ?? '?'} size={60} />
-        <div className="flex flex-1 flex-col gap-1">
-          <h1 className="flex items-center gap-3 font-display text-[30px] leading-none font-extrabold tracking-[-0.02em]">
+        <div className="flex min-w-0 flex-1 basis-60 flex-col gap-1">
+          <h1 className="flex items-center gap-3 font-display text-[26px] leading-none font-extrabold lg:text-[30px] tracking-[-0.02em]">
             {u.name ?? 'Sans nom'}
             {u.suspendedAt && <Pill tone="err">Suspendu</Pill>}
           </h1>
@@ -116,7 +116,7 @@ export function UserPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4 [&>:nth-child(4)]:max-lg:col-span-2 [&>:nth-child(4)]:max-lg:order-first">
         <Stat label="Total payé" value={fcfa(u.stats.totalPaid)} unit="FCFA" />
         <Stat label="Gagné comme hôte" value={fcfa(u.stats.totalEarned)} unit="FCFA" />
         <Stat label="Retiré" value={fcfa(u.stats.totalWithdrawn)} unit="FCFA" />
@@ -128,7 +128,7 @@ export function UserPage() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title={`Abonnements (${u.subscriptions.length})`} pad={false}>
           <Table head={['Service', 'Chez', 'Statut', 'Jusqu’au']} empty={u.subscriptions.length === 0}>
             {u.subscriptions.map((s) => (
@@ -211,7 +211,7 @@ export function UserPage() {
             <Tr key={p.id}>
               <Td className="tabular text-[13px] font-bold">{p.ref}</Td>
               <Td className="font-semibold">{p.label}</Td>
-              <Td className="text-[13px] font-semibold text-muted">{PAYMENT_TYPE[p.type]}</Td>
+              <Td desktop className="text-[13px] font-semibold text-muted">{PAYMENT_TYPE[p.type]}</Td>
               <Td className="tabular font-bold">{fcfa(p.amount)}</Td>
               <Td>
                 <StatusPill map={PAYMENT_STATUS} value={p.status} />

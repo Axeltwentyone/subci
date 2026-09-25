@@ -6,6 +6,7 @@ import './admin.css'
 import { Catalog, Audit } from './pages/Catalog'
 import { Payments, Payouts, Requests } from './pages/Money'
 import { Offers } from './pages/Offers'
+import { Alerts } from './pages/Alerts'
 import { Overview } from './pages/Overview'
 import { UserPage, Users } from './pages/People'
 import { Login, SessionProvider, Shell, useSession } from './shell'
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
       { path: 'users/:id', element: <UserPage /> },
       { path: 'catalog', element: <Catalog /> },
       { path: 'audit', element: <Audit /> },
+      { path: 'notifications', element: <Alerts /> },
       { path: '*', element: <Overview /> },
     ],
   },

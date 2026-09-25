@@ -51,9 +51,9 @@ export function Catalog() {
                 <Td>
                   <MoneyInput value={s.fullPrice} onSave={(v) => save(s, { fullPrice: v })} />
                 </Td>
-                <Td className="tabular font-semibold">{s.liveOffers}</Td>
+                <Td desktop className="tabular font-semibold">{s.liveOffers}</Td>
                 <Td className={cx('tabular font-semibold', s.freeSeats === 0 && s.isActive && 'text-err')}>{s.freeSeats}</Td>
-                <Td className="tabular font-semibold">{s.members}</Td>
+                <Td desktop className="tabular font-semibold">{s.members}</Td>
                 <Td className="tabular font-bold">{fcfa(s.gmvMonth)}</Td>
                 <Td>
                   <Toggle on={s.isActive} label={`${s.name} visible`} onChange={(v) => save(s, { isActive: v })} />
@@ -151,7 +151,7 @@ export function Audit() {
                   <Td className="max-w-[360px] text-[13px] font-medium text-muted">
                     <Meta meta={a.meta} />
                   </Td>
-                  <Td className="tabular text-[12px] font-semibold text-subtle">{a.ip ?? '—'}</Td>
+                  <Td desktop className="tabular text-[12px] font-semibold text-subtle">{a.ip ?? '—'}</Td>
                 </Tr>
               ))}
             </Table>

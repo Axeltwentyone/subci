@@ -111,4 +111,6 @@ npm run admin:dev                                        # dev
 npm run admin:build                                      # build dans dist-admin/
 ```
 
+Sur téléphone : ouvre l'admin, puis « Ajouter à l'écran d'accueil » (icône orange). Dans **Plus → Notifications**, active les alertes sur l'appareil : paiement reçu, offre à valider, versement à faire, nouvelles inscriptions (au choix). Sur iPhone, les notifications ne marchent que depuis l'app installée, en HTTPS. Les alertes partent via la file d'attente : `php artisan queue:work` doit tourner (comme pour les notifications des membres).
+
 Offres à valider (preuve d'abonnement), versements à faire à la main (remboursements et retraits : GeniusPay n'a pas d'API de virement), demandes en attente, paiements, utilisateurs (suspension), catalogue (prix, visibilité) et journal de toutes les actions. Session de 12 h, rangée dans l'onglet uniquement.

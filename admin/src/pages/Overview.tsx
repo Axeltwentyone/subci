@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { api, type Overview as Data } from '../api'
 import { ErrorBox, Loading, PageHeader, Panel, Stat, ago, cx, fcfa, useAsync } from '../kit'
@@ -25,7 +25,7 @@ export function Overview() {
         }
       />
 
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4 [&>:first-child]:max-lg:col-span-2">
         <Stat tone="ink" label="Encaissé ce mois" value={fcfa(kpis.gmv.value)} unit="FCFA" current={kpis.gmv.value} previous={kpis.gmv.previous} hint="vs mois dernier" />
         <Stat label="Commission Sub.ci" value={fcfa(kpis.commission.value)} unit="FCFA" current={kpis.commission.value} previous={kpis.commission.previous} hint="10 % des paiements reversés" />
         <Stat label="Membres actifs" value={fcfa(kpis.members.value)} hint="avec un abonnement en cours" />
@@ -33,9 +33,9 @@ export function Overview() {
         <Stat label="Inscriptions" value={fcfa(kpis.newUsers.value)} current={kpis.newUsers.value} previous={kpis.newUsers.previous} hint="ce mois" />
       </div>
 
-      <div className="grid grid-cols-[1.35fr_1fr] gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.35fr_1fr]">
         <Panel title="À traiter" action={nothingToDo ? <span className="text-[13px] font-bold text-ok-ink">Tout est à jour ✓</span> : null}>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <TodoCard to="/offers" count={todo.offersToReview} label="Offres à valider" hint="Preuves d’abonnement en attente" urgent />
             <TodoCard to="/payouts" count={todo.payouts} label="Versements à faire" hint={`${fcfa(money.payoutsPending)} FCFA à envoyer`} urgent />
             <TodoCard
@@ -66,7 +66,7 @@ export function Overview() {
         <GmvChart series={data.series} />
       </Panel>
 
-      <div className="grid grid-cols-[1fr_1fr] gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="Par service · ce mois">
           <ServiceBars services={data.services} />
         </Panel>
@@ -79,7 +79,7 @@ export function Overview() {
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{a.title}</span>
                   {a.amount !== null && <span className="tabular text-sm font-bold">{fcfa(a.amount)}</span>}
                   {a.status === 'pending' && <span className="text-[11px] font-extrabold text-warn-ink">en attente</span>}
-                  <span className="w-20 text-right text-[12px] font-semibold text-muted">{ago(a.at)}</span>
+                  <span className="w-16 shrink-0 text-right text-[12px] font-semibold text-muted lg:w-20">{ago(a.at)}</span>
                 </Link>
               </li>
             ))}
@@ -126,8 +126,18 @@ function MoneyRow({ label, value, hint, strong }: { label: string; value: number
 /** Barres journalières (une série, une teinte), info-bulle au survol, repères discrets. */
 function GmvChart({ series }: { series: Data['series'] }) {
   const [hover, setHover] = useState<number | null>(null)
-  const W = 1000
-  const H = 220
+  // Largeur réelle : les libellés gardent leur taille, sur mobile comme sur grand écran.
+  const box = useRef<HTMLDivElement>(null)
+  const [W, setW] = useState(1000)
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const narrow = W < 640
+  const H = narrow ? 180 : 240
   const pad = { top: 12, bottom: 26, left: 0, right: 0 }
   const max = Math.max(1, ...series.map((d) => d.gmv))
   const nice = niceMax(max)
@@ -138,15 +148,10 @@ function GmvChart({ series }: { series: Data['series'] }) {
   const d = hover !== null ? series[hover] : null
 
   return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-[240px] w-full" role="img" aria-label="Encaissements par jour sur 30 jours" onMouseLeave={() => setHover(null)}>
+    <div className="relative" ref={box}>
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block w-full" role="img" aria-label="Encaissements par jour sur 30 jours" onMouseLeave={() => setHover(null)}>
         {ticks.map((t) => (
-          <g key={t}>
-            <line x1={0} x2={W} y1={y(t)} y2={y(t)} stroke="var(--color-line)" strokeWidth={1} />
-            <text x={W} y={y(t) - 4} textAnchor="end" className="fill-subtle text-[11px] font-semibold">
-              {t === 0 ? '' : `${fcfa(t)}`}
-            </text>
-          </g>
+          <line key={t} x1={0} x2={W} y1={y(t)} y2={y(t)} stroke="var(--color-line)" strokeWidth={1} />
         ))}
         {series.map((p, i) => {
           const x = pad.left + i * bw
@@ -156,15 +161,15 @@ function GmvChart({ series }: { series: Data['series'] }) {
               {/* zone de survol plus grande que la barre */}
               <rect x={x} y={pad.top} width={bw} height={H - pad.top - pad.bottom} fill="transparent" />
               <rect
-                x={x + 2}
+                x={x + (narrow ? 1 : 2)}
                 y={y(0) - h}
-                width={Math.max(1, bw - 4)}
+                width={Math.max(1, bw - (narrow ? 2 : 4))}
                 height={h}
-                rx={4}
+                rx={narrow ? 2 : 4}
                 fill={hover === i ? 'var(--color-brand)' : 'var(--color-ink)'}
                 opacity={hover === null || hover === i ? 1 : 0.55}
               />
-              {i % 5 === 4 && (
+              {i % (narrow ? 10 : 5) === 4 && (
                 <text x={x + bw / 2} y={H - 8} textAnchor="middle" className="fill-subtle text-[11px] font-semibold">
                   {dayFmt.format(new Date(p.date))}
                 </text>
@@ -172,11 +177,18 @@ function GmvChart({ series }: { series: Data['series'] }) {
             </g>
           )
         })}
+        {ticks.map((t) =>
+          t === 0 ? null : (
+            <text key={t} x={W} y={y(t) - 5} textAnchor="end" stroke="white" strokeWidth={4} paintOrder="stroke" className="fill-subtle text-[11px] font-semibold">
+              {fcfa(t)}
+            </text>
+          ),
+        )}
       </svg>
       {d && hover !== null && (
         <div
           className="pointer-events-none absolute top-0 z-10 flex -translate-x-1/2 flex-col gap-0.5 rounded-tile bg-ink px-3 py-2 text-[12px] font-semibold text-sand shadow-lg"
-          style={{ left: `${((hover + 0.5) / series.length) * 100}%` }}
+          style={{ left: `clamp(90px, ${((hover + 0.5) / series.length) * 100}%, calc(100% - 90px))` }}
         >
           <span className="text-ink-muted">{new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(d.date))}</span>
           <span className="tabular text-sm font-extrabold">{fcfa(d.gmv)} FCFA</span>
@@ -200,7 +212,7 @@ function ServiceBars({ services }: { services: Data['services'] }) {
   return (
     <ul className="flex flex-col gap-3">
       {services.map((s) => (
-        <li key={s.id} className="grid grid-cols-[132px_1fr_auto] items-center gap-3" title={`${s.members} membres · ${s.offers} offre(s) en ligne`}>
+        <li key={s.id} className="grid grid-cols-[96px_1fr_auto] items-center gap-3 lg:grid-cols-[132px_1fr_auto]" title={`${s.members} membres · ${s.offers} offre(s) en ligne`}>
           <span className="flex items-center gap-2 truncate text-[13px] font-bold">
             <span className="size-2.5 shrink-0 rounded-sm" style={{ background: s.color }} aria-hidden />
             {s.name}
@@ -208,7 +220,7 @@ function ServiceBars({ services }: { services: Data['services'] }) {
           <span className="h-2.5 overflow-hidden rounded-full bg-sand">
             <span className="block h-full rounded-full bg-ink" style={{ width: `${(s.gmv / max) * 100}%` }} />
           </span>
-          <span className="tabular w-28 text-right text-[13px] font-bold">
+          <span className="tabular text-right text-[13px] font-bold lg:w-28">
             {fcfa(s.gmv)} <span className="text-[11px] font-semibold text-muted">· {s.members} mb</span>
           </span>
         </li>

@@ -16,6 +16,7 @@ use App\Models\JoinRequest;
 use App\Models\OfferMember;
 use App\Models\Service;
 use App\Models\User;
+use App\Services\AdminAlerts;
 use App\Notifications\AppNotification;
 use App\Services\JoinService;
 use Illuminate\Http\JsonResponse;
@@ -97,6 +98,9 @@ class HostController extends Controller
                 // Invisible dans le catalogue tant que la preuve n'est pas validée.
                 'status' => OfferStatus::Review,
             ]);
+        AdminAlerts::send('offers', 'Offre à valider',
+            $request->user()->shortName()." partage {$service->name} · {$plan['label']}, {$data['seats']} places",
+            "/offers?open={$offer->id}", 'offers');
 
         return new HostOfferResource($offer->load(self::RELATIONS));
     }
@@ -277,6 +281,10 @@ class HostController extends Controller
                 'confirmed_at' => $manual ? null : now(),
             ]);
             $amount = number_format($data['amount'], 0, ',', ' ').' FCFA';
+            if ($manual) {
+                AdminAlerts::send('payouts', "Retrait à verser · {$amount}",
+                    $user->shortName().' · '.$method->label().' '.$payment->phone, '/payouts', 'payouts');
+            }
             $user->notify($manual
                 ? new AppNotification('host', 'Retrait demandé', "{$amount} vers ".$method->label().', reçu sous 48 h.')
                 : new AppNotification('host', 'Retrait envoyé', "{$amount} vers ".$method->label()));

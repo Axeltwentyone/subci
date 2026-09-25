@@ -46,6 +46,15 @@
         "admin:dev"
       ],
       "port": 5174
+    },
+    {
+      "name": "subci-admin-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "admin:preview"
+      ],
+      "port": 4174
     }
   ]
 }

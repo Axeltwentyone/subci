@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "admin:dev": "vite --config vite.admin.config.ts",
-    "admin:build": "tsc -p tsconfig.admin.json && vite build --config vite.admin.config.ts"
+    "admin:build": "tsc -p tsconfig.admin.json && vite build --config vite.admin.config.ts",
+    "admin:preview": "vite preview --config vite.admin.config.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

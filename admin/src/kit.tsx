@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { Children, cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Button, ServiceLogo, cx } from '../../src/components/ui'
 import { fcfa } from '../../src/lib/format'
@@ -56,7 +56,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   return (
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="font-display text-[28px] leading-tight font-bold tracking-[-0.025em]">{title}</h1>
+        <h1 className="font-display text-[24px] leading-tight font-bold tracking-[-0.025em] lg:text-[28px]">{title}</h1>
         {subtitle && <p className="text-sm font-medium text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -82,9 +82,9 @@ export function Panel({ title, action, children, className, pad = true }: { titl
 export function Stat({ label, value, unit, previous, current, hint, tone = 'default' }: { label: string; value: string; unit?: string; previous?: number; current?: number; hint?: ReactNode; tone?: 'default' | 'ink' }) {
   const delta = previous !== undefined && current !== undefined ? (previous === 0 ? (current > 0 ? 100 : 0) : Math.round(((current - previous) / previous) * 100)) : null
   return (
-    <div className={cx('flex flex-col gap-2 rounded-card p-5', tone === 'ink' ? 'bg-ink text-sand' : 'bg-white')}>
+    <div className={cx('flex min-w-0 flex-col gap-2 rounded-card p-4 lg:p-5', tone === 'ink' ? 'bg-ink text-sand' : 'bg-white')}>
       <span className={cx('text-[13px] font-semibold', tone === 'ink' ? 'text-ink-muted' : 'text-muted')}>{label}</span>
-      <span className="tabular font-display text-[30px] leading-none font-extrabold tracking-[-0.02em]">
+      <span className="tabular font-display text-[24px] leading-none font-extrabold tracking-[-0.02em] lg:text-[30px]">
         {value}
         {unit && <span className={cx('ml-1 font-sans text-sm font-bold', tone === 'ink' ? 'text-ink-muted' : 'text-muted')}>{unit}</span>}
       </span>
@@ -149,40 +149,70 @@ export const StatusPill = ({ map, value }: { map: Record<string, [string, keyof 
 
 /* ---------- Tableaux ---------- */
 
+const HeadCtx = createContext<ReactNode[]>([])
+
+/**
+ * Tableau sur ordinateur ; sur mobile chaque ligne devient une carte :
+ * 1re cellule en titre, les suivantes en « libellé … valeur ».
+ */
 export function Table({ head, children, empty }: { head: ReactNode[]; children: ReactNode; empty?: boolean }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-        <thead>
-          <tr className="border-b border-line text-[12px] font-bold tracking-wide text-muted uppercase">
-            {head.map((h, i) => (
-              <th key={i} className="px-4 py-3 font-bold first:pl-5 last:pr-5">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
-      {empty && <p className="px-5 py-10 text-center text-sm font-medium text-muted">Rien à afficher.</p>}
-    </div>
+    <HeadCtx.Provider value={head}>
+      <div className="lg:overflow-x-auto">
+        <table className="w-full border-collapse text-left text-sm max-lg:block lg:min-w-[720px]">
+          <thead className="max-lg:hidden">
+            <tr className="border-b border-line text-[12px] font-bold tracking-wide text-muted uppercase">
+              {head.map((h, i) => (
+                <th key={i} className="px-4 py-3 font-bold first:pl-5 last:pr-5">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="max-lg:block">{children}</tbody>
+        </table>
+        {empty && <p className="px-5 py-10 text-center text-sm font-medium text-muted">Rien à afficher.</p>}
+      </div>
+    </HeadCtx.Provider>
   )
 }
 
 export function Tr({ children, onClick, active }: { children: ReactNode; onClick?: () => void; active?: boolean }) {
+  const head = useContext(HeadCtx)
+  let i = 0
+  const cells = Children.map(children, (c) => (isValidElement(c) ? cloneElement(c as ReactElement<TdProps>, { label: head[i], first: i++ === 0 }) : c))
   return (
     <tr
       onClick={onClick}
-      className={cx('border-b border-line-soft last:border-b-0', onClick && 'cursor-pointer hover:bg-sand/70', active && 'bg-brand-tint')}
+      className={cx(
+        'border-b border-line-soft last:border-b-0 max-lg:flex max-lg:flex-col max-lg:gap-2 max-lg:px-4 max-lg:py-3.5',
+        onClick && 'cursor-pointer hover:bg-sand/70 active:bg-sand',
+        active && 'bg-brand-tint',
+      )}
     >
-      {children}
+      {cells}
     </tr>
   )
 }
 
-export const Td = ({ children, className }: { children?: ReactNode; className?: string }) => (
-  <td className={cx('px-4 py-3 align-middle first:pl-5 last:pr-5', className)}>{children}</td>
-)
+/** `desktop` : colonne secondaire, masquée dans les cartes mobiles. */
+type TdProps = { children?: ReactNode; className?: string; label?: ReactNode; first?: boolean; desktop?: boolean }
+
+export const Td = ({ children, className, label, first, desktop }: TdProps) => {
+  const empty = children === null || children === undefined || children === false || children === ''
+  return (
+    <td
+      className={cx(
+        'px-4 py-3 align-middle first:pl-5 last:pr-5 max-lg:p-0! max-lg:max-w-none',
+        first ? 'max-lg:text-[15px]' : (empty || desktop) ? 'max-lg:hidden' : 'max-lg:flex max-lg:items-center max-lg:justify-between max-lg:gap-4 max-lg:text-right',
+        className,
+      )}
+    >
+      {!first && label ? <span className="shrink-0 text-left text-[12px] font-semibold text-muted lg:hidden">{label}</span> : null}
+      {!first && label ? <span className="flex min-w-0 flex-wrap items-center justify-end gap-x-1.5 lg:contents">{children}</span> : children}
+    </td>
+  )
+}
 
 export function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
   if (pages <= 1) return null
@@ -238,7 +268,7 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
 
 export function Segments<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string; count?: number }[]; onChange: (v: T) => void }) {
   return (
-    <div role="tablist" className="flex flex-wrap gap-1 rounded-[14px] bg-white p-1">
+    <div role="tablist" className="flex gap-1 overflow-x-auto rounded-[14px] bg-white p-1 [scrollbar-width:none] max-lg:max-w-full lg:flex-wrap">
       {options.map((o) => (
         <button
           key={o.value}
@@ -246,7 +276,7 @@ export function Segments<T extends string>({ value, options, onChange }: { value
           type="button"
           aria-selected={o.value === value}
           onClick={() => onChange(o.value)}
-          className={cx('flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-bold transition-colors', o.value === value ? 'bg-ink text-white' : 'text-muted hover:bg-sand')}
+          className={cx('flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-bold whitespace-nowrap transition-colors', o.value === value ? 'bg-ink text-white' : 'text-muted hover:bg-sand')}
         >
           {o.label}
           {o.count !== undefined && (
@@ -265,7 +295,7 @@ export function SearchInput({ value, onChange, placeholder }: { value: string; o
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="h-10 w-72 max-w-full rounded-[12px] border-[1.5px] border-line bg-white px-3.5 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-ink"
+      className="h-10 w-full rounded-[12px] lg:w-72 border-[1.5px] border-line bg-white px-3.5 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-ink"
     />
   )
 }
@@ -292,14 +322,14 @@ export function Drawer({ open, onClose, children, title }: { open: boolean; onCl
   return createPortal(
     <div className="fixed inset-0 z-40">
       <div className="absolute inset-0 animate-fade-in bg-ink/40" onClick={onClose} aria-hidden />
-      <aside role="dialog" aria-modal="true" className="absolute inset-y-0 right-0 flex w-[560px] max-w-full animate-panel-in flex-col bg-sand shadow-2xl">
-        <div className="flex items-center justify-between gap-3 border-b border-line bg-white px-6 py-4">
+      <aside role="dialog" aria-modal="true" className="absolute inset-y-0 right-0 flex w-full animate-panel-in flex-col bg-sand shadow-2xl lg:w-[560px]">
+        <div className="flex items-center justify-between gap-3 border-b border-line bg-white px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] lg:px-6">
           <div className="min-w-0 flex-1">{title}</div>
           <button type="button" onClick={onClose} aria-label="Fermer" className="grid size-9 place-items-center rounded-full bg-sand text-lg font-bold hover:bg-line">
             ×
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:p-6">{children}</div>
       </aside>
     </div>,
     document.body,
@@ -330,7 +360,7 @@ export function Confirm({
   const blocked = !!reason?.required && value.trim().length < 5
 
   return createPortal(
-    <div className="fixed inset-0 z-50 grid place-items-center p-6">
+    <div className="fixed inset-0 z-50 grid place-items-center p-4 max-lg:items-end lg:p-6">
       <div className="absolute inset-0 animate-fade-in bg-ink/50" onClick={onCancel} aria-hidden />
       <form
         role="alertdialog"
