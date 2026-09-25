@@ -73,6 +73,7 @@ type ApiSub = {
   id: string; serviceId: string; price: number; hostName: string | null; state: UserSub['state']; startAt: string; endAt: string; activatesAt: string | null
   autoRenew: boolean; method: PayMethodId; profile: string | null; email: string | null; password: string | null; pin: string | null
   dispute: { id: string; reason: IssueReason; at: string } | null
+  invite: { type: 'link' | 'email'; email: string | null; link: string | null; sentAt: string | null } | null
 }
 export type IssueReason = 'no_access' | 'wrong_password' | 'removed' | 'other'
 type ApiPayment = {
@@ -118,6 +119,7 @@ export const toSub = (s: ApiSub): UserSub => ({
   password: s.password ?? '',
   pin: s.pin ?? undefined,
   issue: s.dispute ? { reason: s.dispute.reason, at: ms(s.dispute.at)! } : undefined,
+  invite: s.invite ? { type: s.invite.type, email: s.invite.email ?? undefined, link: s.invite.link ?? undefined, sentAt: ms(s.invite.sentAt) } : undefined,
 })
 
 export const toPayment = (p: ApiPayment): Payment => ({
@@ -149,6 +151,7 @@ export const toOffer = (o: ApiOffer): HostOffer => ({
   price: o.price,
   mode: o.mode,
   members: o.members,
+  invite: o.invite ?? null,
   pendingInvite: o.pendingInvite ?? undefined,
   status: o.status,
   hasCredentials: o.hasCredentials,
@@ -254,7 +257,7 @@ export const api = {
   cancelSubscription: (id: string) => request<Data<ApiSub>>('POST', `/subscriptions/${id}/cancel`),
 
   // returnOrigin : l'API y renvoie le membre après la page de paiement (liste autorisée côté serveur).
-  checkout: (body: { serviceId: string; months: number; method: PayMethodId; phone?: string; offerId?: string }) =>
+  checkout: (body: { serviceId: string; months: number; method: PayMethodId; phone?: string; offerId?: string; inviteEmail?: string }) =>
     request<Data<ApiPayment>>('POST', '/payments', { ...body, returnOrigin: window.location.origin }),
   payment: (ref: string) => request<Data<ApiPayment>>('GET', `/payments/${ref}`),
   resendPayment: (ref: string) => request<Data<ApiPayment>>('POST', `/payments/${ref}/resend`),
@@ -278,7 +281,8 @@ export const api = {
   acceptRequest: (id: string) => request<Data<ApiOffer>>('POST', `/host/requests/${id}/accept`),
   declineRequest: (id: string) => request<Data<ApiOffer>>('POST', `/host/requests/${id}/decline`),
   cancelRequest: (id: string) => request<Data<ApiRequest>>('POST', `/join-requests/${id}/cancel`),
-  invite: (offerId: string) => request<Data<ApiOffer>>('POST', `/host/offers/${offerId}/invite`),
+  inviteMember: (offerId: string, memberId: string, link?: string) =>
+    request<Data<ApiOffer>>('POST', `/host/offers/${offerId}/members/${memberId}/invite`, link ? { link } : {}),
   payoutCode: () => request<{ sent: boolean; ttl: number; debugCode: string | null }>('POST', '/me/payout/code'),
   updatePayout: (payout: { method: PayMethodId; phone: string; code: string }) => request<Data<ApiUser>>('PATCH', '/me', { payout }),
   logoutOthers: () => request<{ ok: boolean; revoked: number }>('POST', '/auth/logout-others'),

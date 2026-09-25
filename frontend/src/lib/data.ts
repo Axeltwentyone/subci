@@ -22,6 +22,8 @@ export type Service = {
   /** Minutes avant activation */
   activation: number
   popular: boolean
+  /** Offres famille : « email » = l'e-mail du compte (Apple) est demandé au paiement */
+  invite?: 'link' | 'email' | null
   /** Nombre d'offres d'hôtes ouvertes */
   offers: number
   /** false pour la musique : Sub.ci attribue l'offre, pas de choix */
@@ -45,6 +47,7 @@ export type PublicOffer = {
   quality: string | null
   devices: Device[]
   mode: 'credentials' | 'family'
+  invite?: 'link' | 'email' | null
   price: number
   seats: number
   free: number

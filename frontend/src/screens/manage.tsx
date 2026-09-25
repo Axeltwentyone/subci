@@ -266,9 +266,8 @@ function EmptySubs() {
 /* ---------- 24 · Dashboard hôte + 25 · Retrait ---------- */
 
 function HostDashboard() {
-  const { state, actions } = useStore()
+  const { state } = useStore()
   const navigate = useNavigate()
-  const toast = useToast()
   const [withdraw, setWithdraw] = useState(false)
 
   return (
@@ -316,17 +315,7 @@ function HostDashboard() {
 
       <div className="grid gap-4 md:grid-cols-2 md:gap-3 desk:grid-cols-3">
         {state.offers.map((o) => (
-          <OfferCard
-            key={o.id}
-            offer={o}
-            onInvite={() => {
-              const name = o.pendingInvite
-              actions
-                .invite(o.id)
-                .then(() => toast({ text: `Invitation envoyée à ${name}` }))
-                .catch((e) => toast({ tone: 'error', text: errorMessage(e) }))
-            }}
-          />
+          <OfferCard key={o.id} offer={o} />
         ))}
       </div>
 
@@ -339,7 +328,7 @@ function HostDashboard() {
   )
 }
 
-function OfferCard({ offer, onInvite }: { offer: HostOffer; onInvite: () => void }) {
+function OfferCard({ offer }: { offer: HostOffer }) {
   const navigate = useNavigate()
   const svc = getService(offer.serviceId)!
   const free = offer.seats - offer.members.length
@@ -376,8 +365,8 @@ function OfferCard({ offer, onInvite }: { offer: HostOffer; onInvite: () => void
         <div className="flex items-center gap-2.5 rounded-tile bg-info-soft px-3 py-2.5 text-[13px] leading-[1.4] font-semibold text-info-ink">
           <span className="font-extrabold">i</span>
           <span className="flex-1">{offer.pendingInvite} attend ton invitation famille.</span>
-          <button type="button" onClick={onInvite} className="font-extrabold whitespace-nowrap">
-            Inviter
+          <button type="button" onClick={manage} className="font-extrabold whitespace-nowrap">
+            Inviter ›
           </button>
         </div>
       )}
@@ -609,6 +598,52 @@ function IssueSheet({ sub, open, onClose }: { sub: UserSub; open: boolean; onClo
   )
 }
 
+/**
+ * Offre famille (Spotify, YouTube, Apple Music) : le membre rejoint avec **son propre compte**.
+ * Lien de l'hôte à ouvrir, ou invitation Apple à accepter sur l'iPhone.
+ */
+function FamilyInvite({ sub, serviceName }: { sub: UserSub; serviceName: string }) {
+  const invite = sub.invite!
+  const steps =
+    invite.type === 'link'
+      ? [
+          'Touche « Rejoindre la famille » ci-dessous',
+          `Connecte-toi avec TON compte ${serviceName.split(' ')[0]} (ou crée-le, c’est gratuit)`,
+          'Confirme : tu profites du Premium avec ton compte, tes playlists et tes recommandations',
+        ]
+      : [
+          `Sur ton iPhone : Réglages → ton nom → Partage familial`,
+          `Accepte l’invitation de ${sub.hostName ?? 'ton hôte'} (tu peux aussi l’accepter depuis Messages)`,
+          'Ouvre Apple Music : l’abonnement famille est actif',
+        ]
+  return (
+    <div className="flex flex-col gap-4 rounded-card bg-ink p-5 text-sand">
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-semibold text-ink-muted">Invitation famille</span>
+        <span className="text-[15px] leading-snug font-bold">
+          {invite.type === 'link'
+            ? `${sub.hostName ?? 'Ton hôte'} t’a envoyé son lien d’invitation`
+            : `${sub.hostName ?? 'Ton hôte'} a invité ${invite.email ?? 'ton identifiant Apple'}`}
+        </span>
+      </div>
+      <ol className="flex flex-col gap-2.5">
+        {steps.map((t, i) => (
+          <li key={i} className="flex items-start gap-3 text-sm leading-snug font-semibold">
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-extrabold text-ink">{i + 1}</span>
+            <span>{t}</span>
+          </li>
+        ))}
+      </ol>
+      {invite.type === 'link' && invite.link && (
+        <a href={invite.link} target="_blank" rel="noopener noreferrer" className="pressable flex h-12 items-center justify-center rounded-btn bg-brand text-[15px] font-bold text-ink">
+          Rejoindre la famille {serviceName.split(' ')[0]}
+        </a>
+      )}
+      <p className="text-[12px] leading-snug font-semibold text-ink-muted">Ne partage pas ce lien : il est réservé à ta place. Un souci ? Touche « Un souci ? » plus bas.</p>
+    </div>
+  )
+}
+
 /* ---------- 12 · Détail d'un abonnement ---------- */
 
 /** Carte Ink = coffre des accès, mis en cache pour le hors-ligne. Copier → toast + vibration. */
@@ -667,9 +702,13 @@ export function SubDetail() {
             <span className="text-sm font-medium text-ink-muted">
               {sub.activatesAt
                 ? `Tu recevras une notification dès qu’ils sont prêts (~${svc.activation} min). Remboursé si non activé.`
-                : 'Ton hôte t’envoie l’invitation famille par e-mail. On te prévient dès que c’est actif. Remboursé si non activé sous 24 h.'}
+                : sub.invite?.type === 'email'
+                  ? `${sub.hostName ?? 'Ton hôte'} va inviter ${sub.invite.email ?? 'ton identifiant Apple'} dans son Partage familial. On te prévient dès que c’est envoyé.`
+                  : `${sub.hostName ?? 'Ton hôte'} va t’envoyer son lien d’invitation famille. On te prévient dès qu’il arrive.`}
             </span>
           </div>
+        ) : sub.invite ? (
+          <FamilyInvite sub={sub} serviceName={svc.name} />
         ) : (
           <div className="rounded-card bg-ink px-[18px] py-1.5 text-sand">
             <div className="flex items-center gap-2.5 border-b border-ink-line py-3.5">
@@ -732,7 +771,7 @@ export function SubDetail() {
               C’est réglé
             </button>
           </div>
-        ) : (
+        ) : sub.invite ? null : (
           <div className="flex gap-2.5 rounded-[14px] bg-warn-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-[#6B3F00]">
             <span className="font-extrabold">!</span>
             Ne modifie pas le mot de passe ni les autres profils.

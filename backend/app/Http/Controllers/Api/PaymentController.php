@@ -37,6 +37,8 @@ class PaymentController extends Controller
             'offerId' => ['nullable', 'integer'],
             // Origine de la PWA (retour après la page de paiement), si autorisée.
             'returnOrigin' => ['nullable', 'string', 'max:255'],
+            // Apple Music : e-mail de l'identifiant Apple du membre (l'hôte l'invite dans son Partage familial).
+            'inviteEmail' => ['nullable', 'email:rfc', 'max:190'],
         ], [
             'phone.digits' => 'Le numéro doit avoir 10 chiffres.',
             'phone.required_unless' => 'Indique ton numéro mobile money.',
@@ -50,6 +52,7 @@ class PaymentController extends Controller
             $data['phone'] ?? null,
             isset($data['offerId']) ? (int) $data['offerId'] : null,
             self::allowedOrigin($data['returnOrigin'] ?? null),
+            isset($data['inviteEmail']) ? strtolower(trim($data['inviteEmail'])) : null,
         );
 
         return new PaymentResource($payment->load('service', 'hostOffer.user', 'joinRequest'));

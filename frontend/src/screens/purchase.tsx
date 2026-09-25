@@ -31,6 +31,7 @@ export function Checkout() {
   const [method, setMethod] = useState<PayMethodId>(state.lastMethod)
   const [phone, setPhone] = useState(state.user?.phone ?? '')
   const [loading, setLoading] = useState(false)
+  const [appleId, setAppleId] = useState('')
   const current = state.subs.find((x) => x.serviceId === id && x.state !== 'expired')
 
   // Lien direct / rechargement : on retrouve l'offre choisie.
@@ -55,10 +56,17 @@ export function Checkout() {
 
   const monthly = current ? current.price : s.chooseOffer ? offer?.price : s.price
   const amount = monthly ? durationPrice(monthly, months) : 0
+  // Apple Music : l'hôte invite l'identifiant Apple du membre dans son Partage familial.
+  const needsAppleId = !current && (offer?.invite ?? s.invite) === 'email'
+  const appleIdOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(appleId.trim())
 
   const pay = async () => {
     if (!online) {
       toast({ tone: 'error', text: 'Pas de réseau — le paiement reprendra dès le retour de la connexion' })
+      return
+    }
+    if (needsAppleId && !appleIdOk) {
+      toast({ tone: 'error', text: 'Indique l’e-mail de ton identifiant Apple' })
       return
     }
     if (method !== 'card' && phone.length < 10) {
@@ -67,7 +75,7 @@ export function Checkout() {
     }
     setLoading(true)
     try {
-      const payment = await actions.checkout(s.id, months, method, phone, current ? undefined : offerId ?? undefined)
+      const payment = await actions.checkout(s.id, months, method, phone, current ? undefined : offerId ?? undefined, needsAppleId ? appleId.trim() : undefined)
       navigate(`/pay/${payment.ref}`, { state: payment, viewTransition: !payment.checkoutUrl })
       // Passerelle avec page de paiement (GeniusPay) : on y part, retour automatique sur /pay/{ref}.
       if (payment.checkoutUrl) window.location.assign(payment.checkoutUrl)
@@ -103,6 +111,24 @@ export function Checkout() {
             <OfferOption offer={offer} />
             <p className="px-1 text-[13px] leading-normal font-medium text-muted">
               Tu paies maintenant, {offer.host.name} accepte ta demande sous 24 h. Sinon, tu es remboursé automatiquement.
+            </p>
+          </section>
+        )}
+        {needsAppleId && (
+          <section className="flex flex-col gap-2.5">
+            <h2 className="t-section">Ton identifiant Apple</h2>
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="ton.email@icloud.com"
+              aria-label="E-mail de ton identifiant Apple"
+              value={appleId}
+              onChange={(e) => setAppleId(e.target.value)}
+              className="h-14 rounded-btn border-[1.5px] border-line bg-white px-4 text-base font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
+            />
+            <p className="px-1 text-[13px] leading-normal font-medium text-muted">
+              L’e-mail de ton compte Apple (Réglages → ton nom). Ton hôte s’en sert pour t’inviter dans son Partage familial : il ne le voit qu’après t’avoir accepté.
             </p>
           </section>
         )}

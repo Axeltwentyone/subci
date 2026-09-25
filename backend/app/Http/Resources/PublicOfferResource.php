@@ -23,6 +23,7 @@ class PublicOfferResource extends JsonResource
             'quality' => $this->quality,
             'devices' => $this->devices ?? [],
             'mode' => $this->access_mode,
+            'invite' => $this->inviteType(),
             'price' => $this->price,
             'seats' => $this->seats,
             'free' => $this->freeSeats(),

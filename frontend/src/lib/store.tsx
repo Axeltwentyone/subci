@@ -24,6 +24,8 @@ export type UserSub = {
   pin?: string
   /** Souci signalé, en cours de traitement (gains de l'hôte gelés). */
   issue?: { reason: IssueReason; at: number }
+  /** Offre famille : invitation de l'hôte (lien à ouvrir ou e-mail Apple invité) */
+  invite?: { type: 'link' | 'email'; email?: string; link?: string; sentAt?: number }
 }
 
 export type Notif = {
@@ -48,7 +50,16 @@ export type Payment = {
   pending?: boolean
 }
 
-export type Member = { id: string; name: string; color: string; invitePending?: boolean; joinedAt?: string | null }
+export type Member = {
+  id: string
+  name: string
+  color: string
+  invitePending?: boolean
+  /** Apple Music : e-mail de l'identifiant Apple à inviter (visible après acceptation) */
+  inviteEmail?: string | null
+  inviteSentAt?: string | null
+  joinedAt?: string | null
+}
 
 export type HostOffer = {
   id: string
@@ -57,6 +68,8 @@ export type HostOffer = {
   seats: number
   price: number
   mode: 'credentials' | 'family'
+  /** Offre famille : l'hôte envoie un lien (Spotify, YouTube) ou invite un e-mail (Apple) */
+  invite: 'link' | 'email' | null
   members: Member[]
   pendingInvite?: string
   status: 'review' | 'live' | 'paused' | 'closed'
@@ -221,7 +234,6 @@ type Action =
   | { type: 'read'; id: string }
   | { type: 'setting'; key: keyof Settings; value: Settings[keyof Settings] }
   | { type: 'autoRenew'; id: string; value: boolean }
-  | { type: 'invited'; offerId: string }
   | { type: 'recent'; q: string }
   | { type: 'clearRecent' }
   | { type: 'installDismissed' }
@@ -265,8 +277,6 @@ function reducer(s: State, a: Action): State {
       return { ...s, settings: { ...s.settings, [a.key]: a.value } }
     case 'autoRenew':
       return { ...s, subs: s.subs.map((x) => (x.id === a.id ? { ...x, autoRenew: a.value } : x)) }
-    case 'invited':
-      return { ...s, offers: s.offers.map((o) => (o.id === a.offerId ? { ...o, pendingInvite: undefined } : o)) }
     case 'recent': {
       const q = a.q.trim()
       if (!q) return s
@@ -332,8 +342,8 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
       dispatch({ type: 'signedOut' })
     },
 
-    async checkout(serviceId: string, months: number, method: PayMethodId, phone: string, offerId?: string): Promise<PendingPayment> {
-      const { data } = await api.checkout({ serviceId, months, method, phone: method === 'card' ? undefined : phone, offerId })
+    async checkout(serviceId: string, months: number, method: PayMethodId, phone: string, offerId?: string, inviteEmail?: string): Promise<PendingPayment> {
+      const { data } = await api.checkout({ serviceId, months, method, phone: method === 'card' ? undefined : phone, offerId, inviteEmail })
       dispatch({ type: 'patch', patch: { lastMethod: method } })
       return toPending(data)
     },
@@ -398,9 +408,9 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
       dispatch({ type: 'patch', patch: { requests: get().requests.filter((r) => r.id !== requestId) } })
       sync().catch(() => {})
     },
-    invite: (offerId: string) => {
-      const offers = get().offers
-      return optimistic({ type: 'invited', offerId }, { type: 'patch', patch: { offers } }, () => api.invite(offerId))
+    /** Offre famille : envoie l'invitation à un membre accepté (lien du service, ou e-mail Apple invité). */
+    async inviteMember(offerId: string, memberId: string, link?: string) {
+      replaceOffer(toOffer((await api.inviteMember(offerId, memberId, link)).data))
     },
     /** Code SMS envoyé au numéro du compte avant de changer le numéro de retrait. */
     payoutCode: () => api.payoutCode(),

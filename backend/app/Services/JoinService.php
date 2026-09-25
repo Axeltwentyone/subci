@@ -72,6 +72,7 @@ class JoinService
                 'pay_method' => $payment->method,
                 'profile_label' => $family ? 'Invitation famille' : 'Profil '.($offer->members()->count() + 2).' · « '.($member->first_name ?? 'Moi').' »',
                 'access_email' => $family ? null : $offer->access_email,
+                'invite_email' => $family ? $payment->invite_email : null,
                 'access_password' => $family ? null : $offer->access_password,
             ]);
             $offer->members()->create([

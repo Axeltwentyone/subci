@@ -171,19 +171,55 @@ class CheckoutTest extends TestCase
             ->assertStatus(422)->assertJsonPath('errors.offerId.0', 'Cette offre vient d’être complétée. Choisis-en une autre.');
     }
 
-    public function test_family_member_waits_for_invite_after_acceptance(): void
+    public function test_spotify_host_sends_a_checked_invite_link_to_each_member(): void
     {
         $offer = $this->offer('spotify', ['plan' => 'famille', 'plan_label' => 'Famille · 6 comptes', 'access_mode' => 'family', 'access_email' => null, 'access_password' => null, 'price' => 1500]);
         $member = User::factory()->create();
         $this->actingAs($member);
         $request = $this->payFor($offer);
 
-        $this->asHost()->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk();
+        $this->asHost()->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk()->assertJsonPath('data.invite', 'link');
         $sub = $member->subscriptions()->sole();
         $this->assertSame('pending', $sub->status->value);
+        $memberId = $offer->members()->value('id');
 
-        $this->postJson("/api/v1/host/offers/{$offer->id}/invite")->assertOk();
+        // Lien obligatoire, et forcément de Spotify (pas de lien piégé).
+        $this->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite")->assertStatus(422)->assertJsonValidationErrors('link');
+        foreach (['https://spotify.com.evil.io/join/x', 'http://www.spotify.com/family/join/x', 'https://bit.ly/abc'] as $bad) {
+            $this->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite", ['link' => $bad])->assertStatus(422);
+        }
+        $link = 'https://www.spotify.com/ci-fr/family/join/invite/AbC123/';
+        $this->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite", ['link' => $link])->assertOk()
+            ->assertJsonPath('data.members.0.invitePending', false);
+
         $this->assertSame('active', $sub->fresh()->status->value);
+        $this->actingAs($member)->getJson("/api/v1/subscriptions/{$sub->id}")->assertOk()
+            ->assertJsonPath('data.invite.type', 'link')->assertJsonPath('data.invite.link', $link);
+
+        // Un autre hôte ne peut pas inviter les membres de cette offre.
+        $this->actingAs(User::factory()->create())->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite", ['link' => $link])->assertNotFound();
+    }
+
+    public function test_apple_music_member_gives_apple_id_email_seen_by_host_only_after_acceptance(): void
+    {
+        $offer = $this->offer('apple-music', ['plan' => 'famille', 'plan_label' => 'Famille · 6 comptes', 'access_mode' => 'family', 'access_email' => null, 'access_password' => null, 'price' => 1500]);
+        $member = User::factory()->create();
+        $this->actingAs($member);
+        $body = ['serviceId' => 'apple-music', 'offerId' => $offer->id, 'months' => 1, 'method' => 'wave', 'phone' => '0758421121'];
+        $this->postJson('/api/v1/payments', $body)->assertStatus(422)->assertJsonValidationErrors('inviteEmail');
+        $ref = $this->postJson('/api/v1/payments', $body + ['inviteEmail' => ' Aya.Kone@iCloud.com '])->assertCreated()->json('data.ref');
+        $this->getJson("/api/v1/payments/{$ref}")->assertJsonPath('data.status', 'succeeded');
+        $request = JoinRequest::latest('id')->firstOrFail();
+
+        // Avant acceptation : l'hôte ne voit pas l'e-mail.
+        $this->assertStringNotContainsString('icloud', strtolower($this->asHost()->getJson('/api/v1/host')->getContent()));
+        $this->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk()->assertJsonPath('data.members.0.inviteEmail', 'aya.kone@icloud.com');
+
+        $memberId = $offer->members()->value('id');
+        $this->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite", ['link' => 'https://x.y'])->assertStatus(422);
+        $this->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite")->assertOk();
+        $this->assertSame('active', $member->subscriptions()->sole()->status->value);
+        $this->assertNotSame('aya.kone@icloud.com', \Illuminate\Support\Facades\DB::table('payments')->where('reference', $ref)->value('invite_email'), 'chiffré en base');
     }
 
     public function test_renewal_needs_no_approval_and_uses_current_price(): void

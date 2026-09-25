@@ -276,24 +276,44 @@ class HostController extends Controller
         abort_unless($offer->user_id === $request->user()->id, 404);
     }
 
-    public function invite(Request $request, HostOffer $offer): HostOfferResource
+    /**
+     * Offre famille : l'hôte envoie l'invitation à un membre accepté.
+     * - « link » (Spotify, YouTube) : lien d'invitation du service, vérifié, transmis au membre ;
+     * - « email » (Apple Music) : l'hôte a invité l'identifiant Apple du membre depuis son téléphone.
+     */
+    public function inviteMember(Request $request, HostOffer $offer, OfferMember $member): HostOfferResource
     {
         $this->authorizeOwner($request, $offer);
+        abort_unless($member->host_offer_id === $offer->id && $member->user_id, 404);
+        $type = $offer->inviteType();
+        abort_unless($type !== null, 409, 'Cette offre fonctionne avec des identifiants partagés, pas par invitation.');
 
-        DB::transaction(function () use ($offer) {
-            $pending = $offer->members()->where('invite_pending', true)->pluck('user_id')->filter();
-            $offer->members()->where('invite_pending', true)->update(['invite_pending' => false]);
+        $data = $request->validate([
+            'link' => [$type === 'link' ? 'required' : 'prohibited', 'string', 'max:500'],
+        ], ['link.required' => 'Colle le lien d’invitation créé depuis ton compte.']);
+        if ($type === 'link' && ! $offer->acceptsInviteLink(trim($data['link']))) {
+            throw ValidationException::withMessages(['link' => 'Ce lien ne vient pas de '.$offer->service->name.'. Copie le lien d’invitation depuis la page famille de ton compte.']);
+        }
 
-            // Invitation envoyée : l'accès des membres concernés devient actif.
+        DB::transaction(function () use ($offer, $member, $type, $data) {
+            $sub = $offer->subscriptions()->with('user', 'service')->where('user_id', $member->user_id)->latest('ends_at')->firstOrFail();
+            $sub->update([
+                'invite_link' => $type === 'link' ? trim($data['link']) : null,
+                'invite_sent_at' => now(),
+                'status' => SubscriptionStatus::Active,
+                'profile_label' => 'Invitation famille envoyée',
+            ]);
+            $member->update(['invite_pending' => false]);
+
             $short = Str::before($offer->service->name, ' ');
-            $offer->subscriptions()->with('user')->whereIn('user_id', $pending)->where('status', SubscriptionStatus::Pending)->get()
-                ->each(function ($sub) use ($short) {
-                    $sub->update(['status' => SubscriptionStatus::Active, 'profile_label' => 'Invitation famille acceptée']);
-                    $sub->user->notify(new AppNotification('ok', "{$short} est activé", 'Accepte l’invitation famille reçue par e-mail.', ['label' => 'Voir', 'to' => "/subs/{$sub->id}"]));
-                });
+            $sub->user->notify(new AppNotification('ok', "Ton invitation {$short} est arrivée",
+                $type === 'link'
+                    ? 'Ouvre le lien dans ton coffre pour rejoindre la famille avec ton propre compte.'
+                    : 'Accepte l’invitation sur ton iPhone : Réglages → ton nom → Partage familial.',
+                ['label' => 'Rejoindre', 'to' => "/subs/{$sub->id}"]));
         });
 
-        return new HostOfferResource($offer->load(self::RELATIONS));
+        return new HostOfferResource($offer->fresh()->load(self::RELATIONS));
     }
 
     /** Retrait du solde vers le compte mobile money (frais 0, reçu ~5 min). */

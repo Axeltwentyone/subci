@@ -6,9 +6,14 @@
  * - devices : appareils possibles ; l'hôte coche ceux qu'il autorise
  * - mode : identifiants partagés ou invitation famille
  * - reco : fourchette de prix conseillée par place (FCFA)
+ * - invite (famille) : « link » = l'hôte colle un lien d'invitation par membre (domaines invite_hosts) ;
+ *   « email » = le membre donne l'e-mail de son compte au paiement, l'hôte l'invite depuis son téléphone
  */
 
 $all = ['phone', 'tablet', 'computer', 'tv'];
+$spotify = ['invite' => 'link', 'invite_hosts' => ['spotify.com', 'spotify.link']];
+$google = ['invite' => 'link', 'invite_hosts' => ['families.google.com', 'youtube.com', 'google.com', 'g.co']];
+$apple = ['invite' => 'email'];
 
 return [
     'netflix' => [
@@ -16,16 +21,16 @@ return [
         'premium' => ['label' => 'Premium · 4 écrans', 'max' => 3, 'quality' => '4K', 'devices' => $all, 'mode' => 'credentials', 'own' => 8000, 'reco' => [2000, 2700]],
     ],
     'spotify' => [
-        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]],
+        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]] + $spotify,
     ],
     'apple-music' => [
-        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]],
+        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]] + $apple,
     ],
     'spotify-duo' => [
-        'duo' => ['label' => 'Duo · 2 comptes', 'max' => 1, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 4400, 'reco' => [2000, 2400]],
+        'duo' => ['label' => 'Duo · 2 comptes', 'max' => 1, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 4400, 'reco' => [2000, 2400]] + $spotify,
     ],
     'youtube' => [
-        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5200, 'reco' => [1400, 1900]],
+        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5200, 'reco' => [1400, 1900]] + $google,
     ],
     'disney' => [
         'premium' => ['label' => 'Premium · 4 écrans', 'max' => 3, 'quality' => '4K', 'devices' => $all, 'mode' => 'credentials', 'own' => 6000, 'reco' => [1800, 2300]],

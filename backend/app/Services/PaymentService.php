@@ -30,9 +30,9 @@ class PaymentService
      *   pendant le paiement puis pendant la réponse de l'hôte.
      * - Renouvellement : même cercle, au prix actuel de l'hôte, sans validation.
      */
-    public function checkout(User $user, Service $service, int $months, PayMethod $method, ?string $phone, ?int $offerId = null, ?string $returnOrigin = null): Payment
+    public function checkout(User $user, Service $service, int $months, PayMethod $method, ?string $phone, ?int $offerId = null, ?string $returnOrigin = null, ?string $inviteEmail = null): Payment
     {
-        $payment = DB::transaction(function () use ($user, $service, $months, $method, $phone, $offerId) {
+        $payment = DB::transaction(function () use ($user, $service, $months, $method, $phone, $offerId, $inviteEmail) {
             $current = $user->subscriptions()
                 ->where('service_id', $service->id)
                 ->where('status', '!=', SubscriptionStatus::Expired)
@@ -69,6 +69,9 @@ class PaymentService
                 if ($offer->freeSeats() < 1) {
                     throw ValidationException::withMessages(['offerId' => 'Cette offre vient d’être complétée. Choisis-en une autre.']);
                 }
+                if ($offer->inviteType() === 'email' && ! $inviteEmail) {
+                    throw ValidationException::withMessages(['inviteEmail' => 'Indique l’e-mail de ton identifiant Apple : ton hôte en a besoin pour t’inviter dans sa famille.']);
+                }
             }
 
             return $user->payments()->create([
@@ -82,6 +85,7 @@ class PaymentService
                 'months' => $months,
                 'method' => $method,
                 'phone' => $method === PayMethod::Card ? null : $phone,
+                'invite_email' => $current ? null : ($offer->inviteType() === 'email' ? $inviteEmail : null),
                 'expires_at' => now()->addSeconds(config('services.payments.request_ttl')),
             ]);
         });

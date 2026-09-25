@@ -121,7 +121,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('host/offers/{offer}', [HostController::class, 'updateOffer']);
         Route::delete('host/offers/{offer}/members/{member}', [HostController::class, 'removeMember']);
         Route::post('host/offers/{offer}/{action}', [HostController::class, 'setStatus'])->whereIn('action', ['pause', 'resume', 'close']);
-        Route::post('host/offers/{offer}/invite', [HostController::class, 'invite']);
+        Route::post('host/offers/{offer}/members/{member}/invite', [HostController::class, 'inviteMember'])->middleware('throttle:20,1');
         Route::post('host/withdrawals', [HostController::class, 'withdraw'])->middleware('throttle:5,1');
     });
 });

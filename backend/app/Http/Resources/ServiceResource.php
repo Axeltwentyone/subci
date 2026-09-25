@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Service */
+/** @mixin Service */
 class ServiceResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -29,6 +30,8 @@ class ServiceResource extends JsonResource
             'activation' => $this->activation_minutes,
             'popular' => $this->is_popular,
             'chooseOffer' => $this->choosesOffer(),
+            // Offres famille : « email » = demander l'e-mail du compte (Apple) au paiement.
+            'invite' => $this->inviteType(),
         ];
     }
 }

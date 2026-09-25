@@ -12,9 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id', 'service_id', 'host_offer_id', 'status', 'starts_at', 'ends_at', 'activates_at', 'auto_renew', 'reminded_j3_at', 'reminded_j1_at', 'pay_method',
-    'profile_label', 'access_email', 'access_password', 'access_pin',
+    'profile_label', 'access_email', 'access_password', 'access_pin', 'invite_email', 'invite_link', 'invite_sent_at',
 ])]
-#[Hidden(['access_email', 'access_password', 'access_pin'])]
+#[Hidden(['access_email', 'access_password', 'access_pin', 'invite_email', 'invite_link'])]
 class Subscription extends Model
 {
     protected function casts(): array
@@ -32,6 +32,9 @@ class Subscription extends Model
             'access_email' => 'encrypted',
             'access_password' => 'encrypted',
             'access_pin' => 'encrypted',
+            'invite_email' => 'encrypted',
+            'invite_link' => 'encrypted',
+            'invite_sent_at' => 'datetime',
         ];
     }
 

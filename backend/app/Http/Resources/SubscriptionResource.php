@@ -37,6 +37,13 @@ class SubscriptionResource extends JsonResource
             'email' => $ready ? $this->access_email : null,
             'password' => $ready ? $this->access_password : null,
             'pin' => $ready ? $this->access_pin : null,
+            // Offre famille : invitation de l'hôte (lien à ouvrir, ou e-mail Apple invité).
+            'invite' => ($type = $this->hostOffer?->inviteType()) ? [
+                'type' => $type,
+                'email' => $this->invite_email,
+                'link' => $this->invite_link,
+                'sentAt' => $this->invite_sent_at?->toIso8601String(),
+            ] : null,
             'dispute' => ($d = $this->disputes()->where('status', DisputeStatus::Open)->latest()->first())
                 ? ['id' => (string) $d->id, 'reason' => $d->reason, 'at' => $d->created_at->toIso8601String()]
                 : null,

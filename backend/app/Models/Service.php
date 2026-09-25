@@ -69,4 +69,10 @@ class Service extends Model
     {
         return $this->hasMany(Subscription::class);
     }
+
+    /** Offres famille de ce service : type d'invitation (« link » / « email »), null si identifiants partagés. */
+    public function inviteType(): ?string
+    {
+        return collect(config("plans.{$this->slug}", []))->firstWhere('mode', 'family')['invite'] ?? null;
+    }
 }

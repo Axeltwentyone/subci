@@ -6,6 +6,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
 use App\Enums\PayMethod;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,9 +16,10 @@ use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'gross', 'months',
-    'method', 'phone', 'provider_reference', 'checkout_url', 'return_url', 'period_start', 'period_end', 'expires_at', 'available_at', 'held_at',
+    'method', 'phone', 'invite_email', 'provider_reference', 'checkout_url', 'return_url', 'period_start', 'period_end', 'expires_at', 'available_at', 'held_at',
     'confirmed_at', 'refunded_at',
 ])]
+#[Hidden(['invite_email'])]
 class Payment extends Model
 {
     protected static function booted(): void
@@ -45,6 +47,7 @@ class Payment extends Model
             'method' => PayMethod::class,
             'amount' => 'integer',
             'gross' => 'integer',
+            'invite_email' => 'encrypted',
             'available_at' => 'datetime',
             'held_at' => 'datetime',
             'period_start' => 'datetime',

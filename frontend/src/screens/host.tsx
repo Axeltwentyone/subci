@@ -419,6 +419,59 @@ const OFFER_STATUS: Record<HostOffer['status'], { label: string; tone: 'active' 
  * Modifier ce qu'on partage : prix (au prochain renouvellement), places,
  * identifiants (poussés dans le coffre des membres), membres, pause / arrêt.
  */
+/** Aide pour trouver le lien d'invitation dans chaque service. */
+const INVITE_HELP: Record<string, string> = {
+  spotify: 'Spotify : spotify.com → ton compte → Premium Famille → Inviter → Copier le lien',
+  'spotify-duo': 'Spotify : spotify.com → ton compte → Premium Duo → Inviter → Copier le lien',
+  youtube: 'YouTube : ta photo → Achats et abonnements → Premium Famille → Modifier → Inviter → Copier le lien',
+}
+
+/** Invitation d'un membre accepté : lien du service (Spotify, YouTube) ou e-mail Apple à inviter. */
+function InviteMember({ offer, member, onSend }: { offer: HostOffer; member: Member; onSend: (link?: string) => Promise<boolean> }) {
+  const [link, setLink] = useState('')
+  const [busy, setBusy] = useState(false)
+  const send = async (value?: string) => {
+    setBusy(true)
+    try {
+      if (await onSend(value)) setLink('')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (offer.invite === 'email') {
+    return (
+      <div className="mb-3 flex flex-col gap-2.5 rounded-tile bg-info-soft p-3.5 text-[13px] leading-snug font-semibold text-info-ink">
+        <span>
+          Invite <b className="break-all">{member.inviteEmail ?? 'son identifiant Apple'}</b> depuis ton iPhone : Réglages → ton nom → Partage familial → Ajouter un membre.
+        </span>
+        <Button size="sm" variant="ink" loading={busy} onClick={() => send()}>
+          C’est fait, invitation envoyée
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-3 flex flex-col gap-2.5 rounded-tile bg-info-soft p-3.5">
+      <span className="text-[13px] leading-snug font-semibold text-info-ink">{INVITE_HELP[offer.serviceId] ?? 'Copie le lien d’invitation famille depuis ton compte.'} Un lien par membre.</span>
+      <input
+        type="url"
+        inputMode="url"
+        autoComplete="off"
+        placeholder="Colle le lien d’invitation"
+        aria-label={`Lien d’invitation pour ${member.name}`}
+        value={link}
+        onChange={(e) => setLink(e.target.value.trim())}
+        className="h-11 rounded-[12px] border-[1.5px] border-line bg-white px-3 text-[15px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
+      />
+      <Button size="sm" variant="ink" loading={busy} disabled={!link.startsWith('https://')} onClick={() => send(link)}>
+        Envoyer à {member.name}
+      </Button>
+    </div>
+  )
+}
+
 export function ManageOffer() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
@@ -468,8 +521,10 @@ export function ManageOffer() {
     try {
       await fn()
       toast({ text: ok })
+      return true
     } catch (e) {
       toast({ tone: 'error', text: errorMessage(e) })
+      return false
     }
   }
 
@@ -604,7 +659,8 @@ export function ManageOffer() {
           <span className="pt-2 pb-1 text-base font-bold">Membres</span>
           {members.length === 0 && <p className="py-3 text-sm font-medium text-muted">Personne pour l’instant. On te prévient au 1er membre.</p>}
           {members.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 border-b border-line-soft py-3 last:border-b-0">
+            <div key={m.id} className="border-b border-line-soft last:border-b-0">
+            <div className="flex items-center gap-3 py-3">
               <span className="grid size-10 shrink-0 place-items-center rounded-full text-sm font-extrabold" style={{ background: m.color }}>
                 {m.name.charAt(0)}
               </span>
@@ -614,16 +670,16 @@ export function ManageOffer() {
                   {m.invitePending ? 'Attend ton invitation famille' : m.joinedAt ? `Membre depuis le ${shortDate(Date.parse(m.joinedAt))}` : 'Membre'}
                 </span>
               </span>
-              {m.invitePending && !closed && (
-                <button type="button" onClick={() => run(() => actions.invite(offer.id), `Invitation envoyée à ${m.name}`)} className="pressable h-9 rounded-[10px] bg-info-soft px-3 text-[13px] font-bold text-info">
-                  Inviter
-                </button>
-              )}
+
               {!closed && (
                 <button type="button" onClick={() => setConfirm({ kind: 'remove', member: m })} className="pressable h-9 rounded-[10px] px-2 text-[13px] font-bold text-err">
                   Retirer
                 </button>
               )}
+            </div>
+            {m.invitePending && !closed && offer.invite && (
+              <InviteMember offer={offer} member={m} onSend={(link) => run(() => actions.inviteMember(offer.id, m.id, link), `Invitation envoyée à ${m.name}`)} />
+            )}
             </div>
           ))}
         </section>
