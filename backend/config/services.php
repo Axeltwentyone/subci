@@ -70,8 +70,9 @@ return [
     'otp' => [
         'ttl' => (int) env('OTP_TTL', 300),
         'max_attempts' => 5,
-        // En local, le code est renvoyé dans la réponse (pas de passerelle SMS).
-        'expose_code' => (bool) env('OTP_EXPOSE_CODE', env('APP_ENV') === 'local'),
+        // En local uniquement, le code est renvoyé dans la réponse (pas de passerelle SMS).
+        // Jamais en production, même si OTP_EXPOSE_CODE est laissé à true par erreur.
+        'expose_code' => in_array(env('APP_ENV'), ['local', 'testing'], true) && (bool) env('OTP_EXPOSE_CODE', true),
     ],
 
 ];

@@ -21,7 +21,10 @@ class OtpService
         ]);
 
         // TODO passerelle SMS (Orange SMS API, Twilio…). Le format « @sub.ci #code » active WebOTP.
-        Log::info("OTP Sub.ci pour {$phone} : {$code}");
+        // Code en clair dans les logs : uniquement en local (en prod, quiconque lit les logs pourrait se connecter).
+        if (app()->environment('local', 'testing')) {
+            Log::info("OTP Sub.ci pour {$phone} : {$code}");
+        }
 
         return $code;
     }
