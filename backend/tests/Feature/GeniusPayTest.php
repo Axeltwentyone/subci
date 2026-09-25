@@ -120,4 +120,41 @@ class GeniusPayTest extends TestCase
     {
         return collect($headers)->mapWithKeys(fn ($v, $k) => [in_array($k, ['Content-Type']) ? 'CONTENT_TYPE' : 'HTTP_'.strtoupper(str_replace('-', '_', $k)) => $v])->all();
     }
+
+    public function test_return_url_follows_app_origin_only_if_allowed(): void
+    {
+        config(['app.frontend_origins' => ['http://localhost:5173', 'http://localhost:4173'], 'app.frontend_url' => 'http://localhost:5173']);
+        Http::fake(['geniuspay.test/*' => Http::response(['success' => true, 'data' => ['reference' => 'GP_R', 'checkout_url' => 'https://x']])]);
+        $this->actingAs(User::factory()->create());
+        $body = ['serviceId' => 'netflix', 'offerId' => $this->offer->id, 'months' => 1, 'method' => 'wave', 'phone' => '0758421121'];
+
+        $ref = $this->postJson('/api/v1/payments', $body + ['returnOrigin' => 'http://localhost:4173'])->assertCreated()->json('data.ref');
+        Http::assertSent(fn ($r) => $r['success_url'] === "http://localhost:4173/pay/{$ref}");
+
+        $this->actingAs(User::factory()->create());
+        $ref = $this->postJson('/api/v1/payments', $body + ['returnOrigin' => 'https://phishing.example'])->assertCreated()->json('data.ref');
+        Http::assertSent(fn ($r) => $r['success_url'] === "http://localhost:5173/pay/{$ref}");
+    }
+
+    public function test_late_return_after_link_expiry_still_confirms_if_paid(): void
+    {
+        Http::fakeSequence('geniuspay.test/*')
+            ->push(['success' => true, 'data' => ['reference' => 'GP_LATE', 'checkout_url' => 'https://x']])
+            ->push(['success' => true, 'data' => ['status' => 'completed', 'amount' => 2500]]);
+        $ref = $this->checkout()['ref'];
+
+        $this->travel(2)->hours();
+        $this->getJson("/api/v1/payments/{$ref}")->assertJsonPath('data.status', 'succeeded');
+    }
+
+    public function test_reconcile_confirms_payments_whose_member_never_came_back(): void
+    {
+        Http::fakeSequence('geniuspay.test/*')
+            ->push(['success' => true, 'data' => ['reference' => 'GP_GONE', 'checkout_url' => 'https://x']])
+            ->push(['success' => true, 'data' => ['status' => 'completed', 'amount' => 2500]]);
+        $this->checkout();
+
+        $this->artisan('payments:reconcile')->assertSuccessful();
+        $this->assertSame('succeeded', Payment::sole()->status->value);
+    }
 }

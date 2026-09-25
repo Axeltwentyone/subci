@@ -54,8 +54,11 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
-    // PWA : retour après paiement (success_url / error_url de la passerelle).
-    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+    // PWA : origines autorisées (séparées par des virgules). La 1re sert par défaut
+    // pour le retour après paiement ; les autres (preview, staging) sont acceptées
+    // si l'app les annonce au checkout.
+    'frontend_url' => explode(',', (string) env('FRONTEND_URL', 'http://localhost:5173'))[0],
+    'frontend_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('FRONTEND_URL', 'http://localhost:5173'))))),
 
     /*
     |--------------------------------------------------------------------------

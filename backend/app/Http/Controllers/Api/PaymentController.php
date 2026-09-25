@@ -35,6 +35,8 @@ class PaymentController extends Controller
             'phone' => ['required_unless:method,card', 'nullable', 'digits:10'],
             // Offre choisie par le membre (obligatoire pour rejoindre, inutile pour renouveler).
             'offerId' => ['nullable', 'integer'],
+            // Origine de la PWA (retour après la page de paiement), si autorisée.
+            'returnOrigin' => ['nullable', 'string', 'max:255'],
         ], [
             'phone.digits' => 'Le numéro doit avoir 10 chiffres.',
             'phone.required_unless' => 'Indique ton numéro mobile money.',
@@ -47,6 +49,7 @@ class PaymentController extends Controller
             PayMethod::from($data['method']),
             $data['phone'] ?? null,
             isset($data['offerId']) ? (int) $data['offerId'] : null,
+            self::allowedOrigin($data['returnOrigin'] ?? null),
         );
 
         return new PaymentResource($payment->load('service', 'hostOffer.user', 'joinRequest'));
@@ -75,6 +78,14 @@ class PaymentController extends Controller
         }
 
         return new PaymentResource($payment->load('service', 'hostOffer.user', 'joinRequest'));
+    }
+
+    /** N'accepte qu'une origine déclarée dans FRONTEND_URL (pas de redirection ouverte). */
+    private static function allowedOrigin(?string $origin): string
+    {
+        $origin = rtrim((string) $origin, '/');
+
+        return in_array($origin, config('app.frontend_origins'), true) ? $origin : rtrim(config('app.frontend_url'), '/');
     }
 
     private function authorizeOwner(Request $request, Payment $payment): void

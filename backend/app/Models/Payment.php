@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'type', 'status', 'reference', 'label', 'amount', 'months',
-    'method', 'phone', 'provider_reference', 'checkout_url', 'period_start', 'period_end', 'expires_at', 'confirmed_at', 'refunded_at',
+    'method', 'phone', 'provider_reference', 'checkout_url', 'return_url', 'period_start', 'period_end', 'expires_at', 'confirmed_at', 'refunded_at',
 ])]
 class Payment extends Model
 {

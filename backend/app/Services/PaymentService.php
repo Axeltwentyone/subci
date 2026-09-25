@@ -27,7 +27,7 @@ class PaymentService
      *   pendant le paiement puis pendant la réponse de l'hôte.
      * - Renouvellement : même cercle, au prix actuel de l'hôte, sans validation.
      */
-    public function checkout(User $user, Service $service, int $months, PayMethod $method, ?string $phone, ?int $offerId = null): Payment
+    public function checkout(User $user, Service $service, int $months, PayMethod $method, ?string $phone, ?int $offerId = null, ?string $returnOrigin = null): Payment
     {
         $current = $user->subscriptions()
             ->where('service_id', $service->id)
@@ -78,6 +78,7 @@ class PaymentService
             'phone' => $method === PayMethod::Card ? null : $phone,
             'expires_at' => now()->addSeconds(config('services.payments.request_ttl')),
         ]);
+        $payment->return_url = rtrim($returnOrigin ?? config('app.frontend_url'), '/')."/pay/{$payment->reference}";
 
         $request = $this->gateway->request($payment);
         $payment->update(['provider_reference' => $request['reference'], 'checkout_url' => $request['url']]);
@@ -108,17 +109,34 @@ class PaymentService
         if ($payment->status !== PaymentStatus::Pending) {
             return $payment;
         }
-        if ($payment->expires_at?->isPast()) {
-            $payment->update(['status' => PaymentStatus::Expired]);
 
-            return $payment;
-        }
-
+        // Toujours demander à la passerelle d'abord : un membre peut avoir payé
+        // puis être revenu (ou le webhook arrivé) après l'expiration du lien.
         return match ($this->gateway->status($payment)) {
             PaymentStatus::Succeeded => $this->confirm($payment),
             PaymentStatus::Failed => tap($payment)->update(['status' => PaymentStatus::Failed]),
-            default => $payment,
+            PaymentStatus::Expired => tap($payment)->update(['status' => PaymentStatus::Expired]),
+            default => $payment->expires_at?->isPast() && $payment->expires_at->lt(now()->subMinutes(10))
+                // Marge de 10 min après l'expiration pour les confirmations tardives.
+                ? tap($payment)->update(['status' => PaymentStatus::Expired])
+                : $payment,
         };
+    }
+
+    /**
+     * Rattrapage : relit les paiements en attente (membre jamais revenu, webhook
+     * non reçu). Appelé chaque minute par le planificateur.
+     */
+    public function reconcile(int $limit = 50): int
+    {
+        return Payment::where('status', PaymentStatus::Pending)
+            ->whereNotNull('provider_reference')
+            ->where('created_at', '>', now()->subDay())
+            ->oldest('updated_at')
+            ->limit($limit)
+            ->get()
+            ->each(fn (Payment $p) => $this->refresh($p))
+            ->count();
     }
 
     /**

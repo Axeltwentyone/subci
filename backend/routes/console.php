@@ -24,6 +24,8 @@ Illuminate\Support\Facades\Schedule::call(function () {
     $sweeper->approveOffers();
     // Demandes sans réponse de l'hôte sous 24 h → remboursées.
     app(App\Services\JoinService::class)->expireOverdue();
+    // Paiements en attente : on relit la passerelle (membre jamais revenu, webhook manqué).
+    app(App\Services\PaymentService::class)->reconcile();
 })
     ->everyMinute()
     ->name('subscriptions:sweep')
@@ -74,3 +76,7 @@ Illuminate\Support\Facades\Artisan::command('payouts:done {reference}', function
         : new App\Notifications\AppNotification('host', 'Retrait envoyé', "{$amount} versés sur ton ".$p->method->label().'.'));
     $this->info("{$reference} marqué comme versé ({$amount} à {$p->user->name}).");
 })->purpose('Marquer un remboursement ou retrait comme versé');
+
+Illuminate\Support\Facades\Artisan::command('payments:reconcile', function () {
+    $this->info(app(App\Services\PaymentService::class)->reconcile().' paiement(s) en attente relu(s).');
+})->purpose('Relire les paiements en attente chez la passerelle');

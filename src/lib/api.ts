@@ -244,8 +244,9 @@ export const api = {
   setAutoRenew: (id: string, autoRenew: boolean) => request<Data<ApiSub>>('PATCH', `/subscriptions/${id}`, { autoRenew }),
   cancelSubscription: (id: string) => request<Data<ApiSub>>('POST', `/subscriptions/${id}/cancel`),
 
+  // returnOrigin : l'API y renvoie le membre après la page de paiement (liste autorisée côté serveur).
   checkout: (body: { serviceId: string; months: number; method: PayMethodId; phone?: string; offerId?: string }) =>
-    request<Data<ApiPayment>>('POST', '/payments', body),
+    request<Data<ApiPayment>>('POST', '/payments', { ...body, returnOrigin: window.location.origin }),
   payment: (ref: string) => request<Data<ApiPayment>>('GET', `/payments/${ref}`),
   resendPayment: (ref: string) => request<Data<ApiPayment>>('POST', `/payments/${ref}/resend`),
   cancelPayment: (ref: string) => request<Data<ApiPayment>>('POST', `/payments/${ref}/cancel`),
