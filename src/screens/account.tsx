@@ -119,6 +119,7 @@ export function Activity() {
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-[15px] font-bold">{p.label}</span>
                     <span className="text-[13px] font-semibold text-muted">
+                      {p.pending ? <b className="text-warn-ink">En cours · </b> : null}
                       {shortDate(p.at)} · {m.short} · {p.ref}
                     </span>
                   </div>

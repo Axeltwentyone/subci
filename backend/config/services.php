@@ -44,6 +44,16 @@ return [
         'driver' => env('PAYMENTS_DRIVER', 'fake'),
         'fake_delay' => (int) env('PAYMENTS_FAKE_DELAY', 5),
         'request_ttl' => (int) env('PAYMENTS_REQUEST_TTL', 102),
+        // GeniusPay n'expose pas d'API de remboursement ni de versement à un tiers :
+        // remboursements et retraits des hôtes sont alors traités à la main (payouts:*).
+        'manual_payouts' => (bool) env('PAYMENTS_MANUAL_PAYOUTS', env('PAYMENTS_DRIVER') === 'geniuspay'),
+    ],
+
+    'geniuspay' => [
+        'base_url' => env('GENIUSPAY_BASE_URL', 'https://pay.genius.ci/api/v1/merchant'),
+        'key' => env('GENIUSPAY_API_KEY'),
+        'secret' => env('GENIUSPAY_API_SECRET'),
+        'webhook_secret' => env('GENIUSPAY_WEBHOOK_SECRET'),
     ],
 
     'offers' => [

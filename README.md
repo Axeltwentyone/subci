@@ -32,11 +32,27 @@ affiché dans un toast (`OTP_EXPOSE_CODE=true`) ; il est aussi écrit dans `back
 
 Remettre la démo à zéro : `php artisan migrate:fresh --seed`.
 
-## Paiements
+## Paiements (GeniusPay)
 
-Le driver `PAYMENTS_DRIVER=fake` valide une demande mobile money au bout de
-`PAYMENTS_FAKE_DELAY` secondes. Pour un vrai agrégateur (CinetPay, PayDunya…),
-implémenter `App\Contracts\PaymentGateway` et l'enregistrer dans `AppServiceProvider`.
+`PAYMENTS_DRIVER=geniuspay` dans `backend/.env` (clés du tableau de bord GeniusPay :
+`GENIUSPAY_API_KEY`, `GENIUSPAY_API_SECRET`, `GENIUSPAY_WEBHOOK_SECRET`). `PAYMENTS_DRIVER=fake`
+valide automatiquement au bout de `PAYMENTS_FAKE_DELAY` secondes (démo sans réseau).
+
+Parcours : checkout → redirection vers la page GeniusPay → retour sur `FRONTEND_URL/pay/{référence}`
+→ l'app relit le statut. En production, déclarer le webhook
+`https://<api>/api/v1/webhooks/geniuspay` dans GeniusPay : la signature HMAC est vérifiée et le
+statut toujours relu via l'API avant confirmation.
+
+GeniusPay n'a pas d'API de remboursement ni de versement vers un tiers : remboursements
+(demandes refusées / expirées / annulées) et retraits des hôtes sont **à verser à la main** :
+
+```bash
+php artisan payouts:list                 # ce qu'il reste à verser (numéro, moyen, montant)
+php artisan payouts:done SUB-XXXX-00     # après envoi : marque versé et notifie la personne
+```
+
+Sandbox : chaque paiement créé consomme un jeton de test (`tokens_remaining`). Les tests
+automatisés n'appellent jamais GeniusPay (`PAYMENTS_DRIVER=fake` forcé dans `phpunit.xml`).
 
 ## API (`/api/v1`)
 

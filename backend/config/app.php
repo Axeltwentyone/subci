@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // PWA : retour après paiement (success_url / error_url de la passerelle).
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

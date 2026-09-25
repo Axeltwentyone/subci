@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\PaymentGateway;
 use App\Payments\FakeGateway;
+use App\Payments\GeniusPayGateway;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -17,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(PaymentGateway::class, fn () => match (config('services.payments.driver')) {
+            'geniuspay' => new GeniusPayGateway(config('services.geniuspay')),
             default => new FakeGateway(config('services.payments.fake_delay')),
         });
     }

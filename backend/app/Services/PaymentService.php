@@ -79,7 +79,8 @@ class PaymentService
             'expires_at' => now()->addSeconds(config('services.payments.request_ttl')),
         ]);
 
-        $payment->update(['provider_reference' => $this->gateway->request($payment)]);
+        $request = $this->gateway->request($payment);
+        $payment->update(['provider_reference' => $request['reference'], 'checkout_url' => $request['url']]);
         $user->update(['last_pay_method' => $method]);
 
         return $payment;
@@ -93,7 +94,9 @@ class PaymentService
         }
         $payment->status = PaymentStatus::Pending;
         $payment->expires_at = now()->addSeconds(config('services.payments.request_ttl'));
-        $payment->provider_reference = $this->gateway->request($payment);
+        $request = $this->gateway->request($payment);
+        $payment->provider_reference = $request['reference'];
+        $payment->checkout_url = $request['url'];
         $payment->save();
 
         return $payment;

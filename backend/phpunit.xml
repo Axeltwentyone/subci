@@ -28,6 +28,14 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <!-- Jamais la vraie passerelle en test (jetons sandbox, argent réel). -->
+        <env name="PAYMENTS_DRIVER" value="fake"/>
+        <env name="PAYMENTS_MANUAL_PAYOUTS" value="false"/>
+        <env name="PAYMENTS_REQUEST_TTL" value="102"/>
+        <env name="GENIUSPAY_BASE_URL" value="https://geniuspay.test/api/v1/merchant"/>
+        <env name="GENIUSPAY_API_KEY" value="pk_test"/>
+        <env name="GENIUSPAY_API_SECRET" value="sk_test"/>
+        <env name="GENIUSPAY_WEBHOOK_SECRET" value="whsec_test"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

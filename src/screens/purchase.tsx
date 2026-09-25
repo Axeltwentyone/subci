@@ -68,7 +68,9 @@ export function Checkout() {
     setLoading(true)
     try {
       const payment = await actions.checkout(s.id, months, method, phone, current ? undefined : offerId ?? undefined)
-      navigate(`/pay/${payment.ref}`, { state: payment, viewTransition: true })
+      navigate(`/pay/${payment.ref}`, { state: payment, viewTransition: !payment.checkoutUrl })
+      // Passerelle avec page de paiement (GeniusPay) : on y part, retour automatique sur /pay/{ref}.
+      if (payment.checkoutUrl) window.location.assign(payment.checkoutUrl)
     } catch (e) {
       toast({ tone: 'error', text: errorMessage(e) })
       setLoading(false)
@@ -208,16 +210,29 @@ export function Paying() {
     return () => clearInterval(t)
   }, [p])
 
-  if (!p) return <Screen><div className="grid flex-1 place-items-center"><span className="size-6 rounded-full border-[3px] border-line border-t-brand animate-spin-fast" /></div></Screen>
+  // Retour depuis la page de paiement : on relit le statut avant d'afficher quoi que ce soit.
+  if (!p)
+    return (
+      <Screen>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center" aria-live="polite">
+          <span className="size-8 rounded-full border-[3px] border-line border-t-brand animate-spin-fast" aria-hidden />
+          <p className="font-display text-xl font-bold">On vérifie ton paiement…</p>
+          <p className="text-sm font-medium text-muted">Ne ferme pas l’app, ça prend quelques secondes.</p>
+        </div>
+      </Screen>
+    )
   const s = getService(p.serviceId)
   if (!s) return <Navigate to="/explore" replace />
   const m = getMethod(p.method)
   // Étape 2 (« saisis ton code ») mise en avant après quelques secondes.
   const step = Date.now() - shownAt.current > 2500 ? 2 : 1
 
-  const steps = p.method === 'card'
-    ? ['Confirme sur la page 3-D Secure', 'Valide avec ta banque', 'On confirme automatiquement']
-    : [`Ouvre la demande ${m.name}`, 'Saisis ton code secret', 'On confirme automatiquement']
+  const hosted = !!p.checkoutUrl
+  const steps = hosted
+    ? ['Ouvre la page de paiement sécurisée', `Valide avec ${m.name}`, 'On confirme automatiquement']
+    : p.method === 'card'
+      ? ['Confirme sur la page 3-D Secure', 'Valide avec ta banque', 'On confirme automatiquement']
+      : [`Ouvre la demande ${m.name}`, 'Saisis ton code secret', 'On confirme automatiquement']
 
   return (
     <Screen>
@@ -230,9 +245,17 @@ export function Paying() {
           </span>
         </div>
         <div className="flex flex-col gap-2.5">
-          <h1 className="t-title">Valide sur ton téléphone</h1>
+          <h1 className="t-title">{hosted ? 'On vérifie ton paiement' : 'Valide sur ton téléphone'}</h1>
           <p className="text-base leading-normal font-medium text-pretty text-muted">
-            Une demande de <b className="text-ink">{fcfa(p.amount)} FCFA</b> a été envoyée {p.method === 'card' ? 'à ta banque' : <>au {maskPhone(p.phone)}</>}.
+            {hosted ? (
+              <>
+                Paiement de <b className="text-ink">{fcfa(p.amount)} FCFA</b> via {m.name}. Dès qu’il est validé, on continue automatiquement.
+              </>
+            ) : (
+              <>
+                Une demande de <b className="text-ink">{fcfa(p.amount)} FCFA</b> a été envoyée {p.method === 'card' ? 'à ta banque' : <>au {maskPhone(p.phone)}</>}.
+              </>
+            )}
           </p>
         </div>
         <Card className="w-full px-[18px] py-1.5 text-left">
@@ -254,9 +277,13 @@ export function Paying() {
         </div>
       </div>
       <div className="mt-auto flex flex-col gap-1.5 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+40px)]">
-        <Button variant="outline" size="md" onClick={() => setHelp(true)}>
-          Je n’ai rien reçu
-        </Button>
+        {hosted ? (
+          <Button onClick={() => window.location.assign(p.checkoutUrl!)}>Reprendre le paiement</Button>
+        ) : (
+          <Button variant="outline" size="md" onClick={() => setHelp(true)}>
+            Je n’ai rien reçu
+          </Button>
+        )}
         <Button
           variant="text"
           size="link"

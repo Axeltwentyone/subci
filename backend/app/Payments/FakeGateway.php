@@ -12,9 +12,9 @@ class FakeGateway implements PaymentGateway
 {
     public function __construct(private int $delay) {}
 
-    public function request(Payment $payment): string
+    public function request(Payment $payment): array
     {
-        return 'FAKE-'.Str::upper(Str::random(10));
+        return ['reference' => 'FAKE-'.Str::upper(Str::random(10)), 'url' => null];
     }
 
     public function status(Payment $payment): PaymentStatus

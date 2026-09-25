@@ -42,6 +42,8 @@ export type Payment = {
   method: PayMethodId
   ref: string
   direction: 'out' | 'in'
+  /** Remboursement ou retrait pas encore versé */
+  pending?: boolean
 }
 
 export type Member = { id: string; name: string; color: string; invitePending?: boolean; joinedAt?: string | null }
@@ -375,10 +377,12 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
       const offers = get().offers
       return optimistic({ type: 'invited', offerId }, { type: 'patch', patch: { offers } }, () => api.invite(offerId))
     },
+    /** Renvoie true si le versement est immédiat, false s'il est traité sous 48 h. */
     async withdraw(amount: number) {
-      const { host } = await api.withdraw(amount)
+      const { host, payment } = await api.withdraw(amount)
       dispatch({ type: 'patch', patch: hostPart(host) })
       sync().catch(() => {})
+      return payment.status === 'succeeded'
     },
 
     recent: (q: string) => dispatch({ type: 'recent', q }),

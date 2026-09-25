@@ -411,7 +411,7 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
         </div>
         <div className="flex justify-between text-sm font-semibold text-muted">
           <span>Frais de retrait : 0 FCFA</span>
-          <span>Reçu en ~5 min</span>
+          <span>Reçu sous 48 h</span>
         </div>
         <Button
           loading={loading}
@@ -419,10 +419,10 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
           onClick={async () => {
             setLoading(true)
             try {
-              await actions.withdraw(amount)
+              const instant = await actions.withdraw(amount)
               onClose()
               haptic(20)
-              toast({ tone: 'ink', text: `Retrait de ${fcfa(amount)} FCFA envoyé` })
+              toast({ tone: 'ink', text: instant ? `Retrait de ${fcfa(amount)} FCFA envoyé` : `Retrait de ${fcfa(amount)} FCFA demandé · reçu sous 48 h` })
             } catch (e) {
               toast({ tone: 'error', text: errorMessage(e) })
             } finally {

@@ -28,6 +28,8 @@ class PaymentResource extends JsonResource
             'periodStart' => $this->period_start?->toIso8601String(),
             'periodEnd' => $this->period_end?->toIso8601String(),
             'expiresAt' => $this->expires_at?->toIso8601String(),
+            // Page de la passerelle où valider (uniquement tant que c'est en attente).
+            'checkoutUrl' => $this->status === \App\Enums\PaymentStatus::Pending ? $this->checkout_url : null,
             'at' => $this->created_at->toIso8601String(),
         ];
     }

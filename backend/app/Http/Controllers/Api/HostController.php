@@ -265,16 +265,21 @@ class HostController extends Controller
             }
             $user->decrement('balance', $data['amount']);
             $method = $user->payout_method ?? \App\Enums\PayMethod::Wave;
+            // Pas d'API de versement chez la passerelle : retrait traité à la main (payouts:*).
+            $manual = (bool) config('services.payments.manual_payouts');
             $payment = $user->payments()->create([
                 'type' => PaymentType::Withdrawal,
-                'status' => PaymentStatus::Succeeded,
+                'status' => $manual ? PaymentStatus::Pending : PaymentStatus::Succeeded,
                 'label' => 'Retrait des gains',
                 'amount' => $data['amount'],
                 'method' => $method,
                 'phone' => $user->payout_phone ?? $user->phone,
-                'confirmed_at' => now(),
+                'confirmed_at' => $manual ? null : now(),
             ]);
-            $user->notify(new AppNotification('host', 'Retrait envoyé', number_format($data['amount'], 0, ',', ' ').' FCFA vers '.$method->label()));
+            $amount = number_format($data['amount'], 0, ',', ' ').' FCFA';
+            $user->notify($manual
+                ? new AppNotification('host', 'Retrait demandé', "{$amount} vers ".$method->label().', reçu sous 48 h.')
+                : new AppNotification('host', 'Retrait envoyé', "{$amount} vers ".$method->label()));
 
             return $payment;
         });

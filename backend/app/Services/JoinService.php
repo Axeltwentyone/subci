@@ -121,11 +121,12 @@ class JoinService
             $member = $request->user;
             $offer = $request->offer()->with('service', 'user')->first();
 
-            // TODO agrégateur : déclencher le remboursement réel vers le compte mobile money.
+            // Pas d'API de remboursement chez la passerelle : remboursement manuel (payouts:*).
+            $manual = (bool) config('services.payments.manual_payouts');
             $payment->update(['refunded_at' => now()]);
             $member->payments()->create([
                 'type' => PaymentType::Refund,
-                'status' => PaymentStatus::Succeeded,
+                'status' => $manual ? PaymentStatus::Pending : PaymentStatus::Succeeded,
                 'service_id' => $payment->service_id,
                 'host_offer_id' => $offer->id,
                 'label' => 'Remboursement '.$payment->label,
@@ -138,10 +139,11 @@ class JoinService
             $short = Str::before($offer->service->name, ' ');
             $amount = number_format($payment->amount, 0, ',', ' ').' FCFA';
             $host = $offer->user->shortName();
+            $refund = $manual ? "Remboursement de {$amount} en cours (sous 48 h)." : "Tu es remboursé de {$amount}.";
             [$title, $body] = match ($status) {
-                JoinStatus::Declined => ["{$host} n’a pas pu t’accepter", "Tu es remboursé de {$amount}. Choisis une autre offre {$short}."],
-                JoinStatus::Expired => ["Pas de réponse de {$host}", "Tu es remboursé de {$amount}. Choisis une autre offre {$short}."],
-                default => ['Demande annulée', "Tu es remboursé de {$amount}."],
+                JoinStatus::Declined => ["{$host} n’a pas pu t’accepter", "{$refund} Choisis une autre offre {$short}."],
+                JoinStatus::Expired => ["Pas de réponse de {$host}", "{$refund} Choisis une autre offre {$short}."],
+                default => ['Demande annulée', $refund],
             };
             $member->notify(new AppNotification('pay', $title, $body, ['label' => 'Voir les offres', 'to' => '/service/'.$offer->service->slug]));
 

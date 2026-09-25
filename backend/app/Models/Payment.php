@@ -6,6 +6,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
 use App\Enums\PayMethod;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -13,7 +14,7 @@ use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'type', 'status', 'reference', 'label', 'amount', 'months',
-    'method', 'phone', 'provider_reference', 'period_start', 'period_end', 'expires_at', 'confirmed_at', 'refunded_at',
+    'method', 'phone', 'provider_reference', 'checkout_url', 'period_start', 'period_end', 'expires_at', 'confirmed_at', 'refunded_at',
 ])]
 class Payment extends Model
 {
@@ -47,6 +48,14 @@ class Payment extends Model
             'confirmed_at' => 'datetime',
             'refunded_at' => 'datetime',
         ];
+    }
+
+    /** Historique : paiements aboutis + remboursements / retraits en cours. */
+    public function scopeVisibleInHistory(Builder $query): void
+    {
+        $query->where(fn (Builder $q) => $q
+            ->where('status', PaymentStatus::Succeeded)
+            ->orWhere(fn (Builder $q) => $q->where('status', PaymentStatus::Pending)->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal])));
     }
 
     public function user(): BelongsTo

@@ -78,7 +78,7 @@ type ApiPayment = {
   status: 'pending' | 'succeeded' | 'failed' | 'expired'; label: string; amount: number; months: number | null
   method: PayMethodId; phone: string | null; serviceId: string | null; subscriptionId: string | null
   hostName: string | null; joinStatus: JoinRequest['status'] | null
-  periodStart: string | null; periodEnd: string | null; expiresAt: string | null; at: string
+  periodStart: string | null; periodEnd: string | null; expiresAt: string | null; at: string; checkoutUrl: string | null
 }
 type ApiNotif = { id: string; kind: Notif['kind']; title: string; body: string; action: Notif['action'] | null; at: string; unread: boolean }
 type ApiOffer = Omit<HostOffer, 'pendingInvite' | 'email' | 'requests'> & { pendingInvite: string | null; monthlyNet: number; email: string | null; requests?: ApiRequest[] }
@@ -119,6 +119,7 @@ export const toPayment = (p: ApiPayment): Payment => ({
   method: p.method,
   ref: p.ref,
   direction: p.direction,
+  pending: p.status === 'pending',
 })
 
 export const toNotif = (n: ApiNotif): Notif => ({
@@ -194,6 +195,8 @@ export type PendingPayment = {
   periodStart?: number
   periodEnd?: number
   expiresAt?: number
+  /** Page de la passerelle (GeniusPay) où valider le paiement */
+  checkoutUrl?: string
 }
 
 export const toPending = (p: ApiPayment): PendingPayment => ({
@@ -210,6 +213,7 @@ export const toPending = (p: ApiPayment): PendingPayment => ({
   periodStart: ms(p.periodStart),
   periodEnd: ms(p.periodEnd),
   expiresAt: ms(p.expiresAt),
+  checkoutUrl: p.checkoutUrl ?? undefined,
 })
 
 /* ---------- Endpoints ---------- */
@@ -265,5 +269,5 @@ export const api = {
   declineRequest: (id: string) => request<Data<ApiOffer>>('POST', `/host/requests/${id}/decline`),
   cancelRequest: (id: string) => request<Data<ApiRequest>>('POST', `/join-requests/${id}/cancel`),
   invite: (offerId: string) => request<Data<ApiOffer>>('POST', `/host/offers/${offerId}/invite`),
-  withdraw: (amount: number) => request<{ host: ApiHost }>('POST', '/host/withdrawals', { amount }),
+  withdraw: (amount: number) => request<{ host: ApiHost; payment: ApiPayment }>('POST', '/host/withdrawals', { amount }),
 }

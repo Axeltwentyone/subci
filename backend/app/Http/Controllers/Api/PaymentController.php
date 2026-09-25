@@ -21,7 +21,7 @@ class PaymentController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         return PaymentResource::collection(
-            $request->user()->payments()->with('service')->where('status', PaymentStatus::Succeeded)->latest()->limit(100)->get()
+            $request->user()->payments()->with('service')->visibleInHistory()->latest()->limit(100)->get()
         );
     }
 
