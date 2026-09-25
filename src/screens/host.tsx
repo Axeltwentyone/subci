@@ -4,7 +4,7 @@ import { IconCheck, IconChevronLeft, IconMinus, IconPlus } from '../components/i
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { BackButton, Badge, Button, DeviceChip, Radio, RoundIconButton, Screen, SectionLabel, Skeleton, ServiceLogo, StepBar, StickyAction, Steps, TopBar, cx } from '../components/ui'
-import { DEVICES, HOST_FEE, HOST_PLANS, getService, type Device, type HostPlan } from '../lib/data'
+import { DEVICES, HOST_FEE, HOST_PLANS, SERVICES, getService, type Device, type HostPlan } from '../lib/data'
 import { api } from '../lib/api'
 import { fcfa, haptic, shortDate, since, timeLeft } from '../lib/format'
 import { errorMessage, hostNet, useStore, type HostOffer, type HostRequest, type Member } from '../lib/store'
@@ -91,9 +91,6 @@ export function HostPitch() {
 }
 
 /* ---------- 22 · Configurer l'offre + 23 · Accès & publication ---------- */
-
-/** Ordre d'affichage des services partageables. */
-const SHARE_ORDER = ['netflix', 'spotify', 'youtube', 'disney', 'prime', 'canal', 'canal-sport', 'chatgpt', 'spotify-duo']
 
 export function HostSetup() {
   const navigate = useNavigate()
@@ -192,9 +189,9 @@ export function HostSetup() {
             <section className="flex flex-col gap-2.5">
               <h2 className="t-section">Quel abonnement ?</h2>
               <div role="radiogroup" aria-label="Service" className="grid grid-cols-4 gap-2">
-                {SHARE_ORDER.filter((id) => !plans || plans[id]).map((id) => {
-                  const sv = getService(id)
-                  if (!sv) return null
+                {/* Catalogue réel, limité aux services qui ont une formule partageable (config/plans.php). */}
+                {SERVICES.filter((sv) => !plans || plans[sv.id]).map((sv) => {
+                  const id = sv.id
                   const on = id === svc
                   return (
                     <button
