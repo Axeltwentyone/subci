@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { PullToRefresh } from '../components/gestures'
 import { IconArrowRight, IconBell, IconSearch } from '../components/icons'
-import { InstallSheet, NotifSheet, canAskNotifications, shouldOfferInstall } from '../components/pwa'
+import { InstallBanner, InstallSheet, NotifSheet, canAskNotifications, shouldOfferInstall } from '../components/pwa'
 import { Badge, Card, Progress, ServiceLogo, Skeleton, StatusBadge, cx } from '../components/ui'
 import { CATEGORIES, availLabel, getService, popularServices } from '../lib/data'
 import { daysLeft, dayName, fcfa, greeting, shortDate, todayLabel } from '../lib/format'
@@ -71,6 +71,7 @@ export function Home() {
               {unread > 0 && <span className="absolute top-[11px] right-3 size-[9px] rounded-full border-2 border-white bg-brand" />}
             </Link>
           </header>
+          <InstallBanner onOpen={() => setSheet('install')} />
 
           <div className="grid gap-[22px] md:grid-cols-[1.3fr_1fr] md:gap-4 desk:grid-cols-1">
             <FocusCard sub={focus} onGo={navigate} />

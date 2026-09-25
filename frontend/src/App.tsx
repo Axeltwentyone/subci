@@ -1,6 +1,6 @@
 import { Navigate, Outlet, RouterProvider, ScrollRestoration, createBrowserRouter } from 'react-router'
 import { AppShell } from './components/AppShell'
-import { UpdateToast } from './components/pwa'
+import { InstallGate, UpdateToast } from './components/pwa'
 import { ToastProvider } from './components/Toast'
 import { StoreProvider, useStore } from './lib/store'
 import { Splash } from './screens/Splash'
@@ -21,6 +21,7 @@ function Root() {
       <ScrollRestoration />
       <UpdateToast />
       <Outlet />
+      <InstallGate />
     </>
   )
 }

@@ -154,6 +154,12 @@
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
   }
+  /* Vraie app : pas de « glisser pour revenir / rebond » du navigateur (Chrome).
+     Safari iPhone ne permet pas de le couper dans le navigateur : il disparaît une fois l'app installée. */
+  html,
+  body {
+    overscroll-behavior-x: none;
+  }
   button { cursor: pointer; }
   :focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
 }

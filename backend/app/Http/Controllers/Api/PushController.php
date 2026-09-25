@@ -8,7 +8,6 @@ use App\Rules\PushEndpoint;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** Abonnement de l'appareil aux notifications push (Web Push). */
 class PushController extends Controller
 {
     public function key(): JsonResponse

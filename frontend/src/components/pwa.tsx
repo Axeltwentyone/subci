@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { useInstall } from '../lib/hooks'
 import { enablePush } from '../lib/push'
 import { useStore } from '../lib/store'
-import { IconBell, IconDownload, IconPhone, IconShare } from './icons'
+import { IconBell, IconClose, IconDownload, IconPhone, IconShare } from './icons'
 import { Sheet } from './Sheet'
 import { useToast } from './Toast'
 import { Button, LogoMark } from './ui'
@@ -102,6 +102,120 @@ export function InstallSheet({ open, onClose }: { open: boolean; onClose: () => 
         </div>
       </div>
     </Sheet>
+  )
+}
+
+/** Téléphone ou tablette (pas un ordinateur) : là où l'app installée a du sens. */
+export function isMobileDevice() {
+  return window.matchMedia('(pointer: coarse)').matches && Math.min(window.screen.width, window.screen.height) < 820
+}
+
+/** Navigateur intégré (Instagram, Facebook, TikTok…) : impossible d'installer depuis là. */
+function inAppBrowser() {
+  return /FBAN|FBAV|Instagram|Snapchat|TikTok|Line\//i.test(navigator.userAgent)
+}
+
+/**
+ * Premier lancement sur mobile, dans le navigateur : écran plein « Installe Sub.ci ».
+ * Une fois installée, l'app s'ouvre en plein écran, sans barre ni geste de retour du navigateur.
+ */
+export function InstallGate() {
+  const { state, actions } = useStore()
+  const install = useInstall()
+  const toast = useToast()
+  if (install.installed || state.installDismissedAt > 0 || !isMobileDevice()) return null
+
+  const inApp = inAppBrowser()
+  const later = () => actions.installDismissed()
+
+  return (
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-ink text-sand" role="dialog" aria-modal="true" aria-label="Installer Sub.ci">
+      <div className="pt-safe mx-auto flex min-h-dvh w-full max-w-[440px] flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+28px)]">
+        <div className="flex flex-1 flex-col justify-center gap-7 py-10">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <LogoMark size={88} tone="brand" />
+            <h1 className="font-display text-[34px] leading-[1.05] font-bold tracking-[-0.03em] text-balance">Installe Sub.ci sur ton téléphone</h1>
+            <p className="text-[15px] font-semibold text-ink-muted">Gratuit, moins de 1 Mo, sans passer par un store.</p>
+          </div>
+          <ul className="flex flex-col gap-3.5">
+            {BENEFITS.map(({ Icon, text }) => (
+              <li key={text} className="flex items-center gap-3.5">
+                <span className="grid size-10 shrink-0 place-items-center rounded-tile bg-ink-3 text-brand">
+                  <Icon size={20} />
+                </span>
+                <span className="text-[15px] leading-[1.4] font-semibold">{text}</span>
+              </li>
+            ))}
+          </ul>
+
+          {inApp ? (
+            <Steps
+              steps={['Touche ⋯ en haut à droite', 'Choisis « Ouvrir dans le navigateur » (Safari ou Chrome)', 'Installe Sub.ci depuis là']}
+            />
+          ) : install.ios ? (
+            <Steps
+              steps={[
+                <>Touche <IconShare size={16} className="inline -mt-1" /> <b>Partager</b> en bas de l’écran</>,
+                <>Choisis <b>Sur l’écran d’accueil</b> (fais défiler si besoin)</>,
+                <>Touche <b>Ajouter</b>, puis ouvre Sub.ci depuis l’icône</>,
+              ]}
+            />
+          ) : !install.canPrompt ? (
+            <Steps steps={[<>Ouvre le menu <b>⋮</b> du navigateur</>, <>Choisis <b>Installer l’application</b> (ou « Ajouter à l’écran d’accueil »)</>, 'Ouvre Sub.ci depuis l’icône']} />
+          ) : null}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {!install.ios && install.canPrompt && !inApp && (
+            <Button
+              onClick={async () => {
+                if (await install.prompt()) toast({ tone: 'success', text: 'Sub.ci est installée : ouvre-la depuis ton écran d’accueil' })
+              }}
+            >
+              Installer l’app
+            </Button>
+          )}
+          <Button variant="ghost-dark" size="link" onClick={later}>
+            Continuer dans le navigateur
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Steps({ steps }: { steps: ReactNode[] }) {
+  return (
+    <ol className="flex flex-col gap-3 rounded-[20px] bg-ink-2 p-4">
+      {steps.map((s, i) => (
+        <li key={i} className="flex items-start gap-3 text-[15px] leading-[1.4] font-semibold">
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-extrabold text-ink">{i + 1}</span>
+          <span>{s}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/** Rappel discret sur l'accueil tant que l'app n'est pas installée (3 jours après « plus tard »). */
+export function InstallBanner({ onOpen }: { onOpen: () => void }) {
+  const { state, actions } = useStore()
+  const install = useInstall()
+  if (install.installed || !isMobileDevice() || Date.now() - state.installDismissedAt < 3 * 24 * 3600e3) return null
+  return (
+    <div className="flex items-center gap-3 rounded-card bg-ink p-3.5 pr-2 text-sand">
+      <LogoMark size={40} tone="brand" />
+      <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 flex-col text-left">
+        <span className="text-[15px] font-bold">Installe l’app Sub.ci</span>
+        <span className="text-[13px] font-semibold text-ink-muted">Plus rapide, et tes accès même hors ligne</span>
+      </button>
+      <button type="button" onClick={onOpen} className="pressable h-10 rounded-[12px] bg-brand px-4 text-sm font-bold text-ink">
+        Installer
+      </button>
+      <button type="button" aria-label="Plus tard" onClick={() => actions.installDismissed()} className="grid size-9 place-items-center rounded-full text-ink-muted">
+        <IconClose size={16} />
+      </button>
+    </div>
   )
 }
 
