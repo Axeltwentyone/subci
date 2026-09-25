@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DisputeStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
 use App\Enums\PayMethod;
@@ -84,6 +85,30 @@ class User extends Authenticatable
         $initial = $this->last_name ? ' '.mb_strtoupper(mb_substr($this->last_name, 0, 1)).'.' : '';
 
         return trim(($first ?: 'Membre').$initial);
+    }
+
+    /**
+     * Hôte fiable : en activité depuis 3 mois, au moins 3 mois de gains déjà versés,
+     * et aucun souci ouvert ni remboursé sur ses offres depuis 90 jours.
+     */
+    public function isTrustedHost(): bool
+    {
+        $since = $this->hostOffers()->whereNotNull('approved_at')->min('approved_at');
+        if (! $since || now()->subDays(90)->lt($since)) {
+            return false;
+        }
+        $released = $this->payments()->where('type', PaymentType::Earning)->where('status', PaymentStatus::Succeeded)->count();
+        $issues = Dispute::whereIn('host_offer_id', $this->hostOffers()->select('id'))
+            ->whereIn('status', [DisputeStatus::Open, DisputeStatus::Refunded])
+            ->where('created_at', '>=', now()->subDays(90))->exists();
+
+        return $released >= 3 && ! $issues;
+    }
+
+    /** Délai avant qu'un mois payé arrive dans le solde retirable de cet hôte. */
+    public function holdHours(): int
+    {
+        return (int) config($this->isTrustedHost() ? 'services.payments.trusted_hold_hours' : 'services.payments.hold_hours');
     }
 
     /** Fiabilité montrée à un hôte avant d'accepter une demande. */

@@ -29,7 +29,7 @@ class EarningService
         $host = $offer->user;
         $months = max(1, (int) $payment->months);
         $base = intdiv($payment->amount, $months);
-        $hold = (int) config('services.payments.hold_hours');
+        $hold = $host->holdHours();
         $short = Str::before($offer->service->name, ' ');
 
         for ($k = 0; $k < $months; $k++) {
@@ -46,6 +46,9 @@ class EarningService
                 'gross' => $gross,
                 'months' => 1,
                 'method' => $host->payout_method ?? PayMethod::Wave,
+                // Mois couvert par ce gain.
+                'period_start' => $from->copy()->addMonths($k),
+                'period_end' => $from->copy()->addMonths($k + 1),
                 'available_at' => $from->copy()->addMonths($k)->addHours($hold),
             ]);
         }
@@ -89,7 +92,6 @@ class EarningService
      */
     public function refundUnreleased(Subscription $sub, string $why): array
     {
-        $hold = (int) config('services.payments.hold_hours');
         $earnings = Payment::escrowed()->whereIn('source_payment_id', $sub->payments()->select('id'))
             ->lockForUpdate()->orderBy('available_at')->get();
         if ($earnings->isEmpty()) {
@@ -98,7 +100,8 @@ class EarningService
 
         $gross = (int) $earnings->sum('gross');
         // Accès payé jusqu'au début du premier mois rendu.
-        $paidUntil = $earnings->first()->available_at->copy()->subHours($hold);
+        $first = $earnings->first();
+        $paidUntil = $first->period_start ?? $first->available_at->copy()->subHours((int) config('services.payments.hold_hours'));
         Payment::whereIn('id', $earnings->modelKeys())->update(['status' => PaymentStatus::Failed, 'held_at' => null]);
 
         $source = $earnings->first()->source;

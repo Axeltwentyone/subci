@@ -49,7 +49,7 @@ export type PublicOffer = {
   seats: number
   free: number
   members: { name: string; color: string }[]
-  host: { name: string; since: string }
+  host: { name: string; since: string; trusted?: boolean }
 }
 
 /** Formule partageable (config/plans.php côté API). */

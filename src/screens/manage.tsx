@@ -276,7 +276,10 @@ function HostDashboard() {
       <div className="flex flex-col gap-3.5 rounded-[24px] bg-ink p-5 text-sand md:max-w-[420px]">
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-1">
-            <span className="text-[13px] font-semibold text-ink-muted">Solde disponible</span>
+            <span className="flex items-center gap-2 text-[13px] font-semibold text-ink-muted">
+              Solde disponible
+              {state.trusted && <span className="rounded-full bg-[#1F3A2E] px-2 py-0.5 text-[11px] font-extrabold text-ok-glow">Hôte fiable · versé en 24 h</span>}
+            </span>
             <span className="font-display text-[34px] leading-none font-extrabold tracking-[-0.02em]">
               {fcfa(state.balance)} <span className="font-sans text-sm font-bold">FCFA</span>
             </span>
@@ -289,7 +292,7 @@ function HostDashboard() {
               <b className="text-sand">+{fcfa(state.pending)} FCFA à venir</b>
               {state.nextRelease && <> · prochain versement le {shortDate(state.nextRelease)}</>}
             </span>
-            <span>Chaque mois payé par un membre arrive dans ton solde 3 jours après son début.</span>
+            <span>Chaque mois payé par un membre arrive dans ton solde {state.holdHours} h après son début.</span>
             {state.held > 0 && <span className="text-warn">{fcfa(state.held)} FCFA en pause : un membre a signalé un souci.</span>}
           </div>
         )}

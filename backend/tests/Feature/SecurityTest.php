@@ -106,6 +106,34 @@ class SecurityTest extends TestCase
         $this->assertSame(0, $offer->members()->count());
     }
 
+    public function test_new_host_is_paid_48h_after_each_month_starts_trusted_host_24h(): void
+    {
+        $this->joined($this->offer(), 1);
+        $this->travel(25)->hours();
+        app(EarningService::class)->release();
+        $this->assertSame(0, $this->host->fresh()->balance);
+        $this->travel(24)->hours();
+        app(EarningService::class)->release();
+        $this->assertSame(2160, $this->host->fresh()->balance);
+
+        // Hôte fiable : en ligne depuis 3 mois, 3 mois déjà versés, aucun souci.
+        $trusted = User::factory()->create();
+        $offer = $trusted->hostOffers()->create([
+            'service_id' => Service::where('slug', 'netflix')->value('id'), 'plan' => 'premium', 'plan_label' => 'Premium · 4 écrans',
+            'devices' => ['tv'], 'seats' => 3, 'price' => 2400, 'access_mode' => 'credentials', 'status' => 'live', 'approved_at' => now()->subDays(100),
+        ]);
+        foreach (range(1, 3) as $i) {
+            $trusted->payments()->create(['type' => 'earning', 'status' => 'succeeded', 'label' => 'Gains', 'amount' => 2160, 'method' => 'wave', 'host_offer_id' => $offer->id]);
+        }
+        $this->assertTrue($trusted->isTrustedHost());
+        $this->host = $trusted;
+        $this->joined($offer, 1);
+        $this->assertTrue($this->actingAs($trusted)->getJson('/api/v1/host')->json('data.trusted'));
+        $this->travel(25)->hours();
+        app(EarningService::class)->release();
+        $this->assertSame(2160, $trusted->fresh()->balance);
+    }
+
     public function test_member_can_close_their_dispute_and_earnings_resume(): void
     {
         $member = $this->joined($this->offer(), 1);

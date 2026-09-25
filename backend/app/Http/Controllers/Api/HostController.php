@@ -56,6 +56,8 @@ class HostController extends Controller
             'pending' => (int) $user->payments()->escrowed()->sum('amount'),
             'nextRelease' => ($next = $user->payments()->escrowed()->whereNull('held_at')->min('available_at')) ? Carbon::parse($next)->toIso8601String() : null,
             'held' => (int) $user->payments()->escrowed()->whereNotNull('held_at')->sum('amount'),
+            'trusted' => $user->isTrustedHost(),
+            'holdHours' => $user->holdHours(),
             'withdrawLockedUntil' => self::withdrawLockedUntil($user)?->toIso8601String(),
             'monthGain' => (int) $user->payments()->where('type', PaymentType::Earning)->whereIn('status', [PaymentStatus::Succeeded, PaymentStatus::Pending])->where('created_at', '>=', now()->startOfMonth())->sum('amount'),
             'offers' => HostOfferResource::collection($user->hostOffers()->with(self::RELATIONS)->orderByRaw("status = 'closed'")->latest()->get()),

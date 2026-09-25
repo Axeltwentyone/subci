@@ -453,7 +453,10 @@ export function OfferOption({ offer, selected, onSelect }: { offer: PublicOffer;
       <div className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sand font-display text-base font-extrabold">{offer.host.name.charAt(0)}</span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-bold">{offer.host.name}</span>
+          <span className="flex items-center gap-1.5 text-[15px] font-bold">
+            {offer.host.name}
+            {offer.host.trusted && <span className="rounded-full bg-ok-soft px-2 py-0.5 text-[11px] font-extrabold text-ok-ink">Hôte fiable</span>}
+          </span>
           <span className="text-[13px] font-semibold text-muted">Hôte depuis {since(Date.parse(offer.host.since))}</span>
         </span>
         <span className="flex flex-col items-end">

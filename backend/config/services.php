@@ -47,7 +47,9 @@ return [
         // GeniusPay n'expose pas d'API de remboursement ni de versement à un tiers :
         // remboursements et retraits des hôtes sont alors traités à la main (payouts:*).
         // Séquestre : chaque mois payé est versé à l'hôte au début du mois + ce délai (litige possible avant).
-        'hold_hours' => (int) env('PAYMENTS_HOLD_HOURS', 72),
+        'hold_hours' => (int) env('PAYMENTS_HOLD_HOURS', 48),
+        // Hôte fiable (3 mois d'activité, 3 mois déjà versés, aucun souci fondé depuis 90 jours) : délai réduit.
+        'trusted_hold_hours' => (int) env('PAYMENTS_TRUSTED_HOLD_HOURS', 24),
         // Retraits bloqués après un changement de numéro de retrait.
         'payout_change_lock_hours' => (int) env('PAYOUT_CHANGE_LOCK_HOURS', 24),
         // Délai minimal entre deux lectures du statut chez la passerelle pour un même paiement.

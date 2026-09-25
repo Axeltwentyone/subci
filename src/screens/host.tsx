@@ -60,6 +60,7 @@ export function HostPitch() {
         <Steps
           items={['Tu choisis le service et le nombre de places', 'Sub.ci trouve les membres et encaisse pour toi', 'Tu retires sur Wave ou Orange Money']}
         />
+        <PayoutRules dark />
       </div>
       <div className="mt-auto flex flex-col gap-1.5 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+40px)]">
         <Button onClick={() => navigate('/host/new', { viewTransition: true })}>Partager un abonnement</Button>
@@ -71,10 +72,12 @@ export function HostPitch() {
         <div className="flex flex-col gap-4">
           <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Comment ça marche ?</h2>
           {[
-            ['Qui paie ?', 'Chaque membre paie sa place à Sub.ci en mobile money. Tu es crédité le 1er de chaque mois.'],
-            ['Et si un membre part ?', 'Sa place est remise en ligne automatiquement. Tu n’as rien à faire.'],
-            ['Mes identifiants ?', 'Chiffrés, visibles uniquement par les membres qui ont payé.'],
-            ['Si l’accès coupe ?', 'Le membre est remboursé et tu n’es pas payé pour ce mois. Préviens tes membres avant tout changement.'],
+            ['Qui paie ?', 'Chaque membre paie sa place d’avance à Sub.ci en mobile money. L’argent est garanti : tu n’as jamais à relancer personne.'],
+            ['Quand suis-je payé ?', 'Mois par mois : chaque mois payé arrive dans ton solde 48 h après son début (24 h quand tu deviens Hôte fiable). Un membre qui paie 3 mois te rapporte 3 versements, un par mois.'],
+            ['Et pour retirer ?', 'Tu retires ton solde quand tu veux vers Wave, Orange Money, MTN ou Moov, à partir de 500 FCFA. Reçu sous 48 h.'],
+            ['Pourquoi ce délai ?', 'Pour protéger les membres : si l’accès ne marche pas, ils signalent un souci et sont remboursés du temps pas encore versé. C’est ce qui leur donne confiance… et te ramène des membres.'],
+            ['Et si un membre part ?', 'Sa place est remise en ligne automatiquement. Si c’est toi qui le retires, il est remboursé des mois pas encore versés.'],
+            ['Mes identifiants ?', 'Chiffrés, visibles uniquement par les membres que tu acceptes.'],
           ].map(([q, a]) => (
             <div key={q} className="flex flex-col gap-1">
               <span className="text-[15px] font-bold">{q}</span>
@@ -87,6 +90,34 @@ export function HostPitch() {
         </div>
       </Sheet>
     </Screen>
+  )
+}
+
+/** Comment l'hôte est payé : à montrer avant qu'il se lance, pas après. */
+function PayoutRules({ dark }: { dark?: boolean }) {
+  const steps = [
+    ['Le membre paie d’avance', 'Sub.ci encaisse et garde l’argent en sécurité.'],
+    ['48 h après le début du mois', 'Le mois arrive dans ton solde. 3 mois payés = 3 versements, un par mois.'],
+    ['Tu retires quand tu veux', 'Vers Wave, Orange Money, MTN ou Moov. Reçu sous 48 h.'],
+  ]
+  return (
+    <section className={cx('flex flex-col gap-3 rounded-[20px] p-4', dark ? 'bg-ink-2 text-sand' : 'bg-white')}>
+      <h2 className="text-[15px] font-bold">Comment tu es payé</h2>
+      <ol className="flex flex-col gap-3">
+        {steps.map(([t, d], i) => (
+          <li key={t} className="flex gap-3">
+            <span className={cx('grid size-6 shrink-0 place-items-center rounded-full text-[12px] font-extrabold', dark ? 'bg-brand text-ink' : 'bg-ink text-white')}>{i + 1}</span>
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm font-bold">{t}</span>
+              <span className={cx('text-[13px] leading-snug font-semibold', dark ? 'text-ink-muted' : 'text-muted')}>{d}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className={cx('text-[12px] leading-snug font-semibold', dark ? 'text-ink-muted' : 'text-muted')}>
+        Ce délai protège tes membres : si l’accès ne marche pas, ils sont remboursés du temps pas encore versé. Sans souci pendant 3 mois, tu deviens <b>Hôte fiable</b> et tu es versé en 24 h.
+      </p>
+    </section>
   )
 }
 
@@ -108,6 +139,7 @@ export function HostSetup() {
   const [showPwd, setShowPwd] = useState(false)
   const [proof, setProof] = useState<File | null>(null)
   const [agree, setAgree] = useState(false)
+  const [agreePay, setAgreePay] = useState(false)
   const [loading, setLoading] = useState(false)
   const proofId = useId()
 
@@ -140,7 +172,7 @@ export function HostSetup() {
 
   const { net } = hostNet(price, seats)
   const credentials = plan?.mode === 'credentials'
-  const canPublish = !!plan && agree && !!proof && devices.length > 0 && (!credentials || (email.includes('@') && password.length >= 4))
+  const canPublish = !!plan && agree && agreePay && !!proof && devices.length > 0 && (!credentials || (email.includes('@') && password.length >= 4))
   const service = getService(svc)
 
   const publish = async () => {
@@ -335,6 +367,19 @@ export function HostSetup() {
                   if (f) setProof(f)
                 }}
               />
+            </label>
+
+            <PayoutRules />
+
+            <label className="flex cursor-pointer items-start gap-3 px-1">
+              <input type="checkbox" checked={agreePay} onChange={(e) => setAgreePay(e.target.checked)} className="peer sr-only" />
+              <span
+                aria-hidden
+                className={cx('grid size-[22px] shrink-0 place-items-center rounded-md text-[13px] font-extrabold text-white peer-focus-visible:outline-2 peer-focus-visible:outline-brand', agreePay ? 'bg-ink' : 'border-2 border-radio bg-white')}
+              >
+                {agreePay && '✓'}
+              </span>
+              <span className="text-sm leading-[1.45] font-semibold text-body">J’ai compris que je suis payé mois par mois, 48 h après le début de chaque mois payé.</span>
             </label>
 
             <label className="flex cursor-pointer items-start gap-3 px-1">

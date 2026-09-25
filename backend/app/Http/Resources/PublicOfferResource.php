@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\HostOffer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,7 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Offre telle que la voit un futur membre : formule, appareils, prix, places,
  * et l'hôte (prénom + initiale, ancienneté). Jamais les identifiants.
  *
- * @mixin \App\Models\HostOffer
+ * @mixin HostOffer
  */
 class PublicOfferResource extends JsonResource
 {
@@ -29,6 +30,7 @@ class PublicOfferResource extends JsonResource
             'host' => [
                 'name' => $this->user->shortName(),
                 'since' => ($this->approved_at ?? $this->created_at)->toIso8601String(),
+                'trusted' => $this->user->isTrustedHost(),
             ],
         ];
     }

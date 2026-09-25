@@ -98,6 +98,8 @@ export type ApiHost = {
   balance: number; monthGain: number; offers: ApiOffer[]
   /** Gains en séquestre (versés au solde mois par mois), dont gelés par un souci signalé. */
   pending: number; held: number; nextRelease: string | null; withdrawLockedUntil: string | null
+  /** Hôte fiable : versé plus vite (holdHours). */
+  trusted: boolean; holdHours: number
 }
 
 export const toSub = (s: ApiSub): UserSub => ({

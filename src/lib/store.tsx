@@ -120,6 +120,8 @@ export type State = {
   held: number
   nextRelease: number | null
   withdrawLockedUntil: number | null
+  trusted: boolean
+  holdHours: number
   payout: { method: PayMethodId; phone: string }
   offers: HostOffer[]
   requests: JoinRequest[]
@@ -152,6 +154,8 @@ function empty(): State {
     held: 0,
     nextRelease: null,
     withdrawLockedUntil: null,
+    trusted: false,
+    holdHours: 48,
     payout: { method: 'wave', phone: '' },
     offers: [],
     requests: [],
@@ -201,6 +205,8 @@ function hostPart(h: ApiHost): Partial<State> {
     held: h.held ?? 0,
     nextRelease: h.nextRelease ? Date.parse(h.nextRelease) : null,
     withdrawLockedUntil: h.withdrawLockedUntil ? Date.parse(h.withdrawLockedUntil) : null,
+    trusted: !!h.trusted,
+    holdHours: h.holdHours ?? 48,
     offers: h.offers.map(toOffer),
   }
 }

@@ -136,6 +136,12 @@ export function Checkout() {
           <h2 className="t-section">Payer avec</h2>
           <PayMethodPicker value={method} onChange={setMethod} phone={phone} onPhone={setPhone} />
         </section>
+        <div className="flex gap-3 rounded-card bg-ok-soft p-4 text-[13px] leading-[1.45] font-semibold text-ok-ink">
+          <IconLock size={18} className="mt-0.5 shrink-0" />
+          <span>
+            <b>Paiement protégé.</b> Sub.ci garde ton argent et le verse à l’hôte mois par mois. Si l’accès ne marche pas, signale un souci : tu es remboursé·e du temps restant.
+          </span>
+        </div>
       </div>
       <StickyAction className="flex flex-col gap-2.5">
         <div className="flex justify-between text-sm font-semibold text-muted">
