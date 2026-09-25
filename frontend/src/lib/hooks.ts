@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from 'react'
 
 export function useMedia(query: string): boolean {
   return useSyncExternalStore(
@@ -91,4 +91,36 @@ export function useInstall() {
       return outcome === 'accepted'
     },
   }
+}
+
+/* ---------- Couleur du haut de l'écran ---------- */
+
+export const SAND = '#F5F2EC'
+export const INK = '#16130F'
+
+/**
+ * Couleur derrière l'heure et la batterie (iPhone : fond de la page ; Android : theme-color).
+ * Chaque écran donne la couleur de son haut, sinon l'iPhone affiche un dégradé de la couleur de fond.
+ */
+export function useTopColor(color: string) {
+  useLayoutEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]')
+    const html = document.documentElement
+    const before = { meta: meta?.getAttribute('content'), html: html.style.backgroundColor, body: document.body.style.backgroundColor }
+    meta?.setAttribute('content', color)
+    html.style.backgroundColor = color
+    document.body.style.backgroundColor = color
+    return () => {
+      if (before.meta) meta?.setAttribute('content', before.meta)
+      html.style.backgroundColor = before.html
+      document.body.style.backgroundColor = before.body
+    }
+  }, [color])
+}
+
+/** Couleur de marque mélangée au blanc (ex. 12 %), en hexadécimal utilisable par theme-color. */
+export function tintOf(hex: string, amount = 0.12) {
+  const n = parseInt(hex.replace('#', ''), 16)
+  const mix = (c: number) => Math.round(c * amount + 255 * (1 - amount))
+  return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => mix(c).toString(16).padStart(2, '0')).join('')
 }

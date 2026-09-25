@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
-import { useInstall } from '../lib/hooks'
+import { INK, useInstall, useTopColor } from '../lib/hooks'
 import { enablePush } from '../lib/push'
 import { useStore } from '../lib/store'
 import { IconBell, IconClose, IconDownload, IconPhone, IconShare } from './icons'
@@ -120,11 +120,18 @@ function inAppBrowser() {
  * Une fois installée, l'app s'ouvre en plein écran, sans barre ni geste de retour du navigateur.
  */
 export function InstallGate() {
-  const { state, actions } = useStore()
+  const { state } = useStore()
+  const install = useInstall()
+  const show = !install.installed && state.installDismissedAt === 0 && isMobileDevice()
+  if (!show) return null
+  return <InstallScreen />
+}
+
+function InstallScreen() {
+  const { actions } = useStore()
   const install = useInstall()
   const toast = useToast()
-  if (install.installed || state.installDismissedAt > 0 || !isMobileDevice()) return null
-
+  useTopColor(INK)
   const inApp = inAppBrowser()
   const later = () => actions.installDismissed()
 

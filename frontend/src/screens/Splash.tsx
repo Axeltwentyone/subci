@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { LogoMark, Wordmark } from '../components/ui'
+import { INK, useTopColor } from '../lib/hooks'
 import { useStore } from '../lib/store'
 
 /* ---------- 01 · Splash ---------- */
 
 /** Fond Ink, icône Sand + point Orange. 1,2 s max : la barre reflète le chargement réel du shell. */
 export function Splash() {
+  useTopColor(INK)
   const navigate = useNavigate()
   const { state } = useStore()
   const [progress, setProgress] = useState(0.15)

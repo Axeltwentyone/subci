@@ -7,7 +7,7 @@ import { Avatars, Button, Card, Chip, DeviceChip, DeviceList, RoundIconButton, B
 import { CATEGORIES, DEVICES, SERVICES, availLabel, getService, savingPct, type Category, type Device, type PublicOffer, type Service } from '../lib/data'
 import { api } from '../lib/api'
 import { fcfa, since, timeLeft } from '../lib/format'
-import { useOnline } from '../lib/hooks'
+import { SAND, tintOf, useOnline, useTopColor } from '../lib/hooks'
 import { useStore } from '../lib/store'
 import { OfflineScreen } from './system'
 import { useBack } from '../lib/nav'
@@ -275,6 +275,8 @@ export function ServicePage() {
   const [offers, setOffers] = useState<PublicOffer[] | null>(null)
   const [device, setDevice] = useState<Device | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  // Haut de l'écran (heure, batterie) dans la teinte du service.
+  useTopColor(s ? tintOf(s.color) : SAND)
 
   useEffect(() => {
     let alive = true
@@ -291,7 +293,7 @@ export function ServicePage() {
 
   if (!s) return <NotFound />
 
-  const tint = `color-mix(in srgb, ${s.color} 12%, white)`
+  const tint = tintOf(s.color)
   const current = state.subs.find((x) => x.serviceId === s.id && x.state !== 'expired')
   const pending = state.requests.find((r) => r.serviceId === s.id && r.status === 'pending')
   const visible = (offers ?? []).filter((o) => !device || o.devices.includes(device))

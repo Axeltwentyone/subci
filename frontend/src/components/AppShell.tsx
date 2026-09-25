@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router'
+import { SAND, useTopColor } from '../lib/hooks'
 import { useUnread } from '../lib/store'
 import { IconBell, IconHome, IconSearch, IconSubs, IconUser } from './icons'
 import { OfflineBanner } from './OfflineBanner'
@@ -26,6 +27,7 @@ function CountBadge({ n, className }: { n: number; className?: string }) {
  * rail (≥ 768), sidebar (≥ 1200).
  */
 export function AppShell() {
+  useTopColor(SAND)
   const unread = useUnread()
   return (
     <div className="min-h-dvh bg-sand md:grid md:grid-cols-[88px_1fr] desk:grid-cols-[248px_1fr]">

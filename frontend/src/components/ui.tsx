@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react'
 import { DEVICES, type Device, type Service } from '../lib/data'
 import { fcfa } from '../lib/format'
+import { INK, SAND, useTopColor } from '../lib/hooks'
 import { useBack } from '../lib/nav'
 import type { SubStatus } from '../lib/store'
 import { IconChevronLeft, IconLaptop, IconPhone, IconTablet, IconTv } from './icons'
@@ -293,6 +294,7 @@ export function StepBar({ step, total }: { step: number; total: number }) {
  * reste une colonne centrée de 440 px, comme le checkout.
  */
 export function Screen({ children, dark, className, style }: { children: ReactNode; dark?: boolean; className?: string; style?: CSSProperties }) {
+  useTopColor(dark ? INK : SAND)
   return (
     <div className={cx('min-h-dvh', dark ? 'bg-ink text-sand' : 'bg-sand text-ink')}>
       <div className={cx('pt-safe relative mx-auto flex min-h-dvh w-full max-w-[440px] flex-col', className)} style={style}>
