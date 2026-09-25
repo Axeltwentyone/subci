@@ -22,6 +22,8 @@ Illuminate\Support\Facades\Schedule::call(function () {
     $sweeper = app(App\Services\SubscriptionSweeper::class);
     $sweeper->run();
     $sweeper->approveOffers();
+    // Demandes sans réponse de l'hôte sous 24 h → remboursées.
+    app(App\Services\JoinService::class)->expireOverdue();
 })
     ->everyMinute()
     ->name('subscriptions:sweep')

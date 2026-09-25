@@ -60,3 +60,6 @@ export const IconArrowUp = (p: P) => <Svg strokeWidth={2.4} {...p}><path d="M12 
 export const IconCopy = (p: P) => <Svg strokeWidth={2} {...p}><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></Svg>
 export const IconPlus = (p: P) => <Svg strokeWidth={2.6} {...p}><path d="M12 5v14M5 12h14" /></Svg>
 export const IconMinus = (p: P) => <Svg strokeWidth={2.6} {...p}><path d="M5 12h14" /></Svg>
+export const IconTablet = (p: P) => <Svg strokeWidth={2} {...p}><rect x="4" y="3" width="16" height="18" rx="2.5" /><path d="M11 18h2" /></Svg>
+export const IconLaptop = (p: P) => <Svg strokeWidth={2} {...p}><rect x="4" y="5" width="16" height="11" rx="1.5" /><path d="M2 19h20" /></Svg>
+export const IconTv = (p: P) => <Svg strokeWidth={2} {...p}><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M8 21h8M12 17v4" /></Svg>

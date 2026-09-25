@@ -3,9 +3,10 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { IconClose, IconFilter, IconHistory, IconSearch, IconShare } from '../components/icons'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
-import { Avatars, Button, Card, Chip, RoundIconButton, BackButton, Row, ServiceLogo, StickyAction, UnderlineTabs, cx } from '../components/ui'
-import { AVATAR_COLORS, CATEGORIES, SERVICES, availLabel, getService, savingPct, type Category, type Service } from '../lib/data'
-import { fcfa } from '../lib/format'
+import { Avatars, Button, Card, Chip, DeviceChip, DeviceList, RoundIconButton, BackButton, Row, ServiceLogo, Skeleton, StickyAction, UnderlineTabs, cx } from '../components/ui'
+import { CATEGORIES, DEVICES, SERVICES, availLabel, getService, savingPct, type Category, type Device, type PublicOffer, type Service } from '../lib/data'
+import { api } from '../lib/api'
+import { fcfa, since, timeLeft } from '../lib/format'
 import { useOnline } from '../lib/hooks'
 import { useStore } from '../lib/store'
 import { OfflineScreen } from './system'
@@ -259,22 +260,46 @@ export function Search() {
   )
 }
 
-/* ---------- 07 · Page abonnement ---------- */
+/* ---------- 07 · Page abonnement : choisir son offre ---------- */
 
-/** Teinte de marque du service en en-tête ; sticky CTA avec le prix répété. */
+/**
+ * Plusieurs hôtes proposent le même service : le membre choisit selon ses
+ * appareils et son budget. Il paie, puis l'hôte accepte (sinon remboursé).
+ */
 export function ServicePage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
+  const { state } = useStore()
   const s = getService(id)
+  const [offers, setOffers] = useState<PublicOffer[] | null>(null)
+  const [device, setDevice] = useState<Device | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    setOffers(null)
+    api
+      .offers(id)
+      .then(({ data }) => alive && setOffers(data))
+      .catch(() => alive && setOffers([]))
+    return () => {
+      alive = false
+    }
+  }, [id])
+
   if (!s) return <NotFound />
 
   const tint = `color-mix(in srgb, ${s.color} 12%, white)`
-  const save = s.fullPrice - s.price
-  const taken = s.seats - s.groupFree
+  const current = state.subs.find((x) => x.serviceId === s.id && x.state !== 'expired')
+  const pending = state.requests.find((r) => r.serviceId === s.id && r.status === 'pending')
+  const visible = (offers ?? []).filter((o) => !device || o.devices.includes(device))
+  const chosen = visible.find((o) => o.id === selected) ?? null
+  const cheapest = offers?.length ? Math.min(...offers.map((o) => o.price)) : s.price
+  const availableDevices = DEVICES.map((d) => d.id).filter((d) => offers?.some((o) => o.devices.includes(d)))
 
   const share = async () => {
-    const data = { title: `${s.name} sur Sub.ci`, text: `${s.name} à ${fcfa(s.price)} FCFA/mois sur Sub.ci`, url: location.href }
+    const data = { title: `${s.name} sur Sub.ci`, text: `${s.name} dès ${fcfa(cheapest)} FCFA/mois sur Sub.ci`, url: location.href }
     try {
       if (navigator.share) await navigator.share(data)
       else {
@@ -302,49 +327,147 @@ export function ServicePage() {
             <p className="text-[15px] leading-normal font-medium text-body">{s.description}</p>
           </div>
         </div>
+
         <div className="flex flex-col gap-3.5 px-5 pt-5">
           <Card className="flex flex-col gap-2.5 p-[18px]">
             <div className="flex items-baseline gap-1.5">
-              <span className="font-display text-4xl leading-none font-extrabold tracking-[-0.02em]">{fcfa(s.price)}</span>
+              <span className="text-[15px] font-bold text-muted">dès</span>
+              <span className="font-display text-4xl leading-none font-extrabold tracking-[-0.02em]">{fcfa(cheapest)}</span>
               <span className="text-[15px] font-bold">FCFA / mois</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold text-muted line-through">{fcfa(s.fullPrice)} FCFA</span>
-              <span className="rounded-lg bg-ok-soft px-[9px] py-[5px] text-[13px] font-extrabold text-ok-ink">Tu économises {fcfa(save)} FCFA</span>
+              <span className="rounded-lg bg-ok-soft px-[9px] py-[5px] text-[13px] font-extrabold text-ok-ink">Jusqu’à {fcfa(s.fullPrice - cheapest)} FCFA d’économie</span>
             </div>
           </Card>
-          <Card className="flex items-center justify-between p-[18px]">
-            <div className="flex flex-col gap-1">
-              <span className="text-[15px] font-bold">{s.groupFree ? `${s.groupFree} place${s.groupFree > 1 ? 's' : ''} disponible${s.groupFree > 1 ? 's' : ''}` : 'Groupe complet'}</span>
-              <span className="text-[13px] font-semibold text-muted">sur {s.seats} · groupe vérifié</span>
+
+          {current ? (
+            <Card className="flex flex-col gap-1 p-[18px]">
+              <span className="text-[15px] font-bold">Tu es déjà membre{current.hostName ? ` du cercle de ${current.hostName}` : ''}</span>
+              <span className="text-[13px] font-semibold text-muted">Renouvelle au prix actuel : {fcfa(current.price)} FCFA / mois.</span>
+            </Card>
+          ) : pending ? (
+            <div className="flex gap-2.5 rounded-card bg-info-soft p-4 text-[14px] leading-[1.45] font-semibold text-info-ink">
+              <span className="font-extrabold">i</span>
+              <span>
+                Ta demande est chez <b>{pending.hostName}</b>. Réponse d’ici {timeLeft(pending.expiresAt)}, sinon tu es remboursé.
+              </span>
             </div>
-            <Avatars
-              size={34}
-              members={Array.from({ length: Math.min(taken, 3) }, (_, k) => ({ name: ' ', color: AVATAR_COLORS[k] }))}
-              extra={
-                s.groupFree > 0 ? (
-                  <span className="-ml-1.5 grid size-[34px] place-items-center rounded-full border-2 border-dashed border-ok text-sm font-extrabold text-ok">+</span>
-                ) : null
-              }
-            />
-          </Card>
+          ) : (
+            <section className="flex flex-col gap-3" aria-label="Offres disponibles">
+              <div className="flex items-baseline justify-between px-1">
+                <h2 className="t-section">Choisis ton offre</h2>
+                {offers && <span className="text-[13px] font-bold text-muted">{visible.length} offre{visible.length > 1 ? 's' : ''}</span>}
+              </div>
+              {availableDevices.length > 1 && (
+                <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5" role="group" aria-label="Filtrer par appareil">
+                  <Chip size="sm" active={device === null} onClick={() => setDevice(null)}>
+                    Tous
+                  </Chip>
+                  {availableDevices.map((d) => (
+                    <DeviceChip key={d} device={d} active={device === d} onClick={() => setDevice(device === d ? null : d)} />
+                  ))}
+                </div>
+              )}
+
+              {offers === null ? (
+                <>
+                  <Skeleton className="h-[132px] rounded-card" />
+                  <Skeleton className="h-[132px] rounded-card" />
+                </>
+              ) : visible.length === 0 ? (
+                <Card className="flex flex-col items-center gap-2 p-6 text-center">
+                  <span className="text-[15px] font-bold">{offers.length ? 'Aucune offre pour cet appareil' : 'Aucune place libre pour l’instant'}</span>
+                  <span className="text-[13px] font-medium text-muted">
+                    {offers.length ? 'Essaie un autre appareil.' : 'On te prévient dès qu’un hôte publie une offre.'}
+                  </span>
+                </Card>
+              ) : (
+                <div role="radiogroup" aria-label="Offres" className="flex flex-col gap-2.5">
+                  {visible.map((o) => (
+                    <OfferOption key={o.id} offer={o} selected={o.id === selected} onSelect={() => setSelected(o.id)} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
           <Card className="px-[18px] py-1">
-            <Row label="Activation" value={`Sous ${s.activation} min`} />
+            <Row label="Activation" value="Dès que l’hôte accepte" />
             <Row label="Durée" value="1, 3 ou 6 mois" />
-            <Row label="Garantie" value="Remboursé si non activé" />
+            <Row label="Garantie" value="Remboursé si refus (24 h)" />
           </Card>
         </div>
+
         <StickyAction>
-          {s.free > 0 ? (
-            <Button onClick={() => navigate(`/checkout/${s.id}`, { viewTransition: true })}>Rejoindre pour {fcfa(s.price)} FCFA</Button>
+          {current ? (
+            <Button onClick={() => navigate(`/checkout/${s.id}`, { viewTransition: true })}>Renouveler · {fcfa(current.price)} FCFA</Button>
+          ) : pending ? (
+            <Button variant="ink" onClick={() => navigate('/subs')}>
+              Voir ma demande
+            </Button>
+          ) : chosen ? (
+            <Button onClick={() => navigate(`/checkout/${s.id}?offer=${chosen.id}`, { state: { offer: chosen }, viewTransition: true })}>
+              Rejoindre {chosen.host.name} · {fcfa(chosen.price)} FCFA
+            </Button>
+          ) : offers?.length ? (
+            <Button disabled>Choisis une offre</Button>
           ) : (
             <Button variant="ink" onClick={() => toast({ tone: 'success', text: 'Tu es sur la liste d’attente. On te prévient dès qu’une place se libère.' })}>
-              Rejoindre la liste d’attente
+              Me prévenir
             </Button>
           )}
         </StickyAction>
       </div>
     </div>
+  )
+}
+
+/** Une offre d'hôte : qui, quelle formule, quels appareils, combien, combien de places. */
+export function OfferOption({ offer, selected, onSelect }: { offer: PublicOffer; selected?: boolean; onSelect?: () => void }) {
+  const taken = offer.seats - offer.free
+  const body = (
+    <>
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sand font-display text-base font-extrabold">{offer.host.name.charAt(0)}</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-[15px] font-bold">{offer.host.name}</span>
+          <span className="text-[13px] font-semibold text-muted">Hôte depuis {since(Date.parse(offer.host.since))}</span>
+        </span>
+        <span className="flex flex-col items-end">
+          <span className="font-display text-xl leading-none font-extrabold">{fcfa(offer.price)}</span>
+          <span className="text-[11px] font-semibold text-muted">FCFA/mois</span>
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[14px] font-bold">{offer.plan}</span>
+        {offer.quality && <span className="rounded-md bg-sand px-1.5 py-0.5 text-[11px] font-extrabold">{offer.quality}</span>}
+        {offer.mode === 'family' && <span className="rounded-md bg-info-soft px-1.5 py-0.5 text-[11px] font-extrabold text-info">Ton propre compte</span>}
+      </div>
+      <DeviceList devices={offer.devices} />
+      <div className="flex items-center justify-between border-t border-line-soft pt-3">
+        <span className="text-[13px] font-bold text-ok">
+          {offer.free} place{offer.free > 1 ? 's' : ''} sur {offer.seats}
+        </span>
+        <Avatars
+          size={26}
+          members={offer.members.slice(0, 4)}
+          extra={taken > 4 ? <span className="-ml-1.5 grid size-[26px] place-items-center rounded-full bg-sand text-[11px] font-extrabold">+{taken - 4}</span> : null}
+        />
+      </div>
+    </>
+  )
+  if (!onSelect) return <div className="flex flex-col gap-3 rounded-card bg-white p-4">{body}</div>
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cx('pressable flex flex-col gap-3 rounded-card bg-white p-4 text-left', selected ? 'outline-2 outline-ink' : 'outline-0')}
+    >
+      {body}
+    </button>
   )
 }
 

@@ -1,12 +1,13 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { IconCheck, IconChevronLeft, IconMinus, IconPlus } from '../components/icons'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
-import { BackButton, Badge, Button, Radio, RoundIconButton, Screen, ServiceLogo, StepBar, StickyAction, Steps, TopBar, cx } from '../components/ui'
-import { HOST_FEE, HOST_PLANS, getService } from '../lib/data'
-import { fcfa, haptic, shortDate } from '../lib/format'
-import { errorMessage, hostNet, useStore, type HostOffer, type Member } from '../lib/store'
+import { BackButton, Badge, Button, DeviceChip, Radio, RoundIconButton, Screen, SectionLabel, Skeleton, ServiceLogo, StepBar, StickyAction, Steps, TopBar, cx } from '../components/ui'
+import { DEVICES, HOST_FEE, HOST_PLANS, getService, type Device, type HostPlan } from '../lib/data'
+import { api } from '../lib/api'
+import { fcfa, haptic, shortDate, since, timeLeft } from '../lib/format'
+import { errorMessage, hostNet, useStore, type HostOffer, type HostRequest, type Member } from '../lib/store'
 import { NotFound } from './discover'
 import { ConfirmModal } from './manage'
 
@@ -91,19 +92,20 @@ export function HostPitch() {
 
 /* ---------- 22 · Configurer l'offre + 23 · Accès & publication ---------- */
 
-const HOST_SERVICES = ['netflix', 'spotify', 'youtube', 'other'] as const
-type HostSvc = (typeof HOST_SERVICES)[number]
+/** Ordre d'affichage des services partageables. */
+const SHARE_ORDER = ['netflix', 'spotify', 'youtube', 'disney', 'prime', 'canal', 'canal-sport', 'chatgpt', 'spotify-duo']
 
 export function HostSetup() {
   const navigate = useNavigate()
   const { actions } = useStore()
   const toast = useToast()
+  const [plans, setPlans] = useState<Record<string, HostPlan[]> | null>(null)
   const [step, setStep] = useState<1 | 2>(1)
-  const [svc, setSvc] = useState<HostSvc>('netflix')
-  const plan = HOST_PLANS[svc]
-  const [seats, setSeats] = useState(plan.maxShare)
+  const [svc, setSvc] = useState('netflix')
+  const [planKey, setPlanKey] = useState<string | null>(null)
+  const [seats, setSeats] = useState(1)
   const [price, setPrice] = useState(2500)
-  const [mode, setMode] = useState(plan.mode)
+  const [devices, setDevices] = useState<Device[]>([])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
@@ -112,30 +114,47 @@ export function HostSetup() {
   const [loading, setLoading] = useState(false)
   const proofId = useId()
 
-  const pick = (id: HostSvc) => {
-    if (id === 'other') {
-      toast({ text: 'Un autre service ? Écris-nous sur WhatsApp, on l’ajoute.' })
-      return
-    }
-    setSvc(id)
-    const p = HOST_PLANS[id]
-    setSeats(p.maxShare)
+  const choosePlan = (p: HostPlan) => {
+    setPlanKey(p.key)
+    setSeats(p.max)
     setPrice(Math.round((p.reco[0] + p.reco[1]) / 2 / 100) * 100)
-    setMode(p.mode)
+    setDevices(p.devices)
+  }
+
+  useEffect(() => {
+    api
+      .plans()
+      .then(({ data }) => {
+        setPlans(data)
+        const first = data.netflix?.[data.netflix.length - 1]
+        if (first) choosePlan(first)
+      })
+      .catch(() => toast({ tone: 'error', text: 'Impossible de charger les formules. Réessaie.' }))
+  }, [toast])
+
+  const servicePlans = plans?.[svc] ?? []
+  const plan = servicePlans.find((p) => p.key === planKey) ?? null
+
+  const pickService = (id: string) => {
+    setSvc(id)
+    const list = plans?.[id] ?? []
+    if (list.length) choosePlan(list[list.length - 1])
   }
 
   const { net } = hostNet(price, seats)
-  const canPublish = agree && !!proof && (mode === 'family' || (email.includes('@') && password.length >= 4))
-  const service = svc === 'other' ? { mono: '+', color: '#E7E1D6', fg: '#16130F', name: 'Autre' } : getService(svc)!
+  const credentials = plan?.mode === 'credentials'
+  const canPublish = !!plan && agree && !!proof && devices.length > 0 && (!credentials || (email.includes('@') && password.length >= 4))
+  const service = getService(svc)
 
   const publish = async () => {
-    if (!proof || svc === 'other') return
+    if (!proof || !plan) return
     const form = new FormData()
     form.append('serviceId', svc)
+    form.append('plan', plan.key)
     form.append('seats', String(seats))
     form.append('price', String(price))
-    form.append('mode', mode)
-    if (mode === 'credentials') {
+    devices.forEach((d) => form.append('devices[]', d))
+    if (credentials) {
       form.append('email', email)
       form.append('password', password)
     }
@@ -171,10 +190,11 @@ export function HostSetup() {
         <>
           <div className="flex flex-col gap-[22px] px-5 pt-5">
             <section className="flex flex-col gap-2.5">
-              <h2 className="t-section">Quel abonnement ?</h2>
+              <h2 className="t-section">Quel abonnement ?</h2>
               <div role="radiogroup" aria-label="Service" className="grid grid-cols-4 gap-2">
-                {HOST_SERVICES.map((id) => {
-                  const s = id === 'other' ? { mono: '+', color: '#E7E1D6', fg: '#16130F', name: 'Autre' } : getService(id)!
+                {SHARE_ORDER.filter((id) => !plans || plans[id]).map((id) => {
+                  const sv = getService(id)
+                  if (!sv) return null
                   const on = id === svc
                   return (
                     <button
@@ -182,97 +202,122 @@ export function HostSetup() {
                       type="button"
                       role="radio"
                       aria-checked={on}
-                      onClick={() => pick(id)}
-                      className={cx('pressable flex h-[76px] flex-col items-center justify-center gap-1.5 rounded-btn bg-white', on ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
+                      onClick={() => pickService(id)}
+                      className={cx('pressable flex h-[76px] flex-col items-center justify-center gap-1.5 rounded-btn bg-white px-1', on ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
                     >
-                      <ServiceLogo service={s} size={36} radius={10} />
-                      <span className="text-[11px] font-bold">{s.name.split(' ')[0]}</span>
+                      <ServiceLogo service={sv} size={36} radius={10} />
+                      <span className="w-full truncate text-center text-[11px] font-bold">{sv.name.replace(' Premium', '').replace(' Famille', '')}</span>
                     </button>
                   )
                 })}
-              </div>
-              <div className="flex h-[52px] items-center justify-between rounded-[14px] bg-white px-4 text-[15px] font-bold">
-                <span>Formule</span>
-                <span className="font-semibold text-muted">{plan.label}</span>
+                <button
+                  type="button"
+                  onClick={() => toast({ text: 'Un autre service ? Écris-nous sur WhatsApp, on l’ajoute.' })}
+                  className="pressable flex h-[76px] flex-col items-center justify-center gap-1.5 rounded-btn border-[1.5px] border-line bg-white"
+                >
+                  <ServiceLogo service={{ mono: '+', color: '#E7E1D6', fg: '#16130F' }} size={36} radius={10} />
+                  <span className="text-[11px] font-bold">Autre</span>
+                </button>
               </div>
             </section>
 
-            <SeatStepper
-              value={seats}
-              onChange={setSeats}
-              min={1}
-              max={plan.maxShare}
-              hint={`Tu gardes ${svc === 'netflix' ? '1 écran' : '1 compte'}`}
-            />
+            {servicePlans.length > 0 && (
+              <section className="flex flex-col gap-2.5">
+                <h2 className="t-section">Quelle formule ?</h2>
+                <div role="radiogroup" aria-label="Formule" className="flex flex-col gap-2">
+                  {servicePlans.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      role="radio"
+                      aria-checked={p.key === planKey}
+                      onClick={() => choosePlan(p)}
+                      className={cx('flex items-center gap-3 rounded-btn bg-white px-4 py-3.5 text-left', p.key === planKey ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
+                    >
+                      <span className="flex flex-1 flex-col gap-0.5">
+                        <span className="text-[15px] font-bold">
+                          {p.label}
+                          {p.quality && <span className="ml-2 rounded-md bg-sand px-1.5 py-0.5 text-[11px] font-extrabold">{p.quality}</span>}
+                        </span>
+                        <span className="text-[13px] font-semibold text-muted">
+                          Jusqu’à {p.max} place{p.max > 1 ? 's' : ''} à partager · {p.mode === 'family' ? 'invitation famille' : 'identifiants partagés'}
+                        </span>
+                      </span>
+                      <Radio checked={p.key === planKey} />
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
 
-            <PriceCard value={price} onChange={setPrice} reco={plan.reco} />
+            {plan && (
+              <>
+                <DevicePicker allowed={plan.devices} value={devices} onChange={setDevices} />
+                <SeatStepper value={seats} onChange={setSeats} min={1} max={plan.max} hint="Tu gardes ta propre place" />
+                <PriceCard value={price} onChange={setPrice} reco={plan.reco} />
+              </>
+            )}
+            {!plans && <Skeleton className="h-40 rounded-card" />}
           </div>
           <StickyAction className="flex flex-col gap-2.5">
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-semibold text-muted">Tu reçois / mois</span>
+              <span className="text-sm font-semibold text-muted">Tu reçois / mois (plein)</span>
               <span className="font-display text-xl font-extrabold text-ok-ink" aria-live="polite">
                 {fcfa(net)} FCFA
               </span>
             </div>
-            <Button onClick={() => setStep(2)}>Continuer</Button>
+            <Button onClick={() => setStep(2)} disabled={!plan}>
+              Continuer
+            </Button>
           </StickyAction>
         </>
       ) : (
         <>
           <div className="flex flex-col gap-4 px-5 pt-5">
-            <h2 className="t-section">Comment tes membres accèdent ?</h2>
+            <h2 className="t-section">Comment tes membres accèdent ?</h2>
 
-            <div role="radiogroup" aria-label="Mode d’accès" className="flex flex-col gap-4">
-              <div className={cx('flex flex-col gap-3 rounded-card p-4', mode === 'credentials' ? 'border-2 border-brand bg-brand-tint' : 'bg-white')}>
-                <button type="button" role="radio" aria-checked={mode === 'credentials'} onClick={() => setMode('credentials')} className="flex items-center gap-3 text-left">
-                  <span className="flex flex-1 flex-col gap-0.5">
-                    <span className="text-base font-bold">Identifiants + profil</span>
-                    <span className="text-[13px] font-semibold text-muted">Chiffrés, visibles seulement après paiement</span>
-                  </span>
-                  <Radio checked={mode === 'credentials'} />
-                </button>
-                {mode === 'credentials' && (
-                  <>
-                    <input
-                      type="email"
-                      autoComplete="off"
-                      aria-label={`Email du compte ${service.name}`}
-                      placeholder={`Email du compte ${service.name.split(' ')[0]}`}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 text-[16px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
-                    />
-                    <div className="flex h-12 items-center rounded-tile border-[1.5px] border-line bg-white pr-3.5 focus-within:border-2 focus-within:border-ink">
-                      <input
-                        type={showPwd ? 'text' : 'password'}
-                        autoComplete="off"
-                        aria-label="Mot de passe"
-                        placeholder="Mot de passe"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-[16px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle"
-                      />
-                      <button type="button" onClick={() => setShowPwd((v) => !v)} className="text-[13px] font-bold text-muted">
-                        {showPwd ? 'Masquer' : 'Afficher'}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === 'family'}
-                onClick={() => setMode('family')}
-                className={cx('flex items-center gap-3 rounded-card p-4 text-left', mode === 'family' ? 'border-2 border-brand bg-brand-tint' : 'bg-white')}
-              >
-                <span className="flex flex-1 flex-col gap-0.5">
-                  <span className="text-base font-bold">Invitation famille</span>
-                  <span className="text-[13px] font-semibold text-muted">Spotify, YouTube : tu invites chaque membre</span>
+            {credentials ? (
+              <div className="flex flex-col gap-3 rounded-card border-2 border-brand bg-brand-tint p-4">
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-base font-bold">Identifiants + profil</span>
+                  <span className="text-[13px] font-semibold text-muted">Chiffrés, visibles seulement par les membres que tu acceptes</span>
                 </span>
-                <Radio checked={mode === 'family'} />
-              </button>
+                <input
+                  type="email"
+                  autoComplete="off"
+                  aria-label={`Email du compte ${service?.name ?? ''}`}
+                  placeholder={`Email du compte ${service?.name.split(' ')[0] ?? ''}`}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 text-[16px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
+                />
+                <div className="flex h-12 items-center rounded-tile border-[1.5px] border-line bg-white pr-3.5 focus-within:border-2 focus-within:border-ink">
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    autoComplete="off"
+                    aria-label="Mot de passe"
+                    placeholder="Mot de passe"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-[16px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle"
+                  />
+                  <button type="button" onClick={() => setShowPwd((v) => !v)} className="text-[13px] font-bold text-muted">
+                    {showPwd ? 'Masquer' : 'Afficher'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1 rounded-card border-2 border-brand bg-brand-tint p-4">
+                <span className="text-base font-bold">Invitation famille</span>
+                <span className="text-[13px] leading-normal font-semibold text-muted">
+                  Chaque membre garde son propre compte : tu l’invites depuis {service?.name.split(' ')[0]} après l’avoir accepté. Rien à partager.
+                </span>
+              </div>
+            )}
+
+            <div className="flex gap-2.5 rounded-[14px] bg-info-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-info-ink">
+              <span className="font-extrabold">i</span>
+              Tu choisis qui entre : chaque membre paie d’abord, puis tu acceptes ou refuses sous 24 h (il est remboursé si tu refuses).
             </div>
 
             <label htmlFor={proofId} className="pressable flex items-center gap-3 rounded-card bg-white p-4">
@@ -340,25 +385,28 @@ export function ManageOffer() {
   const offer = state.offers.find((o) => o.id === id)
   const [price, setPrice] = useState(offer?.price ?? 2500)
   const [seats, setSeats] = useState(offer?.seats ?? 1)
+  const [devices, setDevices] = useState<Device[]>(offer?.devices ?? [])
   const [email, setEmail] = useState(offer?.email ?? '')
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [confirm, setConfirm] = useState<{ kind: 'remove'; member: Member } | { kind: 'close' } | null>(null)
+  const [confirm, setConfirm] = useState<{ kind: 'remove'; member: Member } | { kind: 'close' } | { kind: 'decline'; request: HostRequest } | null>(null)
+  const [deciding, setDeciding] = useState<string | null>(null)
 
   if (!offer) return <NotFound />
   const svc = getService(offer.serviceId)!
-  const plan = HOST_PLANS[offer.serviceId] ?? HOST_PLANS.other
   const members = offer.members
+  const sameDevices = devices.length === offer.devices.length && devices.every((d) => offer.devices.includes(d))
   const closed = offer.status === 'closed'
   const status = OFFER_STATUS[offer.status]
-  const dirty = price !== offer.price || seats !== offer.seats || (offer.mode === 'credentials' && (email !== (offer.email ?? '') || password !== ''))
+  const dirty = price !== offer.price || seats !== offer.seats || !sameDevices || (offer.mode === 'credentials' && (email !== (offer.email ?? '') || password !== ''))
   const { net } = hostNet(price, members.length)
 
   const save = async () => {
     const body: Parameters<typeof actions.updateOffer>[1] = {}
     if (price !== offer.price) body.price = price
     if (seats !== offer.seats) body.seats = seats
+    if (!sameDevices) body.devices = devices
     if (offer.mode === 'credentials' && email !== (offer.email ?? '')) body.email = email
     if (offer.mode === 'credentials' && password) body.password = password
     setSaving(true)
@@ -408,6 +456,49 @@ export function ManageOffer() {
           </div>
         </div>
 
+        {offer.requests.length > 0 && (
+          <section className="flex flex-col gap-2.5" aria-label="Demandes">
+            <SectionLabel className="px-1">Demandes · à traiter</SectionLabel>
+            {offer.requests.map((r) => (
+              <div key={r.id} className="flex flex-col gap-3 rounded-card border-2 border-brand bg-brand-tint p-4">
+                <div className="flex items-start gap-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white font-display text-base font-extrabold">{r.member.name.charAt(0)}</span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-[15px] font-bold">{r.member.name}</span>
+                    <span className="text-[13px] font-semibold text-muted">
+                      Membre depuis {since(r.member.memberSince)} · {r.member.paidCount} paiement{r.member.paidCount > 1 ? 's' : ''}
+                    </span>
+                    <span className={cx('text-[13px] font-bold', r.member.removalsCount ? 'text-warn-ink' : 'text-ok-ink')}>
+                      {r.member.removalsCount ? `Retiré·e ${r.member.removalsCount} fois d’un cercle` : 'Jamais retiré·e d’un cercle'}
+                    </span>
+                  </span>
+                  <span className="flex flex-col items-end">
+                    <span className="font-display text-base font-extrabold">{fcfa(r.amount)}</span>
+                    <span className="text-[11px] font-semibold text-muted">{r.months} mois · payé</span>
+                  </span>
+                </div>
+                <p className="text-[13px] font-semibold text-muted">Réponds d’ici {timeLeft(r.expiresAt)}, sinon {r.member.name} est remboursé·e.</p>
+                <div className="grid grid-cols-[auto_1fr] gap-2">
+                  <Button variant="outline" size="sm" block={false} className="px-4" disabled={deciding === r.id} onClick={() => setConfirm({ kind: 'decline', request: r })}>
+                    Refuser
+                  </Button>
+                  <Button
+                    size="sm"
+                    loading={deciding === r.id}
+                    onClick={async () => {
+                      setDeciding(r.id)
+                      await run(() => actions.acceptRequest(r.id), `${r.member.name} a rejoint ton cercle`)
+                      setDeciding(null)
+                    }}
+                  >
+                    Accepter
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
         {closed ? (
           <div className="flex gap-2.5 rounded-[14px] bg-warn-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-[#6B3F00]">
             <span className="font-extrabold">!</span>
@@ -415,13 +506,18 @@ export function ManageOffer() {
           </div>
         ) : (
           <>
-            <PriceCard value={price} onChange={setPrice} reco={plan.reco} note="Le nouveau prix s’applique au prochain renouvellement de tes membres." />
+            <PriceCard value={price} onChange={setPrice} reco={offer.reco} note="Le nouveau prix s’applique au prochain renouvellement de tes membres." />
+            <DevicePicker allowed={offer.allowedDevices} value={devices} onChange={setDevices} />
             <SeatStepper
               value={seats}
               onChange={setSeats}
-              min={Math.max(1, members.length)}
-              max={plan.maxShare}
-              hint={`${members.length} membre${members.length > 1 ? 's' : ''} · ${Math.max(0, seats - members.length)} libre${seats - members.length > 1 ? 's' : ''}`}
+              min={Math.max(1, members.length + offer.requests.length)}
+              max={offer.maxSeats}
+              hint={[
+                `${members.length} membre${members.length > 1 ? 's' : ''}`,
+                offer.requests.length ? `${offer.requests.length} demande${offer.requests.length > 1 ? 's' : ''}` : null,
+                `${Math.max(0, seats - members.length - offer.requests.length)} libre${seats - members.length - offer.requests.length > 1 ? 's' : ''}`,
+              ].filter(Boolean).join(' · ')}
             />
 
             <section className="flex flex-col gap-3 rounded-card bg-white p-[18px]">
@@ -531,6 +627,7 @@ export function ManageOffer() {
               onClick={() => {
                 setPrice(offer.price)
                 setSeats(offer.seats)
+                setDevices(offer.devices)
                 setEmail(offer.email ?? '')
                 setPassword('')
               }}
@@ -556,6 +653,21 @@ export function ManageOffer() {
             const m = confirm.member
             setConfirm(null)
             run(() => actions.removeMember(offer.id, m.id), `${m.name} a été retiré·e`)
+          }}
+        />
+      )}
+      {confirm?.kind === 'decline' && (
+        <ConfirmModal
+          title={`Refuser ${confirm.request.member.name}\u00a0?`}
+          text={`${confirm.request.member.name} est remboursé·e de ${fcfa(confirm.request.amount)} FCFA et la place redevient libre.`}
+          confirm="Refuser"
+          onCancel={() => setConfirm(null)}
+          onConfirm={async () => {
+            const r = confirm.request
+            setConfirm(null)
+            setDeciding(r.id)
+            await run(() => actions.declineRequest(r.id), `Demande refusée · ${r.member.name} est remboursé·e`)
+            setDeciding(null)
           }}
         />
       )}
@@ -653,6 +765,29 @@ function PriceCard({ value, onChange, reco, note }: { value: number; onChange: (
         {zone === 'ok' ? 'Dans le prix conseillé · se remplit vite' : zone === 'high' ? `Au-dessus du conseillé (${fcfa(lo)}–${fcfa(hi)}) · plus lent` : `Sous le conseillé (${fcfa(lo)}–${fcfa(hi)})`}
       </div>
       {note && <p className="text-[13px] leading-normal font-medium text-muted">{note}</p>}
+    </div>
+  )
+}
+
+/** Appareils autorisés pour les membres (parmi ceux permis par la formule). */
+function DevicePicker({ allowed, value, onChange }: { allowed: Device[]; value: Device[]; onChange: (v: Device[]) => void }) {
+  const list = DEVICES.map((d) => d.id).filter((d) => allowed.includes(d))
+  return (
+    <div className="flex flex-col gap-3 rounded-card bg-white p-[18px]">
+      <div className="flex flex-col gap-0.5">
+        <span className="text-base font-bold">Appareils des membres</span>
+        <span className="text-[13px] font-semibold text-muted">Les membres choisissent ton offre selon ce qu’ils utilisent.</span>
+      </div>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Appareils">
+        {list.map((d) => (
+          <DeviceChip
+            key={d}
+            device={d}
+            active={value.includes(d)}
+            onClick={() => (value.includes(d) ? value.length > 1 && onChange(value.filter((x) => x !== d)) : onChange([...value, d]))}
+          />
+        ))}
+      </div>
     </div>
   )
 }

@@ -15,7 +15,7 @@ class SubscriptionController extends Controller
     {
         $sweeper->run($request->user());
 
-        return SubscriptionResource::collection($request->user()->subscriptions()->with('service')->latest()->get());
+        return SubscriptionResource::collection($request->user()->subscriptions()->with('service', 'hostOffer.user')->latest()->get());
     }
 
     public function show(Request $request, Subscription $subscription): SubscriptionResource

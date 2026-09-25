@@ -1,35 +1,60 @@
 import { useEffect, useRef, useState } from 'react'
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router'
+import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { IconCheck, IconLock } from '../components/icons'
 import { PayMethodPicker } from '../components/inputs'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { Button, Card, Row, Screen, StepBar, StickyAction, TopBar, cx } from '../components/ui'
-import { DURATIONS, durationPrice, getMethod, getService, type PayMethodId } from '../lib/data'
-import type { PendingPayment } from '../lib/api'
-import { fcfa, haptic, maskPhone, shortDate } from '../lib/format'
+import { DURATIONS, durationPrice, getMethod, getService, type PayMethodId, type PublicOffer } from '../lib/data'
+import { api, type PendingPayment } from '../lib/api'
+import { fcfa, haptic, maskPhone, shortDate, timeLeft } from '../lib/format'
 import { mmss, useOnline } from '../lib/hooks'
 import { useBack } from '../lib/nav'
 import { errorMessage, useStore } from '../lib/store'
-import { NotFound } from './discover'
+import { NotFound, OfferOption } from './discover'
 
 /* ---------- 08 · Checkout ---------- */
 
 /** Un seul écran utile : durée + moyen. Dernier moyen pré-sélectionné, numéro pré-rempli. */
 export function Checkout() {
   const { id = '' } = useParams()
+  const [params] = useSearchParams()
+  const loc = useLocation()
   const navigate = useNavigate()
   const { state, actions } = useStore()
   const toast = useToast()
   const online = useOnline()
   const s = getService(id)
+  const offerId = params.get('offer')
+  const [offer, setOffer] = useState<PublicOffer | null>((loc.state as { offer?: PublicOffer } | null)?.offer ?? null)
   const [months, setMonths] = useState(3)
   const [method, setMethod] = useState<PayMethodId>(state.lastMethod)
   const [phone, setPhone] = useState(state.user?.phone ?? '')
   const [loading, setLoading] = useState(false)
+  const current = state.subs.find((x) => x.serviceId === id && x.state !== 'expired')
+
+  // Lien direct / rechargement : on retrouve l'offre choisie.
+  useEffect(() => {
+    if (current || !offerId || offer?.id === offerId) return
+    api
+      .offers(id)
+      .then(({ data }) => {
+        const found = data.find((o) => o.id === offerId)
+        if (found) setOffer(found)
+        else {
+          toast({ tone: 'error', text: 'Cette offre n’est plus disponible. Choisis-en une autre.' })
+          navigate(`/service/${id}`, { replace: true })
+        }
+      })
+      .catch(() => {})
+  }, [current, offerId, offer, id, navigate, toast])
 
   if (!s) return <NotFound />
-  const amount = durationPrice(s.price, months)
+  // Nouvel arrivant sans offre choisie : retour au choix.
+  if (!current && !offerId) return <Navigate to={`/service/${id}`} replace />
+
+  const monthly = current ? current.price : offer?.price
+  const amount = monthly ? durationPrice(monthly, months) : 0
 
   const pay = async () => {
     if (!online) {
@@ -42,7 +67,7 @@ export function Checkout() {
     }
     setLoading(true)
     try {
-      const payment = await actions.checkout(s.id, months, method, phone)
+      const payment = await actions.checkout(s.id, months, method, phone, current ? undefined : offerId ?? undefined)
       navigate(`/pay/${payment.ref}`, { state: payment, viewTransition: true })
     } catch (e) {
       toast({ tone: 'error', text: errorMessage(e) })
@@ -55,6 +80,15 @@ export function Checkout() {
       <TopBar title={s.name} right={<span className="text-[13px] font-bold text-muted">2/3</span>} />
       <StepBar step={2} total={3} />
       <div className="flex flex-col gap-[22px] px-5 pt-5">
+        {!current && offer && (
+          <section className="flex flex-col gap-2.5">
+            <h2 className="t-section">Ton offre</h2>
+            <OfferOption offer={offer} />
+            <p className="px-1 text-[13px] leading-normal font-medium text-muted">
+              Tu paies maintenant, {offer.host.name} accepte ta demande sous 24 h. Sinon, tu es remboursé automatiquement.
+            </p>
+          </section>
+        )}
         <section className="flex flex-col gap-2.5">
           <h2 className="t-section">Durée</h2>
           <div role="radiogroup" aria-label="Durée" className="grid grid-cols-3 gap-2">
@@ -70,7 +104,7 @@ export function Checkout() {
                   className={cx('pressable relative flex flex-col gap-1 rounded-btn bg-white p-3 text-left', on ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
                 >
                   <span className="text-sm font-bold">{d.months} mois</span>
-                  <span className="font-display text-base font-extrabold">{fcfa(durationPrice(s.price, d.months))}</span>
+                  <span className="font-display text-base font-extrabold">{monthly ? fcfa(durationPrice(monthly, d.months)) : '—'}</span>
                   {d.discount > 0 && (
                     <span className={cx('absolute -top-2.5 right-2 rounded-md px-[7px] py-0.5 text-[11px] font-extrabold', on ? 'bg-brand text-ink' : 'bg-brand-soft text-brand-ink')}>
                       -{d.discount * 100} %
@@ -96,7 +130,7 @@ export function Checkout() {
             Sécurisé
           </span>
         </div>
-        <Button onClick={pay} loading={loading}>
+        <Button onClick={pay} loading={loading} disabled={!monthly}>
           {loading ? 'Paiement…' : `Payer ${fcfa(amount)} FCFA`}
         </Button>
       </StickyAction>
@@ -282,6 +316,42 @@ export function Success() {
   const s = getService(p.serviceId)
   const pendingInvite = state.subs.find((x) => x.id === p.subscriptionId)?.state === 'pending'
   if (!s || p.status !== 'succeeded') return <Navigate to="/home" replace />
+  const request = state.requests.find((r) => r.status === 'pending' && r.serviceId === p.serviceId)
+  const awaitingHost = p.joinStatus === 'pending' || (!p.subscriptionId && !!p.hostName)
+
+  // Nouvel arrivant : paiement reçu, l'hôte doit accepter.
+  if (awaitingHost)
+    return (
+      <Screen dark>
+        <div className="flex flex-col gap-7 px-6 pt-14">
+          <div className="grid size-[88px] place-items-center rounded-full bg-brand animate-pop">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#16130F" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="m5 12.5 4.5 4.5L19 7.5" strokeDasharray="24" className="animate-draw" />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <span className="t-over tracking-[0.1em] text-brand">Paiement reçu</span>
+            <h1 className="t-display">Demande envoyée à {p.hostName?.replace(/\.$/, '')}.</h1>
+          </div>
+          <div className="rounded-card bg-ink-2 px-[18px] py-1">
+            <Row dark label="Offre" value={s.name} />
+            <Row dark label="Montant" value={`${fcfa(p.amount)} FCFA · ${p.months} mois`} />
+            <Row dark label="Réponse" value={request ? `d’ici ${timeLeft(request.expiresAt)}` : 'sous 24 h'} />
+            <Row dark label="Référence" value={p.ref} />
+          </div>
+          <p className="flex items-start gap-3 text-[15px] leading-[1.4] font-semibold text-ink-soft">
+            <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-warn" />
+            Tu reçois une notification dès que {p.hostName} répond. Si {p.hostName} refuse ou ne répond pas sous 24 h, tu es remboursé automatiquement.
+          </p>
+        </div>
+        <div className="mt-auto flex flex-col gap-1.5 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+40px)]">
+          <Button onClick={() => navigate('/subs', { replace: true })}>Suivre ma demande</Button>
+          <Button variant="ghost-dark" size="link" onClick={() => navigate('/home', { replace: true })}>
+            Retour à l’accueil
+          </Button>
+        </div>
+      </Screen>
+    )
 
   return (
     <Screen dark>
@@ -293,7 +363,7 @@ export function Success() {
         </div>
         <div className="flex flex-col gap-2.5">
           <span className="t-over tracking-[0.1em] text-brand">Paiement confirmé</span>
-          <h1 className="t-display">Bienvenue dans {s.name}.</h1>
+          <h1 className="t-display">{p.subscriptionId && !pendingInvite ? 'C’est renouvelé.' : `Bienvenue dans ${s.name}.`}</h1>
         </div>
         <div className="rounded-card bg-ink-2 px-[18px] py-1">
           <Row dark label="Montant" value={`${fcfa(p.amount)} FCFA`} />

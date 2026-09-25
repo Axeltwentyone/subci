@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
-import { ApiError, UNAUTHORIZED_EVENT, api, getToken, setToken, toNotif, toOffer, toPayment, toPending, toSub, type ApiHost, type ApiUser, type Bootstrap, type PendingPayment } from './api'
-import { getService, setCatalog, type PayMethodId, type Service } from './data'
+import { ApiError, UNAUTHORIZED_EVENT, api, getToken, setToken, toJoinRequest, toNotif, toOffer, toPayment, toPending, toSub, type ApiHost, type ApiUser, type Bootstrap, type PendingPayment } from './api'
+import { getService, setCatalog, type Device, type PayMethodId, type Service } from './data'
 import { daysLeft } from './format'
 import { subscribePush, unsubscribePush } from './push'
 
@@ -9,6 +9,9 @@ export type SubStatus = 'active' | 'due' | 'pending' | 'expired'
 export type UserSub = {
   id: string
   serviceId: string
+  /** Prix mensuel actuel du cercle (renouvellement) */
+  price: number
+  hostName?: string
   state: 'active' | 'pending' | 'expired'
   startAt: number
   endAt: number
@@ -55,6 +58,37 @@ export type HostOffer = {
   status: 'review' | 'live' | 'paused' | 'closed'
   hasCredentials: boolean
   email?: string
+  plan: string | null
+  devices: Device[]
+  quality: string | null
+  maxSeats: number
+  allowedDevices: Device[]
+  reco: [number, number]
+  /** Demandes payées en attente de ta réponse */
+  requests: HostRequest[]
+}
+
+/** Côté hôte : qui demande à entrer et sa fiabilité. */
+export type HostRequest = {
+  id: string
+  amount: number
+  months: number
+  expiresAt: number
+  at: number
+  member: { name: string; memberSince?: number; paidCount: number; removalsCount: number }
+}
+
+/** Côté membre : sa demande en attente chez un hôte. */
+export type JoinRequest = {
+  id: string
+  offerId: string
+  serviceId: string
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled'
+  amount: number
+  months: number
+  expiresAt: number
+  hostName: string
+  plan: string
 }
 
 export type Settings = {
@@ -79,6 +113,7 @@ export type State = {
   monthGain: number
   payout: { method: PayMethodId; phone: string }
   offers: HostOffer[]
+  requests: JoinRequest[]
   settings: Settings
   lastMethod: PayMethodId
   lastSync: number
@@ -106,6 +141,7 @@ function empty(): State {
     monthGain: 0,
     payout: { method: 'wave', phone: '' },
     offers: [],
+    requests: [],
     settings: DEFAULT_SETTINGS,
     lastMethod: 'om',
     lastSync: 0,
@@ -180,6 +216,7 @@ function reducer(s: State, a: Action): State {
         subs: d.subscriptions.map(toSub),
         payments: d.payments.map(toPayment),
         notifs: d.notifications.map(toNotif),
+        requests: (d.requests ?? []).map(toJoinRequest),
         lastSync: Date.now(),
         syncing: false,
       }
@@ -268,8 +305,8 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
       dispatch({ type: 'signedOut' })
     },
 
-    async checkout(serviceId: string, months: number, method: PayMethodId, phone: string): Promise<PendingPayment> {
-      const { data } = await api.checkout({ serviceId, months, method, phone: method === 'card' ? undefined : phone })
+    async checkout(serviceId: string, months: number, method: PayMethodId, phone: string, offerId?: string): Promise<PendingPayment> {
+      const { data } = await api.checkout({ serviceId, months, method, phone: method === 'card' ? undefined : phone, offerId })
       dispatch({ type: 'patch', patch: { lastMethod: method } })
       return toPending(data)
     },
@@ -322,6 +359,17 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
     },
     async setOfferStatus(offerId: string, action: 'pause' | 'resume' | 'close') {
       replaceOffer(toOffer((await api.offerStatus(offerId, action)).data))
+    },
+    async acceptRequest(requestId: string) {
+      replaceOffer(toOffer((await api.acceptRequest(requestId)).data))
+    },
+    async declineRequest(requestId: string) {
+      replaceOffer(toOffer((await api.declineRequest(requestId)).data))
+    },
+    async cancelRequest(requestId: string) {
+      await api.cancelRequest(requestId)
+      dispatch({ type: 'patch', patch: { requests: get().requests.filter((r) => r.id !== requestId) } })
+      sync().catch(() => {})
     },
     invite: (offerId: string) => {
       const offers = get().offers

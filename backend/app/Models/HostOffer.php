@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AccessMode;
+use App\Enums\JoinStatus;
 use App\Enums\OfferStatus;
 use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'user_id', 'service_id', 'plan_label', 'seats', 'price', 'access_mode', 'access_email', 'access_password',
+    'user_id', 'service_id', 'plan', 'plan_label', 'devices', 'quality', 'seats', 'price', 'access_mode', 'access_email', 'access_password',
     'proof_path', 'status', 'approved_at',
 ])]
 #[Hidden(['access_email', 'access_password', 'proof_path'])]
@@ -30,6 +31,7 @@ class HostOffer extends Model
             'access_email' => 'encrypted',
             'access_password' => 'encrypted',
             'approved_at' => 'datetime',
+            'devices' => 'array',
         ];
     }
 
@@ -64,20 +66,40 @@ class HostOffer extends Model
         $query->where('status', OfferStatus::Live);
     }
 
-    /** Places tenues par un paiement en cours (nouvel arrivant, demande non expirée). */
+    /**
+     * Places tenues sans être encore occupées :
+     * - paiement en cours d'un nouvel arrivant (demande mobile money non expirée) ;
+     * - demande payée en attente de la réponse de l'hôte.
+     */
     public function scopeWithReservations(Builder $query): void
     {
-        $query->withCount(['members', 'payments as reserved_count' => fn (Builder $q) => $q
-            ->where('status', PaymentStatus::Pending)
-            ->whereNull('subscription_id')
-            ->where('expires_at', '>', now()),
+        $query->withCount([
+            'members',
+            'payments as reserved_count' => fn (Builder $q) => $q
+                ->where('status', PaymentStatus::Pending)
+                ->whereNull('subscription_id')
+                ->where('expires_at', '>', now()),
+            'joinRequests as requested_count' => fn (Builder $q) => $q->where('status', JoinStatus::Pending),
         ]);
     }
 
     /** Places libres (nécessite withReservations). */
     public function freeSeats(): int
     {
-        return max(0, $this->seats - (int) $this->members_count - (int) $this->reserved_count);
+        return max(0, $this->seats - (int) $this->members_count - (int) $this->reserved_count - (int) $this->requested_count);
+    }
+
+    public function joinRequests(): HasMany
+    {
+        return $this->hasMany(JoinRequest::class);
+    }
+
+    /** Définition de la formule (config/plans.php). */
+    public function planConfig(): array
+    {
+        return config("plans.{$this->service->slug}.{$this->plan}")
+            // Formule inconnue : l'hôte garde sa place, le reste du service est partageable.
+            ?? ['label' => $this->plan_label, 'max' => max($this->seats, $this->service->seats - 1), 'devices' => ['phone', 'tablet', 'computer', 'tv'], 'mode' => $this->access_mode->value, 'reco' => [500, 5000]];
     }
 
     /** Gain net mensuel = places occupées × prix − 10 %. */

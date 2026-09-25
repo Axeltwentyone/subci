@@ -70,14 +70,27 @@ class DemoSeeder extends Seeder
         $pay(['type' => PaymentType::Subscription, 'service_id' => $s['chatgpt'], 'reference' => 'SUB-4MX9-11', 'label' => 'ChatGPT Plus · 1 mois', 'amount' => 5000, 'months' => 1, 'method' => 'wave', 'phone' => '0758421121'], now()->subDays(20));
 
         $colors = ['#FFB38F', '#9FD7BE', '#C9B8F2', '#F7D774', '#9CC7F2'];
-        $o1 = $aya->hostOffers()->create(['service_id' => $s['netflix'], 'plan_label' => 'Premium · 4 écrans', 'seats' => 3, 'price' => 2500, 'access_mode' => 'credentials', 'status' => 'live', 'approved_at' => now()->subMonths(2), 'access_email' => 'aya.kone@gmail.com', 'access_password' => 'demo-host-pass']);
+        $o1 = $aya->hostOffers()->create(['service_id' => $s['netflix'], 'plan' => 'premium', 'plan_label' => 'Premium · 4 écrans', 'devices' => ['phone', 'tablet', 'computer', 'tv'], 'quality' => '4K', 'seats' => 3, 'price' => 2500, 'access_mode' => 'credentials', 'status' => 'live', 'approved_at' => now()->subMonths(2), 'access_email' => 'aya.kone@gmail.com', 'access_password' => 'demo-host-pass']);
         foreach (['Koffi', 'Mariam', 'Yao'] as $i => $n) {
             $o1->members()->create(['name' => $n, 'color' => $colors[$i], 'joined_at' => now()->subDays(20 - $i)]);
         }
-        $o2 = $aya->hostOffers()->create(['service_id' => $s['spotify'], 'plan_label' => 'Famille · 6 comptes', 'seats' => 5, 'price' => 1500, 'access_mode' => 'family', 'status' => 'live', 'approved_at' => now()->subMonth()]);
+        $o2 = $aya->hostOffers()->create(['service_id' => $s['spotify'], 'plan' => 'famille', 'plan_label' => 'Famille · 6 comptes', 'devices' => ['phone', 'tablet', 'computer', 'tv'], 'seats' => 5, 'price' => 1500, 'access_mode' => 'family', 'status' => 'live', 'approved_at' => now()->subMonth()]);
         foreach (['Awa', 'Ismaël', 'Fatou', 'Moussa'] as $i => $n) {
             $o2->members()->create(['name' => $n, 'color' => $colors[($i + 3) % 5], 'joined_at' => now()->subDays(10 - $i), 'invite_pending' => $n === 'Moussa']);
         }
+
+        // Une demande payée en attente de la réponse d'Aya (écran « Gérer l'offre »).
+        $moussa = User::updateOrCreate(['phone' => '0700000006'], ['first_name' => 'Moussa', 'last_name' => 'Diabaté', 'name' => 'Moussa Diabaté']);
+        $moussa->forceFill(['phone_verified_at' => now(), 'created_at' => now()->subMonths(5)])->save();
+        $moussa->payments()->delete();
+        foreach (range(1, 4) as $k) {
+            $moussa->payments()->create(['type' => PaymentType::Subscription, 'status' => PaymentStatus::Succeeded, 'label' => 'Prime Video · 1 mois', 'amount' => 1200, 'months' => 1, 'method' => 'om', 'confirmed_at' => now()->subMonths($k)]);
+        }
+        $paid = $moussa->payments()->create([
+            'type' => PaymentType::Subscription, 'status' => PaymentStatus::Succeeded, 'service_id' => $s['spotify'], 'host_offer_id' => $o2->id,
+            'label' => 'Spotify Famille · 3 mois', 'amount' => 4275, 'months' => 3, 'method' => 'wave', 'phone' => '0700000006', 'confirmed_at' => now()->subHours(2),
+        ]);
+        \App\Models\JoinRequest::create(['host_offer_id' => $o2->id, 'user_id' => $moussa->id, 'payment_id' => $paid->id, 'status' => 'pending', 'expires_at' => now()->addHours(22)]);
 
         $notify = function (AppNotification $n, $at, bool $read) use ($aya) {
             $aya->notify($n);
@@ -98,26 +111,30 @@ class DemoSeeder extends Seeder
     private function hostsWithOffers($s): array
     {
         $colors = ['#FFB38F', '#9FD7BE', '#C9B8F2', '#F7D774', '#9CC7F2'];
-        // [prénom, nom, téléphone, [[service, formule, places, prix, mode, membres…]]]
+        $all = ['phone', 'tablet', 'computer', 'tv'];
+        // [prénom, nom, téléphone, [[service, formule, appareils, places, prix, membres…]]]
+        // Plusieurs offres Netflix : le membre choisit selon son usage (téléphone, TV…) et son budget.
         $hosts = [
             ['Koffi', 'Yao', '0700000001', [
-                ['netflix', 'Premium · 4 écrans', 3, 2500, 'credentials', ['Aya K.', 'Serge B.']],
-                ['spotify-duo', 'Duo · 2 comptes', 1, 2200, 'family', ['Nadia O.']],
+                ['netflix', 'premium', $all, 3, 2500, ['Aya K.', 'Serge B.']],
+                ['spotify-duo', 'duo', $all, 1, 2200, ['Nadia O.']],
             ]],
             ['Mariam', 'Traoré', '0700000002', [
-                ['spotify', 'Famille · 6 comptes', 5, 1500, 'family', ['Aya K.', 'Paul E.', 'Inès D.']],
-                ['youtube', 'Famille · 6 comptes', 5, 1800, 'family', ['Karim S.', 'Léa M.', 'Hervé A.', 'Rokia C.', 'Didier Z.']],
+                ['spotify', 'famille', $all, 5, 1500, ['Aya K.', 'Paul E.', 'Inès D.']],
+                ['youtube', 'famille', $all, 5, 1800, ['Karim S.', 'Léa M.', 'Hervé A.', 'Rokia C.', 'Didier Z.']],
             ]],
             ['Yao', 'Kouassi', '0700000003', [
-                ['canal', 'Évasion · 3 écrans', 2, 3000, 'credentials', ['Brice N.']],
-                ['canal-sport', 'Sport · 3 écrans', 2, 4000, 'credentials', ['Franck L.']],
+                ['canal', 'evasion', ['tv', 'computer', 'phone'], 2, 3000, ['Brice N.']],
+                ['canal-sport', 'sport', ['tv', 'phone'], 2, 4000, ['Franck L.']],
             ]],
             ['Fatou', 'Diallo', '0700000004', [
-                ['prime', 'Prime · 5 profils', 4, 1200, 'credentials', ['Olivier T.']],
-                ['chatgpt', 'Team · 2 sièges', 2, 5000, 'credentials', ['Aya K.']],
+                ['prime', 'standard', $all, 2, 1200, ['Olivier T.']],
+                ['chatgpt', 'team', ['phone', 'computer'], 1, 5000, ['Aya K.']],
+                ['netflix', 'standard', ['phone', 'tablet'], 1, 2000, []],
             ]],
             ['Ismaël', 'Bamba', '0700000005', [
-                ['disney', 'Premium · 4 écrans', 3, 2000, 'credentials', []],
+                ['disney', 'premium', $all, 3, 2000, []],
+                ['netflix', 'premium', ['tv', 'computer'], 3, 2700, ['Olivier T.']],
             ]],
         ];
 
@@ -129,12 +146,15 @@ class DemoSeeder extends Seeder
             $host->payments()->delete();
             $host->notifications()->delete();
 
-            foreach ($offers as $i => [$slug, $plan, $seats, $price, $mode, $members]) {
+            foreach ($offers as $i => [$slug, $planKey, $devices, $seats, $price, $members]) {
+                $plan = config("plans.{$slug}.{$planKey}");
+                $credentials = $plan['mode'] === 'credentials';
                 $offer = $host->hostOffers()->create([
-                    'service_id' => $s[$slug], 'plan_label' => $plan, 'seats' => $seats, 'price' => $price, 'access_mode' => $mode,
-                    'access_email' => $mode === 'credentials' ? strtolower($first).'.'.$slug.'@sub.ci' : null,
-                    'access_password' => $mode === 'credentials' ? 'Demo-'.ucfirst($slug).'-'.$phone : null,
-                    'status' => 'live', 'approved_at' => now()->subDays(30 + $i),
+                    'service_id' => $s[$slug], 'plan' => $planKey, 'plan_label' => $plan['label'], 'devices' => $devices, 'quality' => $plan['quality'],
+                    'seats' => $seats, 'price' => $price, 'access_mode' => $plan['mode'],
+                    'access_email' => $credentials ? strtolower(\Illuminate\Support\Str::ascii($first)).'.'.$slug.'@sub.ci' : null,
+                    'access_password' => $credentials ? 'Demo-'.ucfirst($slug).'-'.$phone : null,
+                    'status' => 'live', 'approved_at' => now()->subDays(30 + $i * 20),
                 ]);
                 foreach ($members as $k => $name) {
                     $offer->members()->create(['name' => $name, 'color' => $colors[$k % 5], 'joined_at' => now()->subDays(20 - $k)]);

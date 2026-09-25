@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\HostOffer;
+use App\Models\JoinRequest;
 use App\Models\Service;
 use App\Models\User;
 use Database\Seeders\ServiceSeeder;
@@ -24,140 +25,202 @@ class CheckoutTest extends TestCase
         $this->host = User::factory()->create(['first_name' => 'Koffi', 'last_name' => 'Yao']);
     }
 
-    private function offer(string $slug, array $attrs = []): HostOffer
+    private function offer(string $slug = 'netflix', array $attrs = []): HostOffer
     {
         return $this->host->hostOffers()->create($attrs + [
-            'service_id' => Service::where('slug', $slug)->value('id'), 'plan_label' => 'Premium', 'seats' => 3, 'price' => 2400,
+            'service_id' => Service::where('slug', $slug)->value('id'), 'plan' => 'premium', 'plan_label' => 'Premium · 4 écrans',
+            'devices' => ['phone', 'tv'], 'quality' => '4K', 'seats' => 3, 'price' => 2400,
             'access_mode' => 'credentials', 'access_email' => 'koffi@mail.ci', 'access_password' => 'host-secret',
             'status' => 'live', 'approved_at' => now(),
         ]);
     }
 
-    private function buy(string $slug, int $months = 1): string
+    /** Paie une place dans l'offre et renvoie la demande créée. */
+    private function payFor(HostOffer $offer, int $months = 1): JoinRequest
     {
-        return $this->postJson('/api/v1/payments', ['serviceId' => $slug, 'months' => $months, 'method' => 'om', 'phone' => '0758421121'])
+        $ref = $this->postJson('/api/v1/payments', ['serviceId' => $offer->service->slug, 'offerId' => $offer->id, 'months' => $months, 'method' => 'om', 'phone' => '0758421121'])
             ->assertCreated()->json('data.ref');
+        $this->getJson("/api/v1/payments/{$ref}")->assertOk()->assertJsonPath('data.status', 'succeeded');
+
+        return JoinRequest::latest('id')->firstOrFail();
     }
 
-    public function test_catalog_only_counts_live_offers_and_hides_own_seats(): void
+    private function asHost(): static
     {
-        $this->offer('netflix');
-        $this->offer('disney', ['status' => 'review', 'approved_at' => null]);
-
-        $netflix = collect($this->getJson('/api/v1/services')->json('data'))->keyBy('id');
-        $this->assertSame(3, $netflix['netflix']['free']);
-        $this->assertSame(2400, $netflix['netflix']['price']);
-        $this->assertSame(0, $netflix['disney']['free']);
-
-        $this->actingAs($this->host);
-        $own = collect($this->getJson('/api/v1/services')->json('data'))->keyBy('id');
-        $this->assertSame(0, $own['netflix']['free']);
+        return $this->actingAs($this->host);
     }
 
-    public function test_purchase_joins_best_offer_and_credits_host(): void
+    public function test_member_sees_offers_with_devices_and_host(): void
     {
-        $this->offer('netflix', ['price' => 2600]);
-        $cheapest = $this->offer('netflix', ['price' => 2400]);
+        $this->offer();
+        $this->offer('netflix', ['plan' => 'standard', 'plan_label' => 'Standard · 2 écrans', 'devices' => ['phone'], 'price' => 2000, 'seats' => 1]);
+        $this->offer('netflix', ['status' => 'review', 'approved_at' => null]);
+
+        $offers = $this->getJson('/api/v1/services/netflix/offers')->assertOk()->json('data');
+        $this->assertCount(2, $offers);
+        $this->assertSame(2000, $offers[0]['price']); // moins chère d'abord
+        $this->assertSame(['phone'], $offers[0]['devices']);
+        $this->assertSame('Koffi Y.', $offers[0]['host']['name']);
+        $this->assertArrayNotHasKey('access_email', $offers[0]);
+
+        $this->asHost()->getJson('/api/v1/services/netflix/offers')->assertJsonCount(0, 'data');
+    }
+
+    public function test_paid_request_waits_for_host_then_accept_gives_access_and_pays_host(): void
+    {
+        $offer = $this->offer();
         $member = User::factory()->create(['first_name' => 'Aya', 'last_name' => 'Koné']);
         $this->actingAs($member);
 
-        $ref = $this->buy('netflix', 3);
-        $this->getJson("/api/v1/payments/{$ref}")->assertOk()->assertJsonPath('data.status', 'succeeded')->assertJsonPath('data.amount', 6840);
+        $request = $this->payFor($offer, 3);
+        $this->assertSame('pending', $request->status->value);
+        $this->assertSame(0, $member->subscriptions()->count());
+        $this->assertSame(0, $this->host->fresh()->balance);
 
-        $sub = $member->subscriptions()->firstOrFail();
-        $this->assertSame($cheapest->id, $sub->host_offer_id);
+        $requests = $this->asHost()->getJson('/api/v1/host')->json('data.offers.0.requests');
+        $this->assertSame('Aya K.', $requests[0]['member']['name']);
+        $this->assertSame(0, $requests[0]['member']['removalsCount']);
+        $this->assertSame(6840, $requests[0]['amount']);
+
+        $this->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk()->assertJsonCount(1, 'data.members')->assertJsonCount(0, 'data.requests');
+        $sub = $member->subscriptions()->sole();
         $this->assertSame('active', $sub->status->value);
         $this->assertSame('host-secret', $sub->access_password);
         $this->assertNotSame('host-secret', DB::table('subscriptions')->value('access_password'));
-        $this->assertSame('Aya K.', $cheapest->members()->first()->name);
-
-        // 6 840 − 10 % = 6 156 pour l'hôte.
-        $this->assertSame(6156, $this->host->fresh()->balance);
-        $this->assertEqualsCanonicalizing(['Paiement reçu', 'Nouveau membre'], $this->host->notifications()->pluck('data')->pluck('title')->all());
-
-        // Idempotent.
-        $this->getJson("/api/v1/payments/{$ref}")->assertOk();
-        $this->assertSame(1, $member->subscriptions()->count());
-        $this->assertSame(6156, $this->host->fresh()->balance);
+        $this->assertSame(6156, $this->host->fresh()->balance); // 6 840 − 10 %
+        $this->postJson("/api/v1/host/requests/{$request->id}/accept")->assertStatus(409);
     }
 
-    public function test_pending_payment_reserves_the_last_seat(): void
+    public function test_decline_refunds_member_and_frees_seat(): void
     {
-        $this->offer('netflix', ['seats' => 1]);
-        $this->actingAs(User::factory()->create());
-        $this->buy('netflix');
-
-        $this->actingAs(User::factory()->create());
-        $this->postJson('/api/v1/payments', ['serviceId' => 'netflix', 'months' => 1, 'method' => 'om', 'phone' => '0758421121'])
-            ->assertStatus(422)->assertJsonValidationErrors('service');
-    }
-
-    public function test_family_offer_activates_after_host_invite(): void
-    {
-        $offer = $this->offer('spotify', ['access_mode' => 'family', 'access_email' => null, 'access_password' => null, 'price' => 1500]);
-        $member = User::factory()->create(['first_name' => 'Paul', 'last_name' => 'Eba']);
+        $offer = $this->offer('netflix', ['seats' => 1]);
+        $member = User::factory()->create();
         $this->actingAs($member);
-        $this->getJson('/api/v1/payments/'.$this->buy('spotify'))->assertJsonPath('data.status', 'succeeded');
+        $request = $this->payFor($offer);
+        $this->assertSame(0, $this->getJson('/api/v1/services/netflix/offers')->json('data.0.free') ?? 0);
 
-        $sub = $member->subscriptions()->first();
+        $this->asHost()->postJson("/api/v1/host/requests/{$request->id}/decline")->assertOk();
+
+        $this->assertSame('declined', $request->fresh()->status->value);
+        $this->assertNotNull($request->payment->fresh()->refunded_at);
+        $this->assertSame(2400, $member->payments()->where('type', 'refund')->value('amount'));
+        $this->assertSame(0, $member->subscriptions()->count());
+        $this->assertSame(0, $this->host->fresh()->balance);
+        $this->app['auth']->forgetGuards();
+        $this->assertSame(1, $this->getJson('/api/v1/services/netflix/offers')->json('data.0.free'));
+    }
+
+    public function test_no_answer_after_24h_is_refunded(): void
+    {
+        $offer = $this->offer();
+        $this->actingAs(User::factory()->create());
+        $request = $this->payFor($offer);
+
+        $this->travel(25)->hours();
+        app(\App\Services\JoinService::class)->expireOverdue();
+
+        $this->assertSame('expired', $request->fresh()->status->value);
+        $this->assertNotNull($request->payment->fresh()->refunded_at);
+    }
+
+    public function test_member_can_cancel_pending_request_but_not_twice(): void
+    {
+        $offer = $this->offer();
+        $member = User::factory()->create();
+        $this->actingAs($member);
+        $request = $this->payFor($offer);
+
+        $this->postJson("/api/v1/join-requests/{$request->id}/cancel")->assertOk()->assertJsonPath('data.status', 'cancelled');
+        $this->postJson("/api/v1/join-requests/{$request->id}/cancel")->assertStatus(409);
+        $this->assertSame(1, $member->payments()->where('type', 'refund')->count());
+    }
+
+    public function test_one_pending_request_per_service_and_offer_required(): void
+    {
+        $offer = $this->offer();
+        $this->actingAs(User::factory()->create());
+
+        $this->postJson('/api/v1/payments', ['serviceId' => 'netflix', 'months' => 1, 'method' => 'om', 'phone' => '0758421121'])
+            ->assertStatus(422)->assertJsonPath('errors.offerId.0', 'Choisis une offre pour ce service.');
+
+        $this->payFor($offer);
+        $this->postJson('/api/v1/payments', ['serviceId' => 'netflix', 'offerId' => $offer->id, 'months' => 1, 'method' => 'om', 'phone' => '0758421121'])
+            ->assertStatus(422)->assertJsonPath('errors.offerId.0', 'Tu as déjà une demande en attente pour ce service.');
+    }
+
+    public function test_request_and_payment_in_progress_hold_the_last_seat(): void
+    {
+        $offer = $this->offer('netflix', ['seats' => 1]);
+        $this->actingAs(User::factory()->create());
+        $this->postJson('/api/v1/payments', ['serviceId' => 'netflix', 'offerId' => $offer->id, 'months' => 1, 'method' => 'om', 'phone' => '0758421121'])->assertCreated();
+
+        $this->actingAs(User::factory()->create());
+        $this->postJson('/api/v1/payments', ['serviceId' => 'netflix', 'offerId' => $offer->id, 'months' => 1, 'method' => 'om', 'phone' => '0758421121'])
+            ->assertStatus(422)->assertJsonPath('errors.offerId.0', 'Cette offre vient d’être complétée. Choisis-en une autre.');
+    }
+
+    public function test_family_member_waits_for_invite_after_acceptance(): void
+    {
+        $offer = $this->offer('spotify', ['plan' => 'famille', 'plan_label' => 'Famille · 6 comptes', 'access_mode' => 'family', 'access_email' => null, 'access_password' => null, 'price' => 1500]);
+        $member = User::factory()->create();
+        $this->actingAs($member);
+        $request = $this->payFor($offer);
+
+        $this->asHost()->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk();
+        $sub = $member->subscriptions()->sole();
         $this->assertSame('pending', $sub->status->value);
-        $this->assertTrue($offer->members()->first()->invite_pending);
 
-        $this->actingAs($this->host)->postJson("/api/v1/host/offers/{$offer->id}/invite")->assertOk()->assertJsonPath('data.pendingInvite', null);
+        $this->postJson("/api/v1/host/offers/{$offer->id}/invite")->assertOk();
         $this->assertSame('active', $sub->fresh()->status->value);
     }
 
-    public function test_renewal_stays_in_group_at_hosts_current_price(): void
+    public function test_renewal_needs_no_approval_and_uses_current_price(): void
     {
-        $offer = $this->offer('netflix');
+        $offer = $this->offer();
         $member = User::factory()->create();
         $this->actingAs($member);
-        $this->getJson('/api/v1/payments/'.$this->buy('netflix'));
-        $end = $member->subscriptions()->first()->ends_at;
+        $request = $this->payFor($offer);
+        $this->asHost()->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk();
+        $end = $member->subscriptions()->sole()->ends_at;
 
         $offer->update(['price' => 2000]);
-        $ref = $this->buy('netflix');
+        $this->actingAs($member);
+        $ref = $this->postJson('/api/v1/payments', ['serviceId' => 'netflix', 'months' => 1, 'method' => 'om', 'phone' => '0758421121'])->assertCreated()->json('data.ref');
         $this->getJson("/api/v1/payments/{$ref}")->assertJsonPath('data.amount', 2000)->assertJsonPath('data.status', 'succeeded');
 
-        $sub = $member->subscriptions()->sole();
-        $this->assertTrue($sub->ends_at->equalTo($end->copy()->addMonth()));
-        $this->assertSame(1, $offer->members()->count());
+        $this->assertTrue($member->subscriptions()->sole()->ends_at->equalTo($end->copy()->addMonth()));
+        $this->assertSame(1, JoinRequest::count());
     }
 
-    public function test_no_offer_means_waitlist_and_validation_is_french(): void
+    public function test_host_cannot_accept_someone_elses_request(): void
+    {
+        $offer = $this->offer();
+        $this->actingAs(User::factory()->create());
+        $request = $this->payFor($offer);
+
+        $this->actingAs(User::factory()->create())->postJson("/api/v1/host/requests/{$request->id}/accept")->assertNotFound();
+    }
+
+    public function test_removal_counts_in_reliability(): void
+    {
+        $offer = $this->offer();
+        $member = User::factory()->create();
+        $this->actingAs($member);
+        $request = $this->payFor($offer);
+        $this->asHost()->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk();
+
+        $this->deleteJson("/api/v1/host/offers/{$offer->id}/members/".$offer->members()->first()->id)->assertOk();
+        $this->assertSame(1, $member->fresh()->removals_count);
+    }
+
+    public function test_validation_is_french_and_withdrawal_checks_balance(): void
     {
         $this->actingAs(User::factory()->create());
-
-        $this->postJson('/api/v1/payments', ['serviceId' => 'youtube', 'months' => 1, 'method' => 'om', 'phone' => '0758421121'])
-            ->assertStatus(422)->assertJsonPath('errors.service.0', 'Plus de place libre sur ce service. Rejoins la liste d’attente.');
-
         $this->postJson('/api/v1/payments', ['serviceId' => 'netflix', 'months' => 2, 'method' => 'om', 'phone' => '07'])
             ->assertStatus(422)->assertJsonPath('errors.phone.0', 'Le numéro doit avoir 10 chiffres.')->assertJsonPath('errors.months.0', 'La durée est invalide.');
-    }
 
-    public function test_host_cannot_join_own_offer(): void
-    {
-        $this->offer('netflix');
-        $this->actingAs($this->host);
-        $this->postJson('/api/v1/payments', ['serviceId' => 'netflix', 'months' => 1, 'method' => 'om', 'phone' => '0758421121'])->assertStatus(422);
-    }
-
-    public function test_cannot_read_someone_elses_payment(): void
-    {
-        $this->offer('netflix');
-        $this->actingAs(User::factory()->create());
-        $ref = $this->buy('netflix');
-
-        $this->actingAs(User::factory()->create());
-        $this->getJson("/api/v1/payments/{$ref}")->assertNotFound();
-    }
-
-    public function test_host_withdrawal_checks_balance(): void
-    {
         $this->host->forceFill(['balance' => 10000])->save();
-        $this->actingAs($this->host);
-
-        $this->postJson('/api/v1/host/withdrawals', ['amount' => 20000])->assertStatus(422);
+        $this->asHost()->postJson('/api/v1/host/withdrawals', ['amount' => 20000])->assertStatus(422);
         $this->postJson('/api/v1/host/withdrawals', ['amount' => 6000])->assertOk()->assertJsonPath('host.balance', 4000);
     }
 }

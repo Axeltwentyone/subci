@@ -24,7 +24,7 @@ class HostOfferTest extends TestCase
         $this->host = User::factory()->create();
         $netflix = Service::where('slug', 'netflix')->first();
         $this->offer = $this->host->hostOffers()->create([
-            'service_id' => $netflix->id, 'plan_label' => 'Premium · 4 écrans', 'seats' => 3, 'price' => 2500,
+            'service_id' => $netflix->id, 'plan' => 'premium', 'plan_label' => 'Premium · 4 écrans', 'devices' => ['phone', 'tv'], 'seats' => 3, 'price' => 2500,
             'access_mode' => 'credentials', 'access_email' => 'old@mail.ci', 'access_password' => 'old-pass', 'status' => 'live', 'approved_at' => now(),
         ]);
         $this->offer->members()->create(['name' => 'Koffi', 'color' => '#FFB38F']);
@@ -45,7 +45,7 @@ class HostOfferTest extends TestCase
         $url = "/api/v1/host/offers/{$this->offer->id}";
 
         $this->patchJson($url, ['seats' => 1])->assertStatus(422)
-            ->assertJsonPath('errors.seats.0', 'Tu as 2 membres : impossible de descendre en dessous.');
+            ->assertJsonPath('errors.seats.0', 'Tu as 2 membres ou demandes : impossible de descendre en dessous.');
         $this->patchJson($url, ['seats' => 4])->assertStatus(422);
 
         $this->patchJson($url, ['price' => 2200, 'seats' => 2])->assertOk()

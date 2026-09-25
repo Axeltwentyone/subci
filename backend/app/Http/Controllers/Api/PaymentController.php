@@ -33,6 +33,8 @@ class PaymentController extends Controller
             'months' => ['required', Rule::in([1, 3, 6])],
             'method' => ['required', Rule::enum(PayMethod::class)],
             'phone' => ['required_unless:method,card', 'nullable', 'digits:10'],
+            // Offre choisie par le membre (obligatoire pour rejoindre, inutile pour renouveler).
+            'offerId' => ['nullable', 'integer'],
         ], [
             'phone.digits' => 'Le numéro doit avoir 10 chiffres.',
             'phone.required_unless' => 'Indique ton numéro mobile money.',
@@ -44,9 +46,10 @@ class PaymentController extends Controller
             (int) $data['months'],
             PayMethod::from($data['method']),
             $data['phone'] ?? null,
+            isset($data['offerId']) ? (int) $data['offerId'] : null,
         );
 
-        return new PaymentResource($payment->load('service'));
+        return new PaymentResource($payment->load('service', 'hostOffer.user', 'joinRequest'));
     }
 
     /** Polling de la PWA pendant « Valide sur ton téléphone ». */
@@ -54,14 +57,14 @@ class PaymentController extends Controller
     {
         $this->authorizeOwner($request, $payment);
 
-        return new PaymentResource($this->payments->refresh($payment)->load('service'));
+        return new PaymentResource($this->payments->refresh($payment)->load('service', 'hostOffer.user', 'joinRequest'));
     }
 
     public function resend(Request $request, Payment $payment): PaymentResource
     {
         $this->authorizeOwner($request, $payment);
 
-        return new PaymentResource($this->payments->resend($payment)->load('service'));
+        return new PaymentResource($this->payments->resend($payment)->load('service', 'hostOffer.user', 'joinRequest'));
     }
 
     public function cancel(Request $request, Payment $payment): PaymentResource
@@ -71,7 +74,7 @@ class PaymentController extends Controller
             $payment->update(['status' => PaymentStatus::Failed]);
         }
 
-        return new PaymentResource($payment->load('service'));
+        return new PaymentResource($payment->load('service', 'hostOffer.user', 'joinRequest'));
     }
 
     private function authorizeOwner(Request $request, Payment $payment): void

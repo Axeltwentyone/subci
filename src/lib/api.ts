@@ -1,5 +1,5 @@
-import type { Category, PayMethodId, Service } from './data'
-import type { HostOffer, Notif, Payment, Settings, UserSub } from './store'
+import type { Category, Device, HostPlan, PayMethodId, PublicOffer, Service } from './data'
+import type { HostOffer, HostRequest, JoinRequest, Notif, Payment, Settings, UserSub } from './store'
 
 /** En dev, Vite proxifie /api vers Laravel (voir vite.config.ts). */
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
@@ -70,17 +70,23 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 const ms = (iso: string | null | undefined) => (iso ? Date.parse(iso) : undefined)
 
 type ApiSub = {
-  id: string; serviceId: string; state: UserSub['state']; startAt: string; endAt: string; activatesAt: string | null
+  id: string; serviceId: string; price: number; hostName: string | null; state: UserSub['state']; startAt: string; endAt: string; activatesAt: string | null
   autoRenew: boolean; method: PayMethodId; profile: string | null; email: string | null; password: string | null; pin: string | null
 }
 type ApiPayment = {
   id: string; ref: string; type: 'subscription' | 'earning' | 'withdrawal'; direction: 'in' | 'out'
   status: 'pending' | 'succeeded' | 'failed' | 'expired'; label: string; amount: number; months: number | null
   method: PayMethodId; phone: string | null; serviceId: string | null; subscriptionId: string | null
+  hostName: string | null; joinStatus: JoinRequest['status'] | null
   periodStart: string | null; periodEnd: string | null; expiresAt: string | null; at: string
 }
 type ApiNotif = { id: string; kind: Notif['kind']; title: string; body: string; action: Notif['action'] | null; at: string; unread: boolean }
-type ApiOffer = Omit<HostOffer, 'pendingInvite' | 'email'> & { pendingInvite: string | null; monthlyNet: number; email: string | null }
+type ApiOffer = Omit<HostOffer, 'pendingInvite' | 'email' | 'requests'> & { pendingInvite: string | null; monthlyNet: number; email: string | null; requests?: ApiRequest[] }
+type ApiRequest = {
+  id: string; offerId: string; serviceId: string; status: JoinRequest['status']; amount: number; months: number; expiresAt: string; at: string
+  member: { name: string; memberSince: string | null; paidCount: number; removalsCount: number } | null
+  host: { name: string; plan: string } | null
+}
 export type ApiUser = {
   id: string; name: string | null; firstName: string | null; lastName: string | null; phone: string; referralCode: string; balance: number
   payout: { method: PayMethodId; phone: string }; lastMethod: PayMethodId; settings: Settings
@@ -91,6 +97,8 @@ export type ApiHost = { balance: number; monthGain: number; offers: ApiOffer[] }
 export const toSub = (s: ApiSub): UserSub => ({
   id: s.id,
   serviceId: s.serviceId,
+  price: s.price,
+  hostName: s.hostName ?? undefined,
   state: s.state,
   startAt: ms(s.startAt)!,
   endAt: ms(s.endAt)!,
@@ -135,6 +143,39 @@ export const toOffer = (o: ApiOffer): HostOffer => ({
   status: o.status,
   hasCredentials: o.hasCredentials,
   email: o.email ?? undefined,
+  plan: o.plan,
+  devices: o.devices ?? [],
+  quality: o.quality,
+  maxSeats: o.maxSeats,
+  allowedDevices: o.allowedDevices ?? [],
+  reco: o.reco,
+  requests: (o.requests ?? []).map(toHostRequest),
+})
+
+export const toHostRequest = (r: ApiRequest): HostRequest => ({
+  id: r.id,
+  amount: r.amount,
+  months: r.months,
+  expiresAt: ms(r.expiresAt)!,
+  at: ms(r.at)!,
+  member: {
+    name: r.member?.name ?? 'Membre',
+    memberSince: ms(r.member?.memberSince),
+    paidCount: r.member?.paidCount ?? 0,
+    removalsCount: r.member?.removalsCount ?? 0,
+  },
+})
+
+export const toJoinRequest = (r: ApiRequest): JoinRequest => ({
+  id: r.id,
+  offerId: r.offerId,
+  serviceId: r.serviceId,
+  status: r.status,
+  amount: r.amount,
+  months: r.months,
+  expiresAt: ms(r.expiresAt)!,
+  hostName: r.host?.name ?? '',
+  plan: r.host?.plan ?? '',
 })
 
 /** Paiement en cours (écran « Valide sur ton téléphone » / succès). */
@@ -147,6 +188,9 @@ export type PendingPayment = {
   phone: string
   serviceId: string
   subscriptionId?: string
+  /** Nouvel arrivant : l'hôte doit encore accepter. */
+  hostName?: string
+  joinStatus?: JoinRequest['status']
   periodStart?: number
   periodEnd?: number
   expiresAt?: number
@@ -161,6 +205,8 @@ export const toPending = (p: ApiPayment): PendingPayment => ({
   phone: p.phone ?? '',
   serviceId: p.serviceId ?? '',
   subscriptionId: p.subscriptionId ?? undefined,
+  hostName: p.hostName ?? undefined,
+  joinStatus: p.joinStatus ?? undefined,
   periodStart: ms(p.periodStart),
   periodEnd: ms(p.periodEnd),
   expiresAt: ms(p.expiresAt),
@@ -175,6 +221,7 @@ export type Bootstrap = {
   payments: ApiPayment[]
   notifications: ApiNotif[]
   host: ApiHost
+  requests: ApiRequest[]
 }
 
 type Data<T> = { data: T }
@@ -186,12 +233,14 @@ export const api = {
 
   bootstrap: () => request<Bootstrap>('GET', '/bootstrap'),
   services: () => request<Data<ApiService[]>>('GET', '/services'),
+  offers: (serviceId: string) => request<Data<PublicOffer[]>>('GET', `/services/${serviceId}/offers`),
+  plans: () => request<Data<Record<string, HostPlan[]>>>('GET', '/host/plans'),
   updateMe: (body: { firstName?: string; lastName?: string; settings?: Partial<Settings> }) => request<Data<ApiUser>>('PATCH', '/me', body),
 
   setAutoRenew: (id: string, autoRenew: boolean) => request<Data<ApiSub>>('PATCH', `/subscriptions/${id}`, { autoRenew }),
   cancelSubscription: (id: string) => request<Data<ApiSub>>('POST', `/subscriptions/${id}/cancel`),
 
-  checkout: (body: { serviceId: string; months: number; method: PayMethodId; phone?: string }) =>
+  checkout: (body: { serviceId: string; months: number; method: PayMethodId; phone?: string; offerId?: string }) =>
     request<Data<ApiPayment>>('POST', '/payments', body),
   payment: (ref: string) => request<Data<ApiPayment>>('GET', `/payments/${ref}`),
   resendPayment: (ref: string) => request<Data<ApiPayment>>('POST', `/payments/${ref}/resend`),
@@ -208,10 +257,13 @@ export const api = {
   deletePush: (endpoint: string) => request<{ ok: boolean }>('DELETE', '/push/subscriptions', { endpoint }),
 
   publishOffer: (form: FormData) => request<Data<ApiOffer>>('POST', '/host/offers', form),
-  updateOffer: (offerId: string, body: { price?: number; seats?: number; email?: string; password?: string }) =>
+  updateOffer: (offerId: string, body: { price?: number; seats?: number; devices?: Device[]; email?: string; password?: string }) =>
     request<Data<ApiOffer>>('PATCH', `/host/offers/${offerId}`, body),
   removeMember: (offerId: string, memberId: string) => request<Data<ApiOffer>>('DELETE', `/host/offers/${offerId}/members/${memberId}`),
   offerStatus: (offerId: string, action: 'pause' | 'resume' | 'close') => request<Data<ApiOffer>>('POST', `/host/offers/${offerId}/${action}`),
+  acceptRequest: (id: string) => request<Data<ApiOffer>>('POST', `/host/requests/${id}/accept`),
+  declineRequest: (id: string) => request<Data<ApiOffer>>('POST', `/host/requests/${id}/decline`),
+  cancelRequest: (id: string) => request<Data<ApiRequest>>('POST', `/join-requests/${id}/cancel`),
   invite: (offerId: string) => request<Data<ApiOffer>>('POST', `/host/offers/${offerId}/invite`),
   withdraw: (amount: number) => request<{ host: ApiHost }>('POST', '/host/withdrawals', { amount }),
 }

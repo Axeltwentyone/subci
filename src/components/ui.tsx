@@ -1,9 +1,9 @@
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react'
-import type { Service } from '../lib/data'
+import { DEVICES, type Device, type Service } from '../lib/data'
 import { fcfa } from '../lib/format'
 import { useBack } from '../lib/nav'
 import type { SubStatus } from '../lib/store'
-import { IconChevronLeft } from './icons'
+import { IconChevronLeft, IconLaptop, IconPhone, IconTablet, IconTv } from './icons'
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(' ')
@@ -405,5 +405,39 @@ export function Steps({ items, tone = 'brand' }: { items: string[]; tone?: 'bran
         </li>
       ))}
     </ol>
+  )
+}
+
+/* ---------- Appareils ---------- */
+
+const DEVICE_ICON = { phone: IconPhone, tablet: IconTablet, computer: IconLaptop, tv: IconTv }
+
+/** Appareils autorisés par une offre : icônes + libellés courts. */
+export function DeviceList({ devices, className }: { devices: Device[]; className?: string }) {
+  const list = DEVICES.filter((d) => devices.includes(d.id))
+  if (!list.length) return null
+  return (
+    <span className={cx('flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-semibold text-muted', className)}>
+      {list.map(({ id, label }) => {
+        const Icon = DEVICE_ICON[id]
+        return (
+          <span key={id} className="inline-flex items-center gap-1">
+            <Icon size={15} />
+            {label}
+          </span>
+        )
+      })}
+    </span>
+  )
+}
+
+export function DeviceChip({ device, active, onClick }: { device: Device; active: boolean; onClick: () => void }) {
+  const Icon = DEVICE_ICON[device]
+  const label = DEVICES.find((d) => d.id === device)!.label
+  return (
+    <Chip size="sm" active={active} onClick={onClick}>
+      <Icon size={15} />
+      {label}
+    </Chip>
   )
 }

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Contracts\PaymentGateway;
-use App\Enums\AccessMode;
 use App\Enums\OfferStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
@@ -16,19 +15,19 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Notifications\AppNotification;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PaymentService
 {
-    public function __construct(private PaymentGateway $gateway, private Availability $availability) {}
+    public function __construct(private PaymentGateway $gateway, private JoinService $joins) {}
 
     /**
      * Crée la demande de paiement et l'envoie à l'opérateur.
-     * - Nouvel arrivant : Sub.ci réserve une place dans la meilleure offre en ligne.
-     * - Renouvellement : même groupe, au prix actuel de l'hôte.
+     * - Nouvel arrivant : le membre a choisi une offre ; la place est réservée
+     *   pendant le paiement puis pendant la réponse de l'hôte.
+     * - Renouvellement : même cercle, au prix actuel de l'hôte, sans validation.
      */
-    public function checkout(User $user, Service $service, int $months, PayMethod $method, ?string $phone): Payment
+    public function checkout(User $user, Service $service, int $months, PayMethod $method, ?string $phone, ?int $offerId = null): Payment
     {
         $current = $user->subscriptions()
             ->where('service_id', $service->id)
@@ -40,12 +39,23 @@ class PaymentService
         if ($current) {
             $offer = $current->hostOffer;
             if ($offer?->status === OfferStatus::Closed) {
-                throw ValidationException::withMessages(['service' => 'Ton hôte arrête ce partage : ton accès reste actif jusqu’au '.$current->ends_at->translatedFormat('j M').'. Tu pourras rejoindre un autre groupe ensuite.']);
+                throw ValidationException::withMessages(['service' => 'Ton hôte arrête ce partage : ton accès reste actif jusqu’au '.$current->ends_at->translatedFormat('j M').'. Tu pourras choisir une autre offre ensuite.']);
             }
             $monthly = $offer?->price ?? $service->price;
         } else {
-            $offer = $this->availability->bestOffer($service, $user)
-                ?? throw ValidationException::withMessages(['service' => 'Plus de place libre sur ce service. Rejoins la liste d’attente.']);
+            if ($user->joinRequests()->pending()->whereHas('offer', fn ($q) => $q->where('service_id', $service->id))->exists()) {
+                throw ValidationException::withMessages(['offerId' => 'Tu as déjà une demande en attente pour ce service.']);
+            }
+            $offer = $offerId ? HostOffer::live()->withReservations()->where('service_id', $service->id)->find($offerId) : null;
+            if (! $offer) {
+                throw ValidationException::withMessages(['offerId' => 'Choisis une offre pour ce service.']);
+            }
+            if ($offer->user_id === $user->id) {
+                throw ValidationException::withMessages(['offerId' => 'Tu ne peux pas rejoindre ta propre offre.']);
+            }
+            if ($offer->freeSeats() < 1) {
+                throw ValidationException::withMessages(['offerId' => 'Cette offre vient d’être complétée. Choisis-en une autre.']);
+            }
             $monthly = $offer->price;
         }
 
@@ -104,9 +114,8 @@ class PaymentService
 
     /**
      * Paiement validé :
-     * - nouvel arrivant → rejoint l'offre réservée, reçoit les accès de l'hôte ;
-     * - renouvellement → prolonge depuis l'échéance actuelle ;
-     * - l'hôte est crédité du montant moins les frais Sub.ci et notifié.
+     * - nouvel arrivant → une demande part chez l'hôte (accès après acceptation) ;
+     * - renouvellement → prolongé depuis l'échéance actuelle, hôte crédité.
      */
     public function confirm(Payment $payment): Payment
     {
@@ -115,100 +124,33 @@ class PaymentService
             if ($payment->status === PaymentStatus::Succeeded) {
                 return $payment;
             }
+            $payment->update(['status' => PaymentStatus::Succeeded, 'confirmed_at' => now()]);
 
-            $member = $payment->user;
-            $service = $payment->service;
-            $offer = $payment->hostOffer;
-            $short = Str::before($service->name, ' ');
-            $isNew = $payment->subscription_id === null;
+            if ($payment->subscription_id === null) {
+                $this->joins->open($payment);
 
-            if (! $isNew) {
-                $sub = Subscription::whereKey($payment->subscription_id)->lockForUpdate()->firstOrFail();
-                $from = $sub->ends_at->isFuture() ? $sub->ends_at->copy() : now();
-                $sub->update([
-                    'ends_at' => $from->copy()->addMonths($payment->months),
-                    'pay_method' => $payment->method,
-                    // Nouvelle échéance : les rappels J-3 / J-1 repartent de zéro.
-                    'reminded_j3_at' => null,
-                    'reminded_j1_at' => null,
-                ]);
-            } else {
-                $from = now();
-                $family = $offer?->access_mode === AccessMode::Family;
-                $sub = $member->subscriptions()->create([
-                    'service_id' => $service->id,
-                    'host_offer_id' => $offer?->id,
-                    // Famille : actif quand l'hôte a envoyé l'invitation.
-                    'status' => $family ? SubscriptionStatus::Pending : SubscriptionStatus::Active,
-                    'starts_at' => $from,
-                    'ends_at' => $from->copy()->addMonths($payment->months),
-                    'auto_renew' => true,
-                    'pay_method' => $payment->method,
-                    'profile_label' => $family ? 'Invitation famille' : 'Profil '.(($offer?->members()->count() ?? 0) + 2).' · « '.($member->first_name ?? 'Moi').' »',
-                    'access_email' => $family ? null : $offer?->access_email,
-                    'access_password' => $family ? null : $offer?->access_password,
-                ]);
-                $offer?->members()->create([
-                    'user_id' => $member->id,
-                    'name' => trim(($member->first_name ?? 'Membre').' '.mb_substr((string) $member->last_name, 0, 1).($member->last_name ? '.' : '')),
-                    'color' => self::MEMBER_COLORS[$member->id % count(self::MEMBER_COLORS)],
-                    'invite_pending' => $family,
-                    'joined_at' => now(),
-                ]);
+                return $payment->fresh();
             }
 
-            $payment->update([
-                'status' => PaymentStatus::Succeeded,
-                'confirmed_at' => now(),
-                'subscription_id' => $sub->id,
-                'period_start' => $from,
-                'period_end' => $sub->ends_at,
+            $sub = Subscription::whereKey($payment->subscription_id)->lockForUpdate()->firstOrFail();
+            $from = $sub->ends_at->isFuture() ? $sub->ends_at->copy() : now();
+            $sub->update([
+                'ends_at' => $from->copy()->addMonths($payment->months),
+                'pay_method' => $payment->method,
+                // Nouvelle échéance : les rappels J-3 / J-1 repartent de zéro.
+                'reminded_j3_at' => null,
+                'reminded_j1_at' => null,
             ]);
+            $payment->update(['period_start' => $from, 'period_end' => $sub->ends_at]);
 
-            if ($offer) {
-                $this->creditHost($offer, $payment, $member, $isNew);
+            if ($offer = $payment->hostOffer) {
+                $this->joins->creditHost($offer, $payment, $payment->user);
             }
-
-            if ($sub->status === SubscriptionStatus::Pending) {
-                $member->notify(new AppNotification('ok', "Bienvenue dans {$short}", 'Ton hôte t’envoie l’invitation famille. On te prévient dès que c’est actif.', ['label' => 'Voir', 'to' => "/subs/{$sub->id}"]));
-            } else {
-                $member->notify(new AppNotification('ok', "{$short} est activé", 'Tes identifiants sont disponibles.', ['label' => 'Voir', 'to' => "/subs/{$sub->id}"]));
-            }
-            $member->notify(new AppNotification('pay', 'Paiement confirmé', number_format($payment->amount, 0, ',', ' ').' FCFA via '.$payment->method->label()));
+            $payment->user->notify(new AppNotification('pay', 'Renouvellement confirmé',
+                number_format($payment->amount, 0, ',', ' ').' FCFA via '.$payment->method->label().' · jusqu’au '.$sub->ends_at->translatedFormat('j M'),
+                ['label' => 'Voir', 'to' => "/subs/{$sub->id}"]));
 
             return $payment->fresh();
         });
     }
-
-    /** Gains de l'hôte = montant payé − frais Sub.ci ; solde crédité immédiatement. */
-    private function creditHost(HostOffer $offer, Payment $payment, User $member, bool $isNew): void
-    {
-        $host = User::whereKey($offer->user_id)->lockForUpdate()->first();
-        $net = (int) round($payment->amount * (1 - HostOffer::FEE));
-        $host->increment('balance', $net);
-
-        $short = Str::before($offer->service->name, ' ');
-        $who = $member->first_name ?? 'Un membre';
-        $host->payments()->create([
-            'type' => PaymentType::Earning,
-            'status' => PaymentStatus::Succeeded,
-            'service_id' => $offer->service_id,
-            'host_offer_id' => $offer->id,
-            'label' => "Gains {$short} · {$who}",
-            'amount' => $net,
-            'months' => $payment->months,
-            'method' => $host->payout_method ?? PayMethod::Wave,
-            'confirmed_at' => now(),
-        ]);
-
-        if ($isNew) {
-            $body = $offer->access_mode === AccessMode::Family
-                ? "{$who} a rejoint ton {$short}. Envoie-lui l’invitation famille."
-                : "{$who} a rejoint ton {$short}.";
-            $host->notify(new AppNotification('host', 'Nouveau membre', $body, ['label' => 'Gérer', 'to' => "/host/offers/{$offer->id}"]));
-        }
-        $host->notify(new AppNotification('host', 'Paiement reçu', '+'.number_format($net, 0, ',', ' ')." FCFA · {$short}, {$payment->months} mois"));
-    }
-
-    private const MEMBER_COLORS = ['#FFB38F', '#9FD7BE', '#C9B8F2', '#F7D774', '#9CC7F2'];
 }

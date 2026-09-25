@@ -4,10 +4,10 @@ import { PullToRefresh } from '../components/gestures'
 import { IconEye, IconEyeOff, IconMore } from '../components/icons'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
-import { Avatars, Badge, Button, Card, Chip, ListLink, MethodLogo, Progress, RoundIconButton, Screen, Segmented, ServiceLogo, StatusBadge, StickyAction, Toggle, TopBar, cx } from '../components/ui'
+import { Avatars, Badge, Button, Card, Chip, ListLink, MethodLogo, Progress, RoundIconButton, Screen, SectionLabel, Segmented, ServiceLogo, StatusBadge, StickyAction, Toggle, TopBar, cx } from '../components/ui'
 import { getMethod, getService } from '../lib/data'
-import { daysLeft, fcfa, haptic, maskPhone, shortDate } from '../lib/format'
-import { byUrgency, errorMessage, hostNet, subStatus, useSavings, useStore, type HostOffer, type UserSub } from '../lib/store'
+import { daysLeft, fcfa, haptic, maskPhone, shortDate, timeLeft } from '../lib/format'
+import { byUrgency, errorMessage, hostNet, subStatus, useSavings, useStore, type HostOffer, type JoinRequest, type UserSub } from '../lib/store'
 import { NotFound } from './discover'
 
 const BAR_COLORS = { active: '#0F8A5F', due: '#E08A00', pending: '#2446A8', expired: '#C8322B' }
@@ -71,7 +71,8 @@ export function MySubs() {
                 <Chip size="sm" active={filter === 'expired'} onClick={() => setFilter('expired')}>Expirés · {expired.length}</Chip>
               </div>
             )}
-            {filter === 'active' ? <MemberList subs={active} /> : <ExpiredList subs={expired} />}
+            {filter === 'active' && <PendingRequests />}
+            {filter === 'active' ? <MemberList subs={active} hasRequests={state.requests.length > 0} /> : <ExpiredList subs={expired} />}
             {state.offers.length === 0 && active.length > 0 && (
               <Link to="/host" viewTransition className="pressable mt-1 flex items-center gap-3 rounded-card border-[1.5px] border-dashed border-line-strong p-4">
                 <span className="flex flex-1 flex-col gap-0.5">
@@ -89,12 +90,68 @@ export function MySubs() {
   )
 }
 
+/** Demandes payées en attente de la réponse d'un hôte (remboursées sinon). */
+function PendingRequests() {
+  const { state, actions } = useStore()
+  const toast = useToast()
+  const [cancel, setCancel] = useState<JoinRequest | null>(null)
+  const pending = state.requests.filter((r) => r.status === 'pending')
+  if (!pending.length) return null
+
+  return (
+    <section className="flex flex-col gap-2.5" aria-label="Demandes en attente">
+      <SectionLabel>Demandes en attente</SectionLabel>
+      {pending.map((r) => {
+        const svc = getService(r.serviceId)
+        return (
+          <div key={r.id} className="flex flex-col gap-3 rounded-card border-[1.5px] border-dashed border-info/40 bg-white p-4">
+            <div className="flex items-center gap-3">
+              {svc && <ServiceLogo service={svc} />}
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-base font-bold">{svc?.name ?? r.serviceId}</span>
+                <span className="text-[13px] font-semibold text-muted">
+                  Chez {r.hostName} · {r.plan}
+                </span>
+              </span>
+              <StatusBadge status="pending" />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[13px] leading-snug font-semibold text-muted">
+                Réponse d’ici {timeLeft(r.expiresAt)} · {fcfa(r.amount)} FCFA remboursés sinon
+              </span>
+              <button type="button" onClick={() => setCancel(r)} className="pressable h-9 shrink-0 rounded-[10px] px-2 text-[13px] font-bold text-err">
+                Annuler
+              </button>
+            </div>
+          </div>
+        )
+      })}
+      {cancel && (
+        <ConfirmModal
+          title="Annuler ta demande ?"
+          text={`Tu es remboursé de ${fcfa(cancel.amount)} FCFA et ta place chez ${cancel.hostName} est libérée.`}
+          confirm="Annuler la demande"
+          onCancel={() => setCancel(null)}
+          onConfirm={() => {
+            const r = cancel
+            setCancel(null)
+            actions
+              .cancelRequest(r.id)
+              .then(() => toast({ text: `Demande annulée · ${fcfa(r.amount)} FCFA remboursés` }))
+              .catch((e) => toast({ tone: 'error', text: errorMessage(e) }))
+          }}
+        />
+      )}
+    </section>
+  )
+}
+
 /** Tri par urgence. Barre = temps restant, colorée par statut. */
-function MemberList({ subs }: { subs: UserSub[] }) {
+function MemberList({ subs, hasRequests }: { subs: UserSub[]; hasRequests?: boolean }) {
   const navigate = useNavigate()
   const { monthly, saved } = useSavings()
 
-  if (subs.length === 0) return <EmptySubs />
+  if (subs.length === 0) return hasRequests ? null : <EmptySubs />
 
   return (
     <div className="flex flex-col gap-4">
@@ -270,8 +327,10 @@ function OfferCard({ offer, onInvite }: { offer: HostOffer; onInvite: () => void
   const free = offer.seats - offer.members.length
   const { net } = hostNet(offer.price, offer.members.length)
   const manage = () => navigate(`/host/offers/${offer.id}`, { viewTransition: true })
+  const requests = offer.requests.length
   const badge =
-    offer.status === 'closed' ? <Badge tone="expired">Arrêtée</Badge>
+    requests > 0 ? <Badge tone="brand">{requests} demande{requests > 1 ? 's' : ''}</Badge>
+    : offer.status === 'closed' ? <Badge tone="expired">Arrêtée</Badge>
     : offer.status === 'paused' ? <Badge tone="due">En pause</Badge>
     : offer.status === 'review' ? <Badge tone="pending">Vérification</Badge>
     : free > 0 ? <Badge tone="soft">{free} libre{free > 1 ? 's' : ''}</Badge>

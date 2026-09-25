@@ -8,11 +8,12 @@ use App\Enums\PayMethod;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'type', 'status', 'reference', 'label', 'amount', 'months',
-    'method', 'phone', 'provider_reference', 'period_start', 'period_end', 'expires_at', 'confirmed_at',
+    'method', 'phone', 'provider_reference', 'period_start', 'period_end', 'expires_at', 'confirmed_at', 'refunded_at',
 ])]
 class Payment extends Model
 {
@@ -44,6 +45,7 @@ class Payment extends Model
             'period_end' => 'datetime',
             'expires_at' => 'datetime',
             'confirmed_at' => 'datetime',
+            'refunded_at' => 'datetime',
         ];
     }
 
@@ -65,5 +67,10 @@ class Payment extends Model
     public function hostOffer(): BelongsTo
     {
         return $this->belongsTo(HostOffer::class);
+    }
+
+    public function joinRequest(): HasOne
+    {
+        return $this->hasOne(JoinRequest::class);
     }
 }

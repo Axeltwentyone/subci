@@ -3,8 +3,10 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BootstrapController;
 use App\Http\Controllers\Api\HostController;
+use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PushController;
 use App\Http\Controllers\Api\ServiceController;
@@ -17,6 +19,7 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/verify', [AuthController::class, 'verify'])->middleware('throttle:otp-verify');
     Route::get('services', [ServiceController::class, 'index']);
     Route::get('services/{service}', [ServiceController::class, 'show']);
+    Route::get('services/{service}/offers', [OfferController::class, 'index']);
     Route::get('push/key', [PushController::class, 'key']);
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -46,7 +49,12 @@ Route::prefix('v1')->group(function () {
         Route::post('notifications/{id}/archive', [NotificationController::class, 'archive']);
         Route::post('notifications/{id}/restore', [NotificationController::class, 'restore']);
 
+        Route::post('join-requests/{joinRequest}/cancel', [JoinRequestController::class, 'cancel']);
+
         Route::get('host', [HostController::class, 'show']);
+        Route::get('host/plans', [HostController::class, 'plans']);
+        Route::post('host/requests/{joinRequest}/accept', [HostController::class, 'acceptRequest']);
+        Route::post('host/requests/{joinRequest}/decline', [HostController::class, 'declineRequest']);
         Route::post('host/offers', [HostController::class, 'storeOffer']);
         Route::patch('host/offers/{offer}', [HostController::class, 'updateOffer']);
         Route::delete('host/offers/{offer}/members/{member}', [HostController::class, 'removeMember']);

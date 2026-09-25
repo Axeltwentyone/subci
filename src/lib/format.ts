@@ -66,3 +66,19 @@ export function haptic(ms = 20) {
     /* non supporté */
   }
 }
+
+/** « 8 mois », « 1 an », « ce mois-ci » — ancienneté d'un hôte ou d'un membre. */
+export function since(ts?: number, now = Date.now()): string {
+  if (!ts) return 'récemment'
+  const months = Math.floor((now - ts) / (30.44 * DAY))
+  if (months < 1) return 'ce mois-ci'
+  if (months < 12) return `${months} mois`
+  const years = Math.floor(months / 12)
+  return `${years} an${years > 1 ? 's' : ''}`
+}
+
+/** Temps restant court : « 22 h », « 45 min ». */
+export function timeLeft(ts: number, now = Date.now()): string {
+  const min = Math.max(0, Math.round((ts - now) / 60e3))
+  return min >= 60 ? `${Math.floor(min / 60)} h` : `${min} min`
+}

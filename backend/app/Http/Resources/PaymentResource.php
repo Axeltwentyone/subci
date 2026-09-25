@@ -22,6 +22,8 @@ class PaymentResource extends JsonResource
             'method' => $this->method,
             'phone' => $this->phone,
             'serviceId' => $this->service?->slug,
+            'hostName' => $this->hostOffer?->user?->shortName(),
+            'joinStatus' => $this->joinRequest?->status,
             'subscriptionId' => $this->subscription_id ? (string) $this->subscription_id : null,
             'periodStart' => $this->period_start?->toIso8601String(),
             'periodEnd' => $this->period_end?->toIso8601String(),

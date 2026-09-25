@@ -27,7 +27,7 @@ class Availability
             ->values();
     }
 
-    /** L'offre que Sub.ci attribue : la moins chère, puis la plus ancienne. */
+    /** L'offre la moins chère encore ouverte (prix « dès … » du catalogue). */
     public function bestOffer(Service $service, ?User $viewer = null): ?HostOffer
     {
         return $this->openOffers($service, $viewer)->first();
@@ -59,6 +59,7 @@ class Availability
             $service->setAttribute('avail_price', $best?->price ?? $service->price);
             $service->setAttribute('avail_seats', $best?->seats ?? $service->seats);
             $service->setAttribute('avail_group_free', $best?->freeSeats() ?? 0);
+            $service->setAttribute('avail_offers', $open->count());
         });
     }
 }

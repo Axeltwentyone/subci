@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentStatus;
+use App\Enums\PaymentType;
 use App\Enums\PayMethod;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -67,8 +69,28 @@ class User extends Authenticatable
             'password' => 'hashed',
             'settings' => 'array',
             'balance' => 'integer',
+            'removals_count' => 'integer',
             'payout_method' => PayMethod::class,
             'last_pay_method' => PayMethod::class,
+        ];
+    }
+
+    /** « Aya K. » — ce que voient les autres utilisateurs. */
+    public function shortName(): string
+    {
+        $first = $this->first_name ?? Str::before((string) $this->name, ' ');
+        $initial = $this->last_name ? ' '.mb_strtoupper(mb_substr($this->last_name, 0, 1)).'.' : '';
+
+        return trim(($first ?: 'Membre').$initial);
+    }
+
+    /** Fiabilité montrée à un hôte avant d'accepter une demande. */
+    public function reliability(): array
+    {
+        return [
+            'memberSince' => $this->created_at?->toIso8601String(),
+            'paidCount' => $this->payments()->where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)->whereNull('refunded_at')->count(),
+            'removalsCount' => $this->removals_count,
         ];
     }
 
@@ -80,6 +102,11 @@ class User extends Authenticatable
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function joinRequests(): HasMany
+    {
+        return $this->hasMany(JoinRequest::class);
     }
 
     public function hostOffers(): HasMany

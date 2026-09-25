@@ -21,6 +21,9 @@ class SubscriptionResource extends JsonResource
         return [
             'id' => (string) $this->id,
             'serviceId' => $this->service->slug,
+            // Prix mensuel actuel du cercle (renouvellement au prix de l'hôte).
+            'price' => $this->hostOffer?->price ?? $this->service->price,
+            'hostName' => $this->hostOffer?->user?->shortName(),
             'state' => $this->status,
             'status' => $this->displayStatus(),
             'startAt' => $this->starts_at->toIso8601String(),

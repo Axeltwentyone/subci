@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\AccessMode;
+use App\Enums\Device;
 use App\Enums\OfferStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
@@ -11,10 +12,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\HostOfferResource;
 use App\Http\Resources\PaymentResource;
 use App\Models\HostOffer;
+use App\Models\JoinRequest;
 use App\Models\OfferMember;
 use App\Models\Service;
 use App\Models\User;
 use App\Notifications\AppNotification;
+use App\Services\JoinService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,12 +28,12 @@ use Illuminate\Validation\ValidationException;
 /** Côté hôte : partager ses places libres et encaisser. */
 class HostController extends Controller
 {
-    /** Formules partageables (identique à HOST_PLANS côté PWA). */
-    public const PLANS = [
-        'netflix' => ['label' => 'Premium · 4 écrans', 'max' => 3],
-        'spotify' => ['label' => 'Famille · 6 comptes', 'max' => 5],
-        'youtube' => ['label' => 'Famille · 6 comptes', 'max' => 5],
-    ];
+    /** Formules partageables par service (config/plans.php), pour l'écran de création. */
+    public function plans(): JsonResponse
+    {
+        return response()->json(['data' => collect(config('plans'))->map(fn ($plans) => collect($plans)
+            ->map(fn ($p, $key) => ['key' => $key] + $p)->values())]);
+    }
 
     public function show(Request $request): JsonResponse
     {
@@ -42,36 +45,52 @@ class HostController extends Controller
         return [
             'balance' => $user->balance,
             'monthGain' => (int) $user->payments()->where('type', PaymentType::Earning)->where('status', PaymentStatus::Succeeded)->where('created_at', '>=', now()->startOfMonth())->sum('amount'),
-            'offers' => HostOfferResource::collection($user->hostOffers()->with('service', 'members')->orderByRaw("status = 'closed'")->latest()->get()),
+            'offers' => HostOfferResource::collection($user->hostOffers()->with(self::RELATIONS)->orderByRaw("status = 'closed'")->latest()->get()),
         ];
     }
+
+    /** Relations nécessaires à HostOfferResource (demandes en attente comprises). */
+    private const RELATIONS = ['service', 'members', 'joinRequests.user', 'joinRequests.payment', 'joinRequests.offer.service', 'joinRequests.offer.user'];
 
     public function storeOffer(Request $request): HostOfferResource
     {
         $data = $request->validate([
-            'serviceId' => ['required', Rule::in(array_keys(self::PLANS))],
+            'serviceId' => ['required', Rule::in(array_keys(config('plans')))],
+            'plan' => ['required', 'string'],
             'seats' => ['required', 'integer', 'min:1'],
             'price' => ['required', 'integer', 'between:500,5000'],
-            'mode' => ['required', Rule::enum(AccessMode::class)],
-            'email' => ['required_if:mode,credentials', 'nullable', 'email'],
-            'password' => ['required_if:mode,credentials', 'nullable', 'string', 'min:4'],
+            'devices' => ['required', 'array', 'min:1'],
+            'devices.*' => [Rule::enum(Device::class)],
+            'email' => ['nullable', 'email'],
+            'password' => ['nullable', 'string', 'min:4'],
             'proof' => ['required', 'image', 'max:5120'],
         ], [
             'proof.required' => 'Ajoute une capture de ta page « Compte ».',
+            'devices.required' => 'Choisis au moins un appareil.',
         ]);
 
-        $plan = self::PLANS[$data['serviceId']];
+        $plan = config("plans.{$data['serviceId']}.{$data['plan']}")
+            ?? throw ValidationException::withMessages(['plan' => 'Formule inconnue pour ce service.']);
         if ($data['seats'] > $plan['max']) {
             throw ValidationException::withMessages(['seats' => "{$plan['max']} places maximum pour cette formule."]);
+        }
+        if (array_diff($data['devices'], $plan['devices'])) {
+            throw ValidationException::withMessages(['devices' => 'Un des appareils n’est pas possible avec cette formule.']);
+        }
+        if ($plan['mode'] === 'credentials' && (empty($data['email']) || empty($data['password']))) {
+            throw ValidationException::withMessages(['email' => 'Indique l’e-mail et le mot de passe du compte à partager.']);
         }
 
         $service = Service::where('slug', $data['serviceId'])->firstOrFail();
         $offer = $request->user()->hostOffers()->create([
                 'service_id' => $service->id,
+                'plan' => $data['plan'],
                 'plan_label' => $plan['label'],
+                'devices' => array_values(array_unique($data['devices'])),
+                'quality' => $plan['quality'],
                 'seats' => $data['seats'],
                 'price' => $data['price'],
-                'access_mode' => $data['mode'],
+                'access_mode' => $plan['mode'],
                 'access_email' => $data['email'] ?? null,
                 'access_password' => $data['password'] ?? null,
                 'proof_path' => $request->file('proof')->store('proofs'),
@@ -79,7 +98,7 @@ class HostController extends Controller
                 'status' => OfferStatus::Review,
             ]);
 
-        return new HostOfferResource($offer->load('service', 'members'));
+        return new HostOfferResource($offer->load(self::RELATIONS));
     }
 
     /**
@@ -93,15 +112,18 @@ class HostController extends Controller
         $this->authorizeOwner($request, $offer);
         abort_if($offer->status === OfferStatus::Closed, 409, 'Cette offre est arrêtée.');
 
-        $plan = self::PLANS[$offer->service->slug] ?? ['max' => $offer->seats];
-        $members = $offer->members()->count();
+        $plan = $offer->planConfig();
+        $members = $offer->members()->count() + $offer->joinRequests()->pending()->count();
         $data = $request->validate([
             'price' => ['sometimes', 'integer', 'between:500,5000'],
             'seats' => ['sometimes', 'integer', 'min:'.max(1, $members), 'max:'.$plan['max']],
+            'devices' => ['sometimes', 'array', 'min:1'],
+            'devices.*' => [Rule::in($plan['devices'])],
             'email' => ['sometimes', 'email'],
             'password' => ['sometimes', 'string', 'min:4'],
         ], [
-            'seats.min' => $members > 1 ? "Tu as {$members} membres : impossible de descendre en dessous." : 'Au moins 1 place.',
+            'seats.min' => $members > 1 ? "Tu as {$members} membres ou demandes : impossible de descendre en dessous." : 'Au moins 1 place.',
+            'devices.min' => 'Choisis au moins un appareil.',
             'seats.max' => "{$plan['max']} places maximum pour cette formule.",
         ]);
         if ((isset($data['email']) || isset($data['password'])) && $offer->access_mode !== AccessMode::Credentials) {
@@ -115,6 +137,7 @@ class HostController extends Controller
 
             $offer->price = $data['price'] ?? $offer->price;
             $offer->seats = $data['seats'] ?? $offer->seats;
+            $offer->devices = isset($data['devices']) ? array_values(array_unique($data['devices'])) : $offer->devices;
             $offer->access_email = $data['email'] ?? $offer->access_email;
             $offer->access_password = $data['password'] ?? $offer->access_password;
             $offer->save();
@@ -133,7 +156,27 @@ class HostController extends Controller
             }
         });
 
-        return new HostOfferResource($offer->fresh()->load('service', 'members'));
+        return new HostOfferResource($offer->fresh()->load(self::RELATIONS));
+    }
+
+    /** Accepter une demande : le membre entre dans le cercle, tu es payé. */
+    public function acceptRequest(Request $request, JoinRequest $joinRequest, JoinService $joins): HostOfferResource
+    {
+        $offer = $joinRequest->offer;
+        $this->authorizeOwner($request, $offer);
+        $joins->accept($joinRequest);
+
+        return new HostOfferResource($offer->fresh()->load(self::RELATIONS));
+    }
+
+    /** Refuser une demande : le membre est remboursé, la place se libère. */
+    public function declineRequest(Request $request, JoinRequest $joinRequest, JoinService $joins): HostOfferResource
+    {
+        $offer = $joinRequest->offer;
+        $this->authorizeOwner($request, $offer);
+        $joins->decline($joinRequest);
+
+        return new HostOfferResource($offer->fresh()->load(self::RELATIONS));
     }
 
     /** Retirer un membre : sa place est remise en ligne. */
@@ -146,11 +189,13 @@ class HostController extends Controller
             // Le membre garde son accès jusqu'à l'échéance, sans renouvellement dans ce groupe.
             if ($member->user_id) {
                 $offer->subscriptions()->where('user_id', $member->user_id)->update(['host_offer_id' => null, 'auto_renew' => false]);
+                // Compté dans la fiabilité montrée aux hôtes.
+                User::whereKey($member->user_id)->increment('removals_count');
             }
             $member->delete();
         });
 
-        return new HostOfferResource($offer->fresh()->load('service', 'members'));
+        return new HostOfferResource($offer->fresh()->load(self::RELATIONS));
     }
 
     /** pause | resume | close */
@@ -180,7 +225,7 @@ class HostController extends Controller
             }
         });
 
-        return new HostOfferResource($offer->fresh()->load('service', 'members'));
+        return new HostOfferResource($offer->fresh()->load(self::RELATIONS));
     }
 
     private function authorizeOwner(Request $request, HostOffer $offer): void
@@ -205,7 +250,7 @@ class HostController extends Controller
                 });
         });
 
-        return new HostOfferResource($offer->load('service', 'members'));
+        return new HostOfferResource($offer->load(self::RELATIONS));
     }
 
     /** Retrait du solde vers le compte mobile money (frais 0, reçu ~5 min). */

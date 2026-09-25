@@ -25,6 +25,7 @@ class ServiceResource extends JsonResource
             'seats' => $this->avail_seats ?? $this->seats,
             'free' => $this->avail_free ?? 0,
             'groupFree' => $this->avail_group_free ?? 0,
+            'offers' => $this->avail_offers ?? 0,
             'activation' => $this->activation_minutes,
             'popular' => $this->is_popular,
         ];
