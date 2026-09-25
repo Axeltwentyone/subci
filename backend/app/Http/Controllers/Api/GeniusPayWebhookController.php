@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Payment;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,13 +35,8 @@ class GeniusPayWebhookController extends Controller
         $event = (string) $request->input('event', $request->header('X-Webhook-Event'));
         $reference = $request->input('data.reference') ?? $request->input('reference');
 
-        if (str_starts_with($event, 'payment.') && $reference) {
-            $payment = Payment::where('provider_reference', $reference)->first();
-            if ($payment) {
-                $payments->refresh($payment);
-            } else {
-                Log::info('GeniusPay : webhook pour un paiement inconnu', ['reference' => $reference, 'event' => $event]);
-            }
+        if (str_starts_with($event, 'payment.') && $reference && ! $payments->handleWebhook((string) $reference)) {
+            Log::info('GeniusPay : webhook pour un paiement inconnu', ['reference' => $reference, 'event' => $event]);
         }
 
         return response()->json(['ok' => true]);

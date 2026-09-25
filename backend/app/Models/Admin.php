@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\AdminAlerts;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password', 'last_login_at', 'alerts'])]
-#[Hidden(['password'])]
+#[Hidden(['password', 'two_factor_secret'])]
 class Admin extends Authenticatable
 {
     use HasApiTokens;
@@ -20,6 +21,8 @@ class Admin extends Authenticatable
             'password' => 'hashed',
             'last_login_at' => 'datetime',
             'alerts' => 'array',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 
@@ -31,9 +34,14 @@ class Admin extends Authenticatable
     /** Alertes push choisies (défauts de AdminAlerts::KINDS si jamais réglées). */
     public function alertSettings(): array
     {
-        return collect(\App\Services\AdminAlerts::KINDS)
+        return collect(AdminAlerts::KINDS)
             ->map(fn ($k, $kind) => (bool) ($this->alerts[$kind] ?? $k[1]))
             ->all();
+    }
+
+    public function hasTwoFactor(): bool
+    {
+        return $this->two_factor_confirmed_at !== null && $this->two_factor_secret !== null;
     }
 
     public function wantsAlert(string $kind): bool

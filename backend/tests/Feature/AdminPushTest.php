@@ -38,7 +38,7 @@ class AdminPushTest extends TestCase
         $this->withToken($token)->getJson('/api/v1/admin/push')->assertOk()
             ->assertJsonPath('devices', 0)
             ->assertJsonPath('alerts.0.kind', 'payments')->assertJsonPath('alerts.0.on', true)
-            ->assertJsonPath('alerts.3.kind', 'signups')->assertJsonPath('alerts.3.on', false);
+            ->assertJsonPath('alerts.4.kind', 'signups')->assertJsonPath('alerts.4.on', false);
 
         $this->postJson('/api/v1/admin/push/subscriptions', self::DEVICE)->assertCreated()->assertJsonPath('devices', 1);
         $sub = PushSubscription::firstOrFail();
@@ -46,7 +46,7 @@ class AdminPushTest extends TestCase
         $this->assertNull($sub->user_id);
 
         $this->patchJson('/api/v1/admin/push/alerts', ['alerts' => ['payments' => false, 'signups' => true, 'inconnu' => true]])
-            ->assertOk()->assertJsonPath('alerts.0.on', false)->assertJsonPath('alerts.3.on', true);
+            ->assertOk()->assertJsonPath('alerts.0.on', false)->assertJsonPath('alerts.4.on', true);
         $this->assertFalse($this->admin->fresh()->wantsAlert('payments'));
         $this->assertArrayNotHasKey('inconnu', $this->admin->fresh()->alerts);
 

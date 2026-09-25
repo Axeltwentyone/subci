@@ -19,11 +19,17 @@ Route::prefix('v1')->group(function () {
     // ---------- Administration (comptes Admin, jamais les membres) ----------
     Route::prefix('admin')->group(function () {
         Route::post('auth/login', [Admin\AuthController::class, 'login'])->middleware('throttle:10,1');
+        Route::post('auth/2fa', [Admin\AuthController::class, 'twoFactor'])->middleware('throttle:10,1');
 
-        Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+        // Configuration de la double authentification (jeton « admin-setup » ou session complète).
+        Route::middleware(['auth:sanctum', 'admin.setup'])->group(function () {
+            Route::post('auth/2fa/setup', [Admin\AuthController::class, 'setupTwoFactor'])->middleware('throttle:10,1');
+            Route::post('auth/2fa/confirm', [Admin\AuthController::class, 'confirmTwoFactor'])->middleware('throttle:10,1');
             Route::get('auth/me', [Admin\AuthController::class, 'me']);
             Route::post('auth/logout', [Admin\AuthController::class, 'logout']);
+        });
 
+        Route::middleware(['auth:sanctum', 'admin'])->group(function () {
             Route::get('overview', Admin\OverviewController::class);
             Route::get('search', [Admin\MiscController::class, 'search']);
 
@@ -47,6 +53,9 @@ Route::prefix('v1')->group(function () {
             Route::get('requests', [Admin\MiscController::class, 'requests']);
             Route::post('requests/{joinRequest}/decline', [Admin\MiscController::class, 'declineRequest']);
 
+            Route::get('disputes', [Admin\MiscController::class, 'disputes']);
+            Route::post('disputes/{dispute}/resolve', [Admin\MiscController::class, 'resolveDispute']);
+
             Route::get('services', [Admin\MiscController::class, 'services']);
             Route::patch('services/{service:id}', [Admin\MiscController::class, 'updateService']);
 
@@ -65,28 +74,33 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/verify', [AuthController::class, 'verify'])->middleware('throttle:otp-verify');
     Route::get('services', [ServiceController::class, 'index']);
     Route::get('services/{service}', [ServiceController::class, 'show']);
-    Route::get('services/{service}/offers', [OfferController::class, 'index']);
     Route::get('push/key', [PushController::class, 'key']);
     Route::post('webhooks/geniuspay', GeniusPayWebhookController::class)->middleware('throttle:120,1');
 
     Route::middleware(['auth:sanctum', 'member'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('bootstrap', BootstrapController::class);
+        // Offres d'un service (prénoms des hôtes et des membres) : réservé aux membres connectés.
+        Route::get('services/{service}/offers', [OfferController::class, 'index']);
 
         Route::post('push/subscriptions', [PushController::class, 'store']);
         Route::delete('push/subscriptions', [PushController::class, 'destroy']);
 
         Route::get('me', [MeController::class, 'show']);
         Route::patch('me', [MeController::class, 'update']);
+        Route::post('me/payout/code', [MeController::class, 'payoutCode'])->middleware('throttle:3,1');
+        Route::post('auth/logout-others', [MeController::class, 'logoutOthers']);
 
         Route::get('subscriptions', [SubscriptionController::class, 'index']);
         Route::get('subscriptions/{subscription}', [SubscriptionController::class, 'show']);
         Route::patch('subscriptions/{subscription}', [SubscriptionController::class, 'update']);
         Route::post('subscriptions/{subscription}/cancel', [SubscriptionController::class, 'cancel']);
+        Route::post('subscriptions/{subscription}/dispute', [SubscriptionController::class, 'dispute'])->middleware('throttle:5,1');
+        Route::post('subscriptions/{subscription}/dispute/solve', [SubscriptionController::class, 'solveDispute']);
 
         Route::get('payments', [PaymentController::class, 'index']);
         Route::post('payments', [PaymentController::class, 'store'])->middleware('throttle:20,1');
-        Route::get('payments/{payment:reference}', [PaymentController::class, 'show']);
+        Route::get('payments/{payment:reference}', [PaymentController::class, 'show'])->middleware('throttle:60,1');
         Route::post('payments/{payment:reference}/resend', [PaymentController::class, 'resend'])->middleware('throttle:5,1');
         Route::post('payments/{payment:reference}/cancel', [PaymentController::class, 'cancel']);
 

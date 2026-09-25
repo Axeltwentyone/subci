@@ -7,6 +7,7 @@ use App\Enums\Device;
 use App\Enums\OfferStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
+use App\Enums\PayMethod;
 use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\HostOfferResource;
@@ -16,11 +17,15 @@ use App\Models\JoinRequest;
 use App\Models\OfferMember;
 use App\Models\Service;
 use App\Models\User;
-use App\Services\AdminAlerts;
 use App\Notifications\AppNotification;
+use App\Services\AdminAlerts;
+use App\Services\EarningService;
 use App\Services\JoinService;
+use App\Support\ImageSanitizer;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -29,6 +34,8 @@ use Illuminate\Validation\ValidationException;
 /** Côté hôte : partager ses places libres et encaisser. */
 class HostController extends Controller
 {
+    public function __construct(private EarningService $earnings) {}
+
     /** Formules partageables par service (config/plans.php), pour l'écran de création. */
     public function plans(): JsonResponse
     {
@@ -45,9 +52,22 @@ class HostController extends Controller
     {
         return [
             'balance' => $user->balance,
-            'monthGain' => (int) $user->payments()->where('type', PaymentType::Earning)->where('status', PaymentStatus::Succeeded)->where('created_at', '>=', now()->startOfMonth())->sum('amount'),
+            // Gains en séquestre : versés au solde mois par mois.
+            'pending' => (int) $user->payments()->escrowed()->sum('amount'),
+            'nextRelease' => ($next = $user->payments()->escrowed()->whereNull('held_at')->min('available_at')) ? Carbon::parse($next)->toIso8601String() : null,
+            'held' => (int) $user->payments()->escrowed()->whereNotNull('held_at')->sum('amount'),
+            'withdrawLockedUntil' => self::withdrawLockedUntil($user)?->toIso8601String(),
+            'monthGain' => (int) $user->payments()->where('type', PaymentType::Earning)->whereIn('status', [PaymentStatus::Succeeded, PaymentStatus::Pending])->where('created_at', '>=', now()->startOfMonth())->sum('amount'),
             'offers' => HostOfferResource::collection($user->hostOffers()->with(self::RELATIONS)->orderByRaw("status = 'closed'")->latest()->get()),
         ];
+    }
+
+    /** Retraits bloqués quelques heures après un changement de numéro de retrait (vol de session). */
+    public static function withdrawLockedUntil(User $user): ?CarbonInterface
+    {
+        $until = $user->payout_changed_at?->copy()->addHours((int) config('services.payments.payout_change_lock_hours'));
+
+        return $until?->isFuture() ? $until : null;
     }
 
     /** Relations nécessaires à HostOfferResource (demandes en attente comprises). */
@@ -64,7 +84,7 @@ class HostController extends Controller
             'devices.*' => [Rule::enum(Device::class)],
             'email' => ['nullable', 'email'],
             'password' => ['nullable', 'string', 'min:4'],
-            'proof' => ['required', 'image', 'max:5120'],
+            'proof' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ], [
             'proof.required' => 'Ajoute une capture de ta page « Compte ».',
             'devices.required' => 'Choisis au moins un appareil.',
@@ -84,20 +104,21 @@ class HostController extends Controller
 
         $service = Service::where('slug', $data['serviceId'])->firstOrFail();
         $offer = $request->user()->hostOffers()->create([
-                'service_id' => $service->id,
-                'plan' => $data['plan'],
-                'plan_label' => $plan['label'],
-                'devices' => array_values(array_unique($data['devices'])),
-                'quality' => $plan['quality'],
-                'seats' => $data['seats'],
-                'price' => $data['price'],
-                'access_mode' => $plan['mode'],
-                'access_email' => $data['email'] ?? null,
-                'access_password' => $data['password'] ?? null,
-                'proof_path' => $request->file('proof')->store('proofs'),
-                // Invisible dans le catalogue tant que la preuve n'est pas validée.
-                'status' => OfferStatus::Review,
-            ]);
+            'service_id' => $service->id,
+            'plan' => $data['plan'],
+            'plan_label' => $plan['label'],
+            'devices' => array_values(array_unique($data['devices'])),
+            'quality' => $plan['quality'],
+            'seats' => $data['seats'],
+            'price' => $data['price'],
+            'access_mode' => $plan['mode'],
+            'access_email' => $data['email'] ?? null,
+            'access_password' => $data['password'] ?? null,
+            // Ré-encodée : sans métadonnées (position GPS…) ni contenu caché.
+            'proof_path' => ImageSanitizer::store($request->file('proof'), 'proofs'),
+            // Invisible dans le catalogue tant que la preuve n'est pas validée.
+            'status' => OfferStatus::Review,
+        ]);
         AdminAlerts::send('offers', 'Offre à valider',
             $request->user()->shortName()." partage {$service->name} · {$plan['label']}, {$data['seats']} places",
             "/offers?open={$offer->id}", 'offers');
@@ -134,7 +155,8 @@ class HostController extends Controller
             throw ValidationException::withMessages(['email' => 'Cette offre fonctionne par invitation famille, sans identifiants.']);
         }
 
-        DB::transaction(function () use ($offer, $data) {
+        $originalEmail = $offer->access_email;
+        DB::transaction(function () use ($offer, $data, $originalEmail) {
             $priceChanged = isset($data['price']) && $data['price'] !== $offer->price;
             $accessChanged = (isset($data['email']) && $data['email'] !== $offer->access_email)
                 || (isset($data['password']) && $data['password'] !== $offer->access_password);
@@ -147,6 +169,11 @@ class HostController extends Controller
             $offer->save();
 
             $short = Str::before($offer->service->name, ' ');
+            if (isset($data['email']) && $data['email'] !== $originalEmail) {
+                // Autre compte partagé que celui vérifié à la validation : l'équipe est prévenue.
+                AdminAlerts::send('offers', "Compte partagé changé · {$short}",
+                    $offer->user->shortName()." a remplacé l’e-mail du compte de l’offre #{$offer->id}.", "/offers?open={$offer->id}", 'offers');
+            }
             if ($accessChanged) {
                 $offer->subscriptions()->with('user')->get()->each(function ($sub) use ($offer, $short) {
                     $sub->update(['access_email' => $offer->access_email, 'access_password' => $offer->access_password]);
@@ -190,9 +217,19 @@ class HostController extends Controller
         abort_unless($member->host_offer_id === $offer->id, 404);
 
         DB::transaction(function () use ($offer, $member) {
-            // Le membre garde son accès jusqu'à l'échéance, sans renouvellement dans ce groupe.
             if ($member->user_id) {
-                $offer->subscriptions()->where('user_id', $member->user_id)->update(['host_offer_id' => null, 'auto_renew' => false]);
+                $short = Str::before($offer->service->name, ' ');
+                $offer->subscriptions()->with('user')->where('user_id', $member->user_id)->get()->each(function ($sub) use ($short) {
+                    // Les mois pas encore versés à l'hôte sont rendus au membre ; l'accès s'arrête là où l'hôte a été payé.
+                    [$refunded, $paidUntil] = $this->earnings->refundUnreleased($sub, "{$short} · retiré par l’hôte");
+                    $ends = $paidUntil ? ($paidUntil->isPast() ? now() : $paidUntil) : $sub->ends_at;
+                    $sub->update(['host_offer_id' => null, 'auto_renew' => false, 'ends_at' => $ends->min($sub->ends_at)]);
+                    $sub->user->notify(new AppNotification('due', "Tu as été retiré·e de {$short}",
+                        $refunded > 0
+                            ? EarningService::fcfa($refunded).' te sont remboursés pour le temps restant.'
+                            : 'Ton accès reste actif jusqu’au '.$sub->ends_at->translatedFormat('j M').'.',
+                        ['label' => 'Voir les offres', 'to' => '/service/'.$sub->service->slug]));
+                });
                 // Compté dans la fiabilité montrée aux hôtes.
                 User::whereKey($member->user_id)->increment('removals_count');
             }
@@ -264,11 +301,14 @@ class HostController extends Controller
 
         $payment = DB::transaction(function () use ($request, $data) {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->first();
+            if ($until = self::withdrawLockedUntil($user)) {
+                throw ValidationException::withMessages(['amount' => 'Numéro de retrait modifié récemment : par sécurité, retrait possible à partir du '.$until->translatedFormat('j M à H\hi').'.']);
+            }
             if ($data['amount'] > $user->balance) {
                 throw ValidationException::withMessages(['amount' => 'Montant supérieur à ton solde.']);
             }
             $user->decrement('balance', $data['amount']);
-            $method = $user->payout_method ?? \App\Enums\PayMethod::Wave;
+            $method = $user->payout_method ?? PayMethod::Wave;
             // Pas d'API de versement chez la passerelle : retrait traité à la main (payouts:*).
             $manual = (bool) config('services.payments.manual_payouts');
             $payment = $user->payments()->create([

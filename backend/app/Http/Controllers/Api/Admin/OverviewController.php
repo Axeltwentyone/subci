@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\DisputeStatus;
 use App\Enums\JoinStatus;
 use App\Enums\OfferStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
 use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Dispute;
 use App\Models\HostOffer;
 use App\Models\JoinRequest;
 use App\Models\Payment;
@@ -17,7 +19,6 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 /** Vue d'ensemble : argent, activité, ce qui attend une action. */
 class OverviewController extends Controller
@@ -30,7 +31,8 @@ class OverviewController extends Controller
 
         $collected = fn ($from, $to) => (int) Payment::where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)
             ->whereNull('refunded_at')->whereBetween('confirmed_at', [$from, $to])->sum('amount');
-        $earnings = fn ($from, $to) => (int) Payment::where('type', PaymentType::Earning)->where('status', PaymentStatus::Succeeded)
+        // Gains engagés (versés ou en séquestre), hors gains annulés par un remboursement.
+        $earnings = fn ($from, $to) => (int) Payment::where('type', PaymentType::Earning)->whereIn('status', [PaymentStatus::Succeeded, PaymentStatus::Pending])
             ->whereBetween('created_at', [$from, $to])->sum('amount');
         // Commission = part gardée sur les paiements reversés aux hôtes (gain = montant × 90 %).
         $commission = fn (int $earned) => (int) round($earned / (1 - HostOffer::FEE) * HostOffer::FEE);
@@ -61,10 +63,14 @@ class OverviewController extends Controller
                 // Payé par des membres dont la demande attend la réponse d'un hôte.
                 'held' => (int) Payment::whereHas('joinRequest', fn ($q) => $q->where('status', JoinStatus::Pending))->sum('amount'),
                 'hostBalances' => (int) User::sum('balance'),
+                // Gains d'hôtes en séquestre (versés au solde mois par mois), dont gelés par un souci signalé.
+                'escrow' => (int) Payment::escrowed()->sum('amount'),
+                'escrowHeld' => (int) Payment::escrowed()->whereNotNull('held_at')->sum('amount'),
                 'payoutsPending' => (int) (clone $pendingPayouts)->sum('amount'),
             ],
             'todo' => [
                 'offersToReview' => HostOffer::where('status', OfferStatus::Review)->count(),
+                'disputes' => Dispute::where('status', DisputeStatus::Open)->count(),
                 'payouts' => (clone $pendingPayouts)->count(),
                 'requests' => JoinRequest::pending()->count(),
                 'requestsExpiringSoon' => JoinRequest::pending()->where('expires_at', '<', $now->addHours(3))->count(),

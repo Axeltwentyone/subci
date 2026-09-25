@@ -4,7 +4,6 @@ namespace App\Payments;
 
 use App\Contracts\PaymentGateway;
 use App\Enums\PaymentStatus;
-use App\Enums\PayMethod;
 use App\Models\Payment;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -61,19 +60,21 @@ class GeniusPayGateway implements PaymentGateway
         ];
     }
 
-    public function status(Payment $payment): PaymentStatus
+    public function status(Payment $payment, ?string $reference = null): PaymentStatus
     {
-        if (! $payment->provider_reference) {
+        $reference ??= $payment->provider_reference;
+        if (! $reference) {
             return PaymentStatus::Pending;
         }
-        $response = $this->http()->get('/payments/'.urlencode($payment->provider_reference));
+        $response = $this->http()->get('/payments/'.urlencode($reference));
         if (! $response->successful()) {
             // Réseau ou GeniusPay indisponible : on réessaiera au prochain tour.
             return PaymentStatus::Pending;
         }
 
-        // Montant différent de celui demandé : on ne confirme pas.
-        if ((int) $response->json('data.amount') !== $payment->amount) {
+        // Montant ou devise différents de la demande : on ne confirme pas.
+        $currency = $response->json('data.currency');
+        if ((int) $response->json('data.amount') !== $payment->amount || ($currency !== null && strtoupper((string) $currency) !== 'XOF')) {
             Log::warning('GeniusPay : montant incohérent', ['payment' => $payment->reference, 'amount' => $response->json('data.amount')]);
 
             return PaymentStatus::Failed;

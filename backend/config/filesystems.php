@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Fichiers privés (preuves) : servis uniquement par l'API admin, jamais par une URL.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

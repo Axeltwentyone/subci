@@ -10,6 +10,7 @@ use App\Notifications\AppNotification;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /** Tous les mouvements d'argent + versements manuels (remboursements, retraits). */
@@ -57,10 +58,19 @@ class PaymentController extends Controller
 
     public function markPaid(Request $request, Payment $payment): JsonResponse
     {
-        abort_unless($payment->status === PaymentStatus::Pending && in_array($payment->type, [PaymentType::Refund, PaymentType::Withdrawal], true), 409, 'Ce versement n’est pas en attente.');
         $data = $request->validate(['note' => ['nullable', 'string', 'max:120']]);
+        // Verrou : un double clic ne marque (et ne notifie) qu'une fois.
+        $done = DB::transaction(function () use ($payment) {
+            $locked = Payment::whereKey($payment->id)->lockForUpdate()->first();
+            if ($locked->status !== PaymentStatus::Pending || ! in_array($locked->type, [PaymentType::Refund, PaymentType::Withdrawal], true)) {
+                return false;
+            }
+            $locked->update(['status' => PaymentStatus::Succeeded, 'confirmed_at' => now()]);
 
-        $payment->update(['status' => PaymentStatus::Succeeded, 'confirmed_at' => now()]);
+            return true;
+        });
+        abort_unless($done, 409, 'Ce versement n’est pas en attente.');
+        $payment->refresh();
         $amount = number_format($payment->amount, 0, ',', ' ').' FCFA';
         $payment->user->notify($payment->type === PaymentType::Refund
             ? new AppNotification('pay', 'Remboursement reçu', "{$amount} renvoyés sur ton ".$payment->method->label().'.')
@@ -75,7 +85,7 @@ class PaymentController extends Controller
     {
         abort_unless($payment->type === PaymentType::Subscription, 409, 'Seul un paiement d’abonnement peut être relu.');
         $before = $payment->status->value;
-        $payments->refresh($payment);
+        $payments->refresh($payment, force: true);
         $request->user()->log('payment.reconcile', $payment, ['before' => $before, 'after' => $payment->fresh()->status->value]);
 
         return response()->json(['data' => Presenter::payment($payment->fresh(['user', 'service', 'joinRequest']))]);

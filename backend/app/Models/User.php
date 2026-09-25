@@ -71,6 +71,7 @@ class User extends Authenticatable
             'balance' => 'integer',
             'removals_count' => 'integer',
             'suspended_at' => 'datetime',
+            'payout_changed_at' => 'datetime',
             'payout_method' => PayMethod::class,
             'last_pay_method' => PayMethod::class,
         ];
@@ -108,6 +109,11 @@ class User extends Authenticatable
     public function joinRequests(): HasMany
     {
         return $this->hasMany(JoinRequest::class);
+    }
+
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class);
     }
 
     public function hostOffers(): HasMany

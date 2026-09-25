@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureAdminSetup;
+use App\Http\Middleware\EnsureMember;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,9 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // API en jeton (Sanctum) : pas de redirection vers une page de login, un 401 JSON.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/');
+        $middleware->append(SecurityHeaders::class);
+        // Limite globale : 240 requêtes / min par compte (ou par IP sans compte).
+        $middleware->throttleApi('api');
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureAdmin::class,
-            'member' => \App\Http\Middleware\EnsureMember::class,
+            'admin' => EnsureAdmin::class,
+            'admin.setup' => EnsureAdminSetup::class,
+            'member' => EnsureMember::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

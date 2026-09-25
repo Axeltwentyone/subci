@@ -15,6 +15,7 @@ class AdminAlerts
         'payments' => ['Paiement reçu', true],
         'offers' => ['Offre à valider', true],
         'payouts' => ['Versement à faire', true],
+        'disputes' => ['Souci signalé', true],
         'signups' => ['Nouvelle inscription', false],
     ];
 

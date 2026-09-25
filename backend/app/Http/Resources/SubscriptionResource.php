@@ -2,7 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\DisputeStatus;
 use App\Enums\SubscriptionStatus;
+use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -10,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Inclut le coffre des accès (déchiffré) pour son propriétaire :
  * la PWA le met en cache pour l'affichage hors ligne.
  *
- * @mixin \App\Models\Subscription
+ * @mixin Subscription
  */
 class SubscriptionResource extends JsonResource
 {
@@ -35,6 +37,9 @@ class SubscriptionResource extends JsonResource
             'email' => $ready ? $this->access_email : null,
             'password' => $ready ? $this->access_password : null,
             'pin' => $ready ? $this->access_pin : null,
+            'dispute' => ($d = $this->disputes()->where('status', DisputeStatus::Open)->latest()->first())
+                ? ['id' => (string) $d->id, 'reason' => $d->reason, 'at' => $d->created_at->toIso8601String()]
+                : null,
         ];
     }
 }

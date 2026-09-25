@@ -50,7 +50,8 @@ class AuthController extends Controller
         $user->forceFill(['phone_verified_at' => now()])->save();
 
         return response()->json([
-            'token' => $user->createToken('pwa')->plainTextToken,
+            // Session de 90 jours, prolongée à l'usage (EnsureMember).
+            'token' => $user->createToken('pwa', ['*'], now()->addDays(90))->plainTextToken,
             'user' => new UserResource($user),
             'isNew' => $user->wasRecentlyCreated,
         ]);

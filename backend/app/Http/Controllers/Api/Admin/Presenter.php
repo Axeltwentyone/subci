@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\JoinStatus;
+use App\Models\Dispute;
 use App\Models\HostOffer;
 use App\Models\JoinRequest;
 use App\Models\Payment;
+use App\Models\Service;
 use App\Models\Subscription;
 use App\Models\User;
 
@@ -24,6 +27,36 @@ final class Presenter
             'suspendedAt' => $u->suspended_at?->toIso8601String(),
             'suspensionReason' => $u->suspension_reason,
             'removalsCount' => $u->removals_count,
+        ];
+    }
+
+    private static function brand(Service $s): array
+    {
+        return ['id' => $s->slug, 'name' => $s->name, 'color' => $s->color, 'fg' => $s->fg, 'mono' => $s->mono];
+    }
+
+    public static function dispute(Dispute $d): array
+    {
+        $sub = $d->subscription;
+        $escrow = Payment::escrowed()->whereIn('source_payment_id', $sub->payments()->select('id'));
+
+        return [
+            'id' => $d->id,
+            'status' => $d->status->value,
+            'reason' => $d->reason->value,
+            'reasonLabel' => $d->reason->label(),
+            'message' => $d->message,
+            'resolution' => $d->resolution,
+            'member' => ['id' => $d->user->id, 'name' => $d->user->name ?? $d->user->shortName(), 'phone' => $d->user->phone] + $d->user->reliability(),
+            'host' => $d->offer?->user ? ['id' => $d->offer->user->id, 'name' => $d->offer->user->name ?? $d->offer->user->shortName(), 'phone' => $d->offer->user->phone, 'removalsCount' => $d->offer->user->removals_count] : null,
+            'offerId' => $d->host_offer_id,
+            'service' => self::brand($sub->service),
+            'subscription' => ['id' => $sub->id, 'startsAt' => $sub->starts_at?->toIso8601String(), 'endsAt' => $sub->ends_at?->toIso8601String()],
+            // Ce qui peut encore être rendu au membre (pas encore versé à l'hôte).
+            'refundable' => (int) (clone $escrow)->sum('gross'),
+            'hostDisputes' => $d->host_offer_id ? Dispute::whereIn('host_offer_id', HostOffer::where('user_id', $d->offer?->user_id)->select('id'))->count() : 0,
+            'resolvedAt' => $d->resolved_at?->toIso8601String(),
+            'createdAt' => $d->created_at->toIso8601String(),
         ];
     }
 
@@ -64,7 +97,7 @@ final class Presenter
             'seats' => $o->seats,
             'price' => $o->price,
             'members' => $o->members->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'color' => $m->color, 'userId' => $m->user_id, 'invitePending' => $m->invite_pending, 'joinedAt' => $m->joined_at?->toIso8601String()])->values(),
-            'pendingRequests' => $o->joinRequests->where('status', \App\Enums\JoinStatus::Pending)->count(),
+            'pendingRequests' => $o->joinRequests->where('status', JoinStatus::Pending)->count(),
             'status' => $o->status->value,
             'hasProof' => (bool) $o->proof_path,
             'rejectionReason' => $o->rejection_reason,

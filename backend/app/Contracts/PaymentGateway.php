@@ -15,6 +15,6 @@ interface PaymentGateway
      */
     public function request(Payment $payment): array;
 
-    /** Statut côté opérateur d'une demande en attente. */
-    public function status(Payment $payment): PaymentStatus;
+    /** Statut côté opérateur d'une demande (par défaut la plus récente du paiement). */
+    public function status(Payment $payment, ?string $reference = null): PaymentStatus;
 }

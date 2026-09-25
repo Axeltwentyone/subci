@@ -19,7 +19,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_filter(explode(',', (string) env('FRONTEND_URL', 'http://localhost:5173'))),
+    // PWA membre + app d'administration (domaines séparés en production).
+    'allowed_origins' => array_values(array_filter(array_merge(
+        explode(',', (string) env('FRONTEND_URL', 'http://localhost:5173')),
+        explode(',', (string) env('ADMIN_URL', '')),
+    ))),
 
     'allowed_origins_patterns' => [],
 

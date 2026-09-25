@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PushSubscription;
+use App\Rules\PushEndpoint;
 use App\Services\AdminAlerts;
 use App\Services\WebPushSender;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /** Notifications push de l'app d'administration : appareils et alertes choisies. */
 class PushController extends Controller
@@ -21,7 +21,7 @@ class PushController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'endpoint' => ['required', 'url', 'starts_with:https://', 'max:1000'],
+            'endpoint' => ['required', 'url', 'max:1000', new PushEndpoint],
             'keys.p256dh' => ['required', 'string', 'max:255'],
             'keys.auth' => ['required', 'string', 'max:255'],
             'contentEncoding' => ['nullable', 'in:aes128gcm,aesgcm'],

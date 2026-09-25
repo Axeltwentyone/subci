@@ -46,6 +46,12 @@ return [
         'request_ttl' => (int) env('PAYMENTS_REQUEST_TTL', 102),
         // GeniusPay n'expose pas d'API de remboursement ni de versement à un tiers :
         // remboursements et retraits des hôtes sont alors traités à la main (payouts:*).
+        // Séquestre : chaque mois payé est versé à l'hôte au début du mois + ce délai (litige possible avant).
+        'hold_hours' => (int) env('PAYMENTS_HOLD_HOURS', 72),
+        // Retraits bloqués après un changement de numéro de retrait.
+        'payout_change_lock_hours' => (int) env('PAYOUT_CHANGE_LOCK_HOURS', 24),
+        // Délai minimal entre deux lectures du statut chez la passerelle pour un même paiement.
+        'poll_interval' => (int) env('PAYMENTS_POLL_INTERVAL', 3),
         'manual_payouts' => (bool) env('PAYMENTS_MANUAL_PAYOUTS', env('PAYMENTS_DRIVER') === 'geniuspay'),
     ],
 
@@ -67,9 +73,18 @@ return [
         'private_key' => env('VAPID_PRIVATE_KEY'),
     ],
 
+    'admin' => [
+        // Double authentification obligatoire pour l'administration.
+        'require_2fa' => (bool) env('ADMIN_REQUIRE_2FA', true),
+    ],
+
     'otp' => [
         'ttl' => (int) env('OTP_TTL', 300),
         'max_attempts' => 5,
+        // Par numéro : codes envoyés par heure / par jour, échecs tolérés par 24 h.
+        'per_hour' => (int) env('OTP_PER_HOUR', 6),
+        'per_day' => (int) env('OTP_PER_DAY', 12),
+        'max_failures' => (int) env('OTP_MAX_FAILURES', 15),
         // En local uniquement, le code est renvoyé dans la réponse (pas de passerelle SMS).
         // Jamais en production, même si OTP_EXPOSE_CODE est laissé à true par erreur.
         'expose_code' => in_array(env('APP_ENV'), ['local', 'testing'], true) && (bool) env('OTP_EXPOSE_CODE', true),

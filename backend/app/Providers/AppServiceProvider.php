@@ -29,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Envoi d'OTP : 5 / min par numéro et par IP ; vérification : 10 / min.
+        // Par session (jeton), sinon par IP : en Côte d'Ivoire beaucoup d'abonnés mobiles partagent une IP.
+        RateLimiter::for('api', fn (Request $r) => Limit::perMinute(240)->by($r->bearerToken() ? 'tok:'.hash('sha256', $r->bearerToken()) : 'ip:'.$r->ip()));
         RateLimiter::for('otp', fn (Request $r) => [
             Limit::perMinute(5)->by('otp:'.$r->input('phone')),
             Limit::perMinute(10)->by('otp-ip:'.$r->ip()),

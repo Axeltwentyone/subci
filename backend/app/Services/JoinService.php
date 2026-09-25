@@ -6,12 +6,10 @@ use App\Enums\AccessMode;
 use App\Enums\JoinStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
-use App\Enums\PayMethod;
 use App\Enums\SubscriptionStatus;
 use App\Models\HostOffer;
 use App\Models\JoinRequest;
 use App\Models\Payment;
-use App\Models\User;
 use App\Notifications\AppNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -24,6 +22,8 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class JoinService
 {
     private const MEMBER_COLORS = ['#FFB38F', '#9FD7BE', '#C9B8F2', '#F7D774', '#9CC7F2'];
+
+    public function __construct(private EarningService $earnings) {}
 
     /** Appelé quand le paiement d'un nouvel arrivant est confirmé. */
     public function open(Payment $payment): JoinRequest
@@ -52,7 +52,10 @@ class JoinService
     {
         return DB::transaction(function () use ($request) {
             $request = $this->lockPending($request);
-            $offer = HostOffer::with('service', 'user')->findOrFail($request->host_offer_id);
+            $offer = HostOffer::with('service', 'user')->lockForUpdate()->findOrFail($request->host_offer_id);
+            if ($offer->members()->count() >= $offer->seats) {
+                throw new ConflictHttpException('Ton offre est complète : refuse cette demande pour que le membre soit remboursé.');
+            }
             $payment = $request->payment;
             $member = $request->user;
             $family = $offer->access_mode === AccessMode::Family;
@@ -81,7 +84,8 @@ class JoinService
             $payment->update(['subscription_id' => $sub->id, 'period_start' => $from, 'period_end' => $sub->ends_at]);
             $request->update(['status' => JoinStatus::Accepted, 'decided_at' => now()]);
 
-            $this->creditHost($offer, $payment, $member);
+            // Séquestre : versé à l'hôte mois par mois (voir EarningService).
+            $this->earnings->schedule($offer, $payment, $member, $from);
 
             $short = Str::before($offer->service->name, ' ');
             $host = $offer->user->shortName();
@@ -161,28 +165,6 @@ class JoinService
 
             return $request->fresh();
         });
-    }
-
-    /** Gains de l'hôte = montant payé − frais Sub.ci ; crédités à l'acceptation. */
-    public function creditHost(HostOffer $offer, Payment $payment, User $member): void
-    {
-        $host = User::whereKey($offer->user_id)->lockForUpdate()->first();
-        $net = (int) round($payment->amount * (1 - HostOffer::FEE));
-        $host->increment('balance', $net);
-
-        $short = Str::before($offer->service->name, ' ');
-        $host->payments()->create([
-            'type' => PaymentType::Earning,
-            'status' => PaymentStatus::Succeeded,
-            'service_id' => $offer->service_id,
-            'host_offer_id' => $offer->id,
-            'label' => "Gains {$short} · ".$member->shortName(),
-            'amount' => $net,
-            'months' => $payment->months,
-            'method' => $host->payout_method ?? PayMethod::Wave,
-            'confirmed_at' => now(),
-        ]);
-        $host->notify(new AppNotification('host', 'Paiement reçu', '+'.number_format($net, 0, ',', ' ')." FCFA · {$short}, {$payment->months} mois"));
     }
 
     private function lockPending(JoinRequest $request): JoinRequest

@@ -28,6 +28,8 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="PAYMENTS_POLL_INTERVAL" value="0"/>
+        <env name="ADMIN_REQUIRE_2FA" value="false"/>
         <!-- Jamais la vraie passerelle en test (jetons sandbox, argent réel). -->
         <env name="PAYMENTS_DRIVER" value="fake"/>
         <env name="PAYMENTS_MANUAL_PAYOUTS" value="false"/>

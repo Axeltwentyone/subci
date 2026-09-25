@@ -124,7 +124,10 @@ class GeniusPayTest extends TestCase
     public function test_return_url_follows_app_origin_only_if_allowed(): void
     {
         config(['app.frontend_origins' => ['http://localhost:5173', 'http://localhost:4173'], 'app.frontend_url' => 'http://localhost:5173']);
-        Http::fake(['geniuspay.test/*' => Http::response(['success' => true, 'data' => ['reference' => 'GP_R', 'checkout_url' => 'https://x']])]);
+        // Chaque demande a sa propre référence chez GeniusPay.
+        Http::fakeSequence('geniuspay.test/*')
+            ->push(['success' => true, 'data' => ['reference' => 'GP_R1', 'checkout_url' => 'https://x']])
+            ->push(['success' => true, 'data' => ['reference' => 'GP_R2', 'checkout_url' => 'https://x']]);
         $this->actingAs(User::factory()->create());
         $body = ['serviceId' => 'netflix', 'offerId' => $this->offer->id, 'months' => 1, 'method' => 'wave', 'phone' => '0758421121'];
 

@@ -17,7 +17,7 @@ class FakeGateway implements PaymentGateway
         return ['reference' => 'FAKE-'.Str::upper(Str::random(10)), 'url' => null];
     }
 
-    public function status(Payment $payment): PaymentStatus
+    public function status(Payment $payment, ?string $reference = null): PaymentStatus
     {
         $since = $payment->updated_at ?? $payment->created_at;
 

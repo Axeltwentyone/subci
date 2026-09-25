@@ -10,11 +10,14 @@ use App\Enums\PayMethod;
 use App\Enums\SubscriptionStatus;
 use App\Models\HostOffer;
 use App\Models\Payment;
+use App\Models\PaymentReference;
 use App\Models\Service;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Notifications\AppNotification;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class PaymentService
@@ -29,65 +32,83 @@ class PaymentService
      */
     public function checkout(User $user, Service $service, int $months, PayMethod $method, ?string $phone, ?int $offerId = null, ?string $returnOrigin = null): Payment
     {
-        $current = $user->subscriptions()
-            ->where('service_id', $service->id)
-            ->where('status', '!=', SubscriptionStatus::Expired)
-            ->with('hostOffer')
-            ->latest('ends_at')
-            ->first();
+        $payment = DB::transaction(function () use ($user, $service, $months, $method, $phone, $offerId) {
+            $current = $user->subscriptions()
+                ->where('service_id', $service->id)
+                ->where('status', '!=', SubscriptionStatus::Expired)
+                ->whereNotNull('host_offer_id')
+                ->with('hostOffer')
+                ->latest('ends_at')
+                ->first();
 
-        if ($current) {
-            $offer = $current->hostOffer;
-            if ($offer?->status === OfferStatus::Closed) {
-                throw ValidationException::withMessages(['service' => 'Ton hôte arrête ce partage : ton accès reste actif jusqu’au '.$current->ends_at->translatedFormat('j M').'. Tu pourras choisir une autre offre ensuite.']);
+            if ($current?->hostOffer) {
+                // Renouvellement dans le même cercle.
+                $offer = $current->hostOffer;
+                if ($offer->status === OfferStatus::Closed) {
+                    throw ValidationException::withMessages(['service' => 'Ton hôte arrête ce partage : ton accès reste actif jusqu’au '.$current->ends_at->translatedFormat('j M').'. Tu pourras choisir une autre offre ensuite.']);
+                }
+            } else {
+                // Nouvel arrivant (ou membre retiré / sans cercle) : il faut une offre avec une place libre.
+                $current = null;
+                if ($user->joinRequests()->pending()->whereHas('offer', fn ($q) => $q->where('service_id', $service->id))->exists()) {
+                    throw ValidationException::withMessages(['offerId' => 'Tu as déjà une demande en attente pour ce service.']);
+                }
+                $offerId = match (true) {
+                    $offerId !== null => $offerId,
+                    // Musique : pas de choix, Sub.ci attribue la meilleure offre ouverte.
+                    ! $service->choosesOffer() => $this->availability->bestOffer($service, $user)?->id
+                        ?? throw ValidationException::withMessages(['service' => 'Plus de place libre sur ce service. Rejoins la liste d’attente.']),
+                    default => throw ValidationException::withMessages(['offerId' => 'Choisis une offre pour ce service.']),
+                };
+                // Verrou : deux achats simultanés ne peuvent pas prendre la même dernière place.
+                $offer = HostOffer::live()->withReservations()->where('service_id', $service->id)->lockForUpdate()->find($offerId)
+                    ?? throw ValidationException::withMessages(['offerId' => 'Choisis une offre pour ce service.']);
+                if ($offer->user_id === $user->id) {
+                    throw ValidationException::withMessages(['offerId' => 'Tu ne peux pas rejoindre ta propre offre.']);
+                }
+                if ($offer->freeSeats() < 1) {
+                    throw ValidationException::withMessages(['offerId' => 'Cette offre vient d’être complétée. Choisis-en une autre.']);
+                }
             }
-            $monthly = $offer?->price ?? $service->price;
-        } else {
-            if ($user->joinRequests()->pending()->whereHas('offer', fn ($q) => $q->where('service_id', $service->id))->exists()) {
-                throw ValidationException::withMessages(['offerId' => 'Tu as déjà une demande en attente pour ce service.']);
-            }
-            $offer = match (true) {
-                $offerId !== null => HostOffer::live()->withReservations()->where('service_id', $service->id)->find($offerId),
-                // Musique : pas de choix, Sub.ci attribue la meilleure offre ouverte.
-                ! $service->choosesOffer() => $this->availability->bestOffer($service, $user)
-                    ?? throw ValidationException::withMessages(['service' => 'Plus de place libre sur ce service. Rejoins la liste d’attente.']),
-                default => null,
-            };
-            if (! $offer) {
-                throw ValidationException::withMessages(['offerId' => 'Choisis une offre pour ce service.']);
-            }
-            if ($offer->user_id === $user->id) {
-                throw ValidationException::withMessages(['offerId' => 'Tu ne peux pas rejoindre ta propre offre.']);
-            }
-            if ($offer->freeSeats() < 1) {
-                throw ValidationException::withMessages(['offerId' => 'Cette offre vient d’être complétée. Choisis-en une autre.']);
-            }
-            $monthly = $offer->price;
-        }
 
-        $payment = $user->payments()->create([
-            'type' => PaymentType::Subscription,
-            'status' => PaymentStatus::Pending,
-            'service_id' => $service->id,
-            'subscription_id' => $current?->id,
-            'host_offer_id' => $offer?->id,
-            'label' => "{$service->name} · {$months} mois",
-            'amount' => Service::durationPrice($monthly, $months),
-            'months' => $months,
-            'method' => $method,
-            'phone' => $method === PayMethod::Card ? null : $phone,
-            'expires_at' => now()->addSeconds(config('services.payments.request_ttl')),
-        ]);
+            return $user->payments()->create([
+                'type' => PaymentType::Subscription,
+                'status' => PaymentStatus::Pending,
+                'service_id' => $service->id,
+                'subscription_id' => $current?->id,
+                'host_offer_id' => $offer->id,
+                'label' => "{$service->name} · {$months} mois",
+                'amount' => Service::durationPrice($offer->price, $months),
+                'months' => $months,
+                'method' => $method,
+                'phone' => $method === PayMethod::Card ? null : $phone,
+                'expires_at' => now()->addSeconds(config('services.payments.request_ttl')),
+            ]);
+        });
+
         $payment->return_url = rtrim($returnOrigin ?? config('app.frontend_url'), '/')."/pay/{$payment->reference}";
-
-        $request = $this->gateway->request($payment);
-        $payment->update(['provider_reference' => $request['reference'], 'checkout_url' => $request['url']]);
+        $this->send($payment);
         $user->update(['last_pay_method' => $method]);
 
         return $payment;
     }
 
-    /** Renvoie la demande (« Je n'ai rien reçu ») : nouveau délai d'expiration. */
+    /** Envoie la demande à la passerelle et garde sa référence (la place réservée est libérée si ça échoue). */
+    private function send(Payment $payment): void
+    {
+        try {
+            $request = $this->gateway->request($payment);
+        } catch (\Throwable $e) {
+            $payment->update(['status' => PaymentStatus::Failed]);
+            throw $e;
+        }
+        $payment->provider_reference = $request['reference'];
+        $payment->checkout_url = $request['url'];
+        $payment->save();
+        $payment->references()->create(['reference' => $request['reference']]);
+    }
+
+    /** Renvoie la demande (« Je n'ai rien reçu ») : nouvelle référence, l'ancienne reste surveillée. */
     public function resend(Payment $payment): Payment
     {
         if ($payment->status !== PaymentStatus::Pending && $payment->status !== PaymentStatus::Expired) {
@@ -95,48 +116,147 @@ class PaymentService
         }
         $payment->status = PaymentStatus::Pending;
         $payment->expires_at = now()->addSeconds(config('services.payments.request_ttl'));
-        $request = $this->gateway->request($payment);
-        $payment->provider_reference = $request['reference'];
-        $payment->checkout_url = $request['url'];
-        $payment->save();
+        $this->send($payment);
 
         return $payment;
     }
 
-    /** Interroge l'opérateur et applique le résultat (idempotent). */
-    public function refresh(Payment $payment): Payment
+    /**
+     * Statut à jour d'un paiement (polling de la PWA, webhook, rattrapage). Idempotent.
+     * Hors `force`, la passerelle n'est pas interrogée plus d'une fois toutes les `poll_interval` s.
+     */
+    public function refresh(Payment $payment, bool $force = false): Payment
     {
-        if ($payment->status !== PaymentStatus::Pending) {
+        if ($payment->status === PaymentStatus::Succeeded) {
             return $payment;
         }
+        $interval = (int) config('services.payments.poll_interval');
+        if (! $force && $interval > 0 && ! Cache::add("pay-poll:{$payment->id}", 1, $interval)) {
+            return $payment;
+        }
+        $this->ensureReference($payment);
+        foreach ($payment->references()->where('status', 'pending')->get() as $ref) {
+            $this->check($ref->setRelation('payment', $payment));
+            $payment->refresh();
+            if ($payment->status === PaymentStatus::Succeeded) {
+                break;
+            }
+        }
 
-        // Toujours demander à la passerelle d'abord : un membre peut avoir payé
-        // puis être revenu (ou le webhook arrivé) après l'expiration du lien.
-        return match ($this->gateway->status($payment)) {
-            PaymentStatus::Succeeded => $this->confirm($payment),
-            PaymentStatus::Failed => tap($payment)->update(['status' => PaymentStatus::Failed]),
-            PaymentStatus::Expired => tap($payment)->update(['status' => PaymentStatus::Expired]),
-            default => $payment->expires_at?->isPast() && $payment->expires_at->lt(now()->subMinutes(10))
-                // Marge de 10 min après l'expiration pour les confirmations tardives.
-                ? tap($payment)->update(['status' => PaymentStatus::Expired])
-                : $payment,
-        };
+        return $payment;
     }
 
     /**
-     * Rattrapage : relit les paiements en attente (membre jamais revenu, webhook
-     * non reçu). Appelé chaque minute par le planificateur.
+     * Rattrapage (chaque minute) : toutes les demandes des dernières 24 h encore sans réponse,
+     * y compris celles d'un paiement annulé, expiré ou relancé : un membre qui paie quand même
+     * n'est jamais perdu (et un double paiement est remboursé).
      */
     public function reconcile(int $limit = 50): int
     {
-        return Payment::where('status', PaymentStatus::Pending)
-            ->whereNotNull('provider_reference')
+        Payment::where('status', PaymentStatus::Pending)->whereNotNull('provider_reference')->doesntHave('references')
+            ->limit($limit)->get()->each(fn (Payment $p) => $this->ensureReference($p));
+
+        return PaymentReference::with('payment')->where('status', 'pending')
             ->where('created_at', '>', now()->subDay())
-            ->oldest('updated_at')
-            ->limit($limit)
-            ->get()
-            ->each(fn (Payment $p) => $this->refresh($p))
+            ->oldest('updated_at')->limit($limit)->get()
+            ->each(fn (PaymentReference $ref) => $this->check($ref))
             ->count();
+    }
+
+    /** Webhook : référence connue → relecture immédiate (y compris remboursement après succès). */
+    public function handleWebhook(string $reference): bool
+    {
+        $ref = PaymentReference::with('payment')->where('reference', $reference)->first();
+        if (! $ref) {
+            $payment = Payment::where('provider_reference', $reference)->first();
+            $ref = $payment ? $this->ensureReference($payment) : null;
+        }
+        if (! $ref) {
+            return false;
+        }
+        $ref->status === 'completed' ? $this->checkReversal($ref) : $this->check($ref);
+
+        return true;
+    }
+
+    /** Lit une demande chez la passerelle et en tire les conséquences. */
+    private function check(PaymentReference $ref): void
+    {
+        $payment = $ref->payment;
+        $status = $this->gateway->status($payment, $ref->reference);
+        $ref->touch();
+
+        if ($status === PaymentStatus::Succeeded) {
+            $ref->update(['status' => 'completed']);
+            $fresh = $payment->fresh();
+            if ($fresh->status !== PaymentStatus::Succeeded) {
+                $this->confirm($fresh);
+            } else {
+                $this->refundDuplicate($ref, $fresh);
+            }
+
+            return;
+        }
+
+        $current = $ref->reference === $payment->provider_reference;
+        if ($status === PaymentStatus::Failed || $status === PaymentStatus::Expired) {
+            $ref->update(['status' => $status->value]);
+            if ($current && $payment->status === PaymentStatus::Pending) {
+                $payment->update(['status' => $status]);
+            }
+        } elseif ($current && $payment->status === PaymentStatus::Pending && $payment->expires_at?->lt(now()->subMinutes(10))) {
+            // Plus de réponse 10 min après l'expiration : expiré côté app, mais la demande reste surveillée 24 h.
+            $payment->update(['status' => PaymentStatus::Expired]);
+        }
+    }
+
+    /** Le membre a validé deux demandes pour le même paiement : la seconde lui est rendue. */
+    private function refundDuplicate(PaymentReference $ref, Payment $payment): void
+    {
+        DB::transaction(function () use ($ref, $payment) {
+            $ref = PaymentReference::whereKey($ref->id)->lockForUpdate()->first();
+            if ($ref->refund_payment_id) {
+                return;
+            }
+            $manual = (bool) config('services.payments.manual_payouts');
+            $refund = $payment->user->payments()->create([
+                'type' => PaymentType::Refund,
+                'status' => $manual ? PaymentStatus::Pending : PaymentStatus::Succeeded,
+                'service_id' => $payment->service_id,
+                'label' => 'Remboursement paiement en double '.$payment->reference,
+                'amount' => $payment->amount,
+                'method' => $payment->method,
+                'phone' => $payment->phone,
+                'confirmed_at' => $manual ? null : now(),
+            ]);
+            $ref->update(['refund_payment_id' => $refund->id]);
+            $payment->user->notify(new AppNotification('pay', 'Paiement en double',
+                'Tu as payé deux fois '.$payment->label.'. '.AdminAlerts::fcfa($payment->amount).' te sont remboursés.'));
+            AdminAlerts::send('payouts', 'Double paiement à rembourser · '.AdminAlerts::fcfa($payment->amount),
+                $payment->user->shortName().' · '.$payment->reference, '/payouts', 'payouts');
+        });
+    }
+
+    /** Paiement déjà confirmé que la passerelle déclare maintenant remboursé / échoué : alerte l'équipe. */
+    private function checkReversal(PaymentReference $ref): void
+    {
+        if ($this->gateway->status($ref->payment, $ref->reference) === PaymentStatus::Succeeded) {
+            return;
+        }
+        $ref->update(['status' => 'reversed']);
+        Log::warning('GeniusPay : paiement confirmé puis annulé / remboursé', ['payment' => $ref->payment->reference, 'reference' => $ref->reference]);
+        AdminAlerts::send('payments', 'Paiement annulé chez GeniusPay',
+            $ref->payment->reference.' était confirmé : vérifie le remboursement ou la contestation.', '/payments?q='.urlencode($ref->payment->reference));
+    }
+
+    /** Paiements antérieurs à l'historique des références. */
+    private function ensureReference(Payment $payment): ?PaymentReference
+    {
+        if (! $payment->provider_reference) {
+            return null;
+        }
+
+        return $payment->references()->firstOrCreate(['reference' => $payment->provider_reference]);
     }
 
     /**
@@ -184,7 +304,7 @@ class PaymentService
             $payment->update(['period_start' => $from, 'period_end' => $sub->ends_at]);
 
             if ($offer = $payment->hostOffer) {
-                $this->joins->creditHost($offer, $payment, $payment->user);
+                app(EarningService::class)->schedule($offer->loadMissing('service', 'user'), $payment, $payment->user, $from);
             }
             $payment->user->notify(new AppNotification('pay', 'Renouvellement confirmé',
                 number_format($payment->amount, 0, ',', ' ').' FCFA via '.$payment->method->label().' · jusqu’au '.$sub->ends_at->translatedFormat('j M'),

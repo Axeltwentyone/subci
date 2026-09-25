@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\DisputeStatus;
 use App\Enums\JoinStatus;
 use App\Enums\OfferStatus;
 use App\Enums\PaymentStatus;
@@ -9,12 +10,15 @@ use App\Enums\PaymentType;
 use App\Enums\SubscriptionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AdminAction;
+use App\Models\Dispute;
 use App\Models\HostOffer;
 use App\Models\JoinRequest;
 use App\Models\Payment;
 use App\Models\Service;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Availability;
+use App\Services\DisputeService;
 use App\Services\JoinService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -72,7 +76,7 @@ class MiscController extends Controller
             'fromPrice' => $s->avail_price,
             'freeSeats' => $s->avail_free,
             'liveOffers' => HostOffer::where('service_id', $s->id)->where('status', OfferStatus::Live)->count(),
-            'members' => \App\Models\Subscription::where('service_id', $s->id)->where('status', '!=', SubscriptionStatus::Expired)->count(),
+            'members' => Subscription::where('service_id', $s->id)->where('status', '!=', SubscriptionStatus::Expired)->count(),
             'gmvMonth' => (int) Payment::where('service_id', $s->id)->where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)->whereNull('refunded_at')->where('confirmed_at', '>=', $month)->sum('amount'),
         ])]);
     }
@@ -115,6 +119,30 @@ class MiscController extends Controller
             ]),
             'meta' => ['total' => $rows->total(), 'page' => $rows->currentPage(), 'pages' => $rows->lastPage()],
         ]);
+    }
+
+    /** Soucis signalés par les membres (gains de l'hôte gelés tant que c'est ouvert). */
+    public function disputes(Request $request): JsonResponse
+    {
+        $status = $request->validate(['status' => ['nullable', Rule::enum(DisputeStatus::class)]])['status'] ?? 'open';
+
+        return response()->json([
+            'data' => Dispute::with('user', 'offer.user', 'subscription.service')->where('status', $status)
+                ->latest()->limit(100)->get()->map(fn (Dispute $d) => Presenter::dispute($d)),
+            'counts' => Dispute::selectRaw('status, COUNT(*) n')->groupBy('status')->pluck('n', 'status'),
+        ]);
+    }
+
+    /** Décision : rembourser le membre (temps non versé à l'hôte) ou clore (gains libérés). */
+    public function resolveDispute(Request $request, Dispute $dispute, DisputeService $disputes): JsonResponse
+    {
+        $data = $request->validate([
+            'decision' => ['required', Rule::in(['refund', 'reject'])],
+            'note' => ['nullable', 'string', 'max:240'],
+        ]);
+        $disputes->resolve($dispute, $data['decision'] === 'refund', $data['note'] ?? null, $request->user());
+
+        return response()->json(['data' => Presenter::dispute($dispute->fresh(['user', 'offer.user', 'subscription.service']))]);
     }
 
     /** Barre de recherche globale : utilisateurs, paiements, offres. */
