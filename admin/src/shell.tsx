@@ -1,22 +1,52 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { LogoMark } from '../../src/components/ui'
-import { LOGOUT_EVENT, api, errorText, getToken, setToken, type AdminUser, type Overview, type PaymentRow } from './api'
+import QRCode from 'qrcode'
+import { LOGOUT_EVENT, api, errorText, getToken, setToken, type AdminMe, type AdminUser, type Overview, type PaymentRow } from './api'
 import { Button, cx, fcfa, phone, useDebounced } from './kit'
 import { disablePush } from './push'
 
 /* ---------- Session admin ---------- */
 
-type Session = { admin: { name: string; email: string } | null; signIn: (email: string, password: string) => Promise<void>; signOut: () => void }
+const SETUP_KEY = 'subci:admin-setup'
+const flag = {
+  get: () => {
+    try {
+      return sessionStorage.getItem(SETUP_KEY) === '1'
+    } catch {
+      return false
+    }
+  },
+  set: (on: boolean) => {
+    try {
+      if (on) sessionStorage.setItem(SETUP_KEY, '1')
+      else sessionStorage.removeItem(SETUP_KEY)
+    } catch {
+      /* stockage indisponible */
+    }
+  },
+}
+
+type Session = {
+  admin: AdminMe | null
+  /** Jeton « admin-setup » : il faut d'abord configurer la double authentification. */
+  setup: boolean
+  /** Étape 1 : renvoie le défi si un code à 6 chiffres est demandé. */
+  signIn: (email: string, password: string) => Promise<{ challenge: string } | null>
+  verify: (challenge: string, code: string) => Promise<void>
+  finishSetup: (code: string) => Promise<void>
+  signOut: () => void
+}
 const SessionCtx = createContext<Session | null>(null)
 export const useSession = () => useContext(SessionCtx)!
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [admin, setAdmin] = useState<Session['admin']>(null)
+  const [admin, setAdmin] = useState<AdminMe | null>(null)
+  const [setup, setSetup] = useState(flag.get())
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const out = () => setAdmin(null)
+    const out = () => (setAdmin(null), setSetup(false), flag.set(false))
     window.addEventListener(LOGOUT_EVENT, out)
     if (!getToken()) setReady(true)
     else
@@ -28,13 +58,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(LOGOUT_EVENT, out)
   }, [])
 
+  const open = (token: string, me: AdminMe, needsSetup = false) => {
+    setToken(token)
+    flag.set(needsSetup)
+    setSetup(needsSetup)
+    setAdmin(me)
+  }
+
   const value: Session = {
     admin,
+    setup,
     async signIn(email, password) {
       const res = await api.login(email, password)
+      if ('challenge' in res) return { challenge: res.challenge }
       if (!res?.token) throw new Error('Réponse inattendue du serveur. Recharge la page et réessaie.')
-      setToken(res.token)
-      setAdmin(res.admin)
+      open(res.token, res.admin, !!res.setup)
+      return null
+    },
+    async verify(challenge, code) {
+      const res = await api.twoFactor(challenge, code)
+      open(res.token, res.admin)
+    },
+    async finishSetup(code) {
+      const res = await api.confirmTwoFactor(code)
+      open(res.token, res.admin)
     },
     signOut() {
       disablePush()
@@ -42,6 +89,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         .finally(() => {
           api.logout().catch(() => {})
           setToken(null)
+          flag.set(false)
+          setSetup(false)
           setAdmin(null)
         })
     },
@@ -50,23 +99,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>
 }
 
-export function Login() {
-  const { signIn } = useSession()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+function AuthCard({ children, onSubmit, footer }: { children: ReactNode; onSubmit: () => Promise<void>; footer?: ReactNode }) {
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-
   return (
-    <div className="grid min-h-dvh place-items-center bg-ink p-6">
+    <div className="grid min-h-dvh place-items-center bg-ink p-4 lg:p-6">
       <form
-        className="flex w-full max-w-[380px] flex-col gap-5 rounded-sheet bg-sand p-8"
+        className="flex w-full max-w-[400px] flex-col gap-5 rounded-sheet bg-sand p-6 lg:p-8"
         onSubmit={async (e) => {
           e.preventDefault()
           setBusy(true)
           setErr(null)
           try {
-            await signIn(email, password)
+            await onSubmit()
           } catch (x) {
             setErr(errorText(x))
           } finally {
@@ -75,7 +120,7 @@ export function Login() {
         }}
       >
         <div className="flex items-center gap-3">
-          <LogoMark size={44} />
+          <LogoMark size={44} tone="brand" />
           <div className="flex flex-col">
             <span className="font-display text-2xl leading-none font-extrabold tracking-[-0.03em]">
               sub<span className="text-brand">.</span>ci
@@ -83,23 +128,150 @@ export function Login() {
             <span className="text-[13px] font-bold text-muted">Administration</span>
           </div>
         </div>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-bold text-muted">E-mail</span>
-          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 font-semibold outline-none focus:border-ink" />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-bold text-muted">Mot de passe</span>
-          <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 font-semibold outline-none focus:border-ink" />
-        </label>
-        {err && <p className="text-[13px] font-semibold text-err-ink">{err}</p>}
-        <Button type="submit" loading={busy}>
-          Se connecter
-        </Button>
-        <p className="text-center text-[12px] font-medium text-muted">Accès réservé à l’équipe Sub.ci. Toutes les actions sont journalisées.</p>
+        {children}
+        {err && (
+          <p role="alert" className="text-[13px] font-semibold text-err-ink">
+            {err}
+          </p>
+        )}
+        <SubmitSlot busy={busy} />
+        {footer}
       </form>
     </div>
   )
 }
+
+const SubmitCtx = createContext<{ label: string; disabled?: boolean }>({ label: 'Continuer' })
+function SubmitSlot({ busy }: { busy: boolean }) {
+  const { label, disabled } = useContext(SubmitCtx)
+  return (
+    <Button type="submit" loading={busy} disabled={disabled}>
+      {label}
+    </Button>
+  )
+}
+
+const field = 'h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 font-semibold outline-none focus:border-ink'
+
+function CodeField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[13px] font-bold text-muted">Code à 6 chiffres</span>
+      <input
+        autoFocus
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={6}
+        value={value}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        className={cx(field, 'tabular h-14 text-center font-display text-[26px] tracking-[0.4em]')}
+      />
+    </label>
+  )
+}
+
+export function Login() {
+  const { signIn, verify } = useSession()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [challenge, setChallenge] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+
+  if (challenge) {
+    return (
+      <SubmitCtx.Provider value={{ label: 'Valider', disabled: code.length !== 6 }}>
+        <AuthCard
+          onSubmit={() => verify(challenge, code).catch((e) => (setCode(''), Promise.reject(e)))}
+          footer={
+            <button type="button" className="text-sm font-bold text-muted" onClick={() => (setChallenge(null), setCode(''))}>
+              ← Autre compte
+            </button>
+          }
+        >
+          <p className="text-[15px] font-semibold text-muted">Ouvre ton application d’authentification (Google Authenticator…) et saisis le code « Sub.ci Admin ».</p>
+          <CodeField value={code} onChange={setCode} />
+        </AuthCard>
+      </SubmitCtx.Provider>
+    )
+  }
+
+  return (
+    <SubmitCtx.Provider value={{ label: 'Se connecter' }}>
+      <AuthCard
+        onSubmit={async () => {
+          const res = await signIn(email, password)
+          if (res) setChallenge(res.challenge)
+          setPassword('')
+        }}
+      >
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-bold text-muted">E-mail</span>
+          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-bold text-muted">Mot de passe</span>
+          <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className={field} />
+        </label>
+        <p className="text-center text-[12px] font-medium text-muted">Accès réservé à l’équipe Sub.ci. Double authentification obligatoire. Toutes les actions sont journalisées.</p>
+      </AuthCard>
+    </SubmitCtx.Provider>
+  )
+}
+
+/** Première connexion : configurer la double authentification avant tout accès. */
+export function TwoFactorSetup() {
+  const { finishSetup, signOut, admin } = useSession()
+  const [data, setData] = useState<{ secret: string; qr: string } | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+
+  useEffect(() => {
+    api
+      .setupTwoFactor()
+      .then(async ({ secret, uri }) => setData({ secret, qr: await QRCode.toDataURL(uri, { margin: 1, width: 220, color: { dark: '#16130F', light: '#FFFFFF' } }) }))
+      .catch((e) => setErr(errorText(e)))
+  }, [])
+
+  return (
+    <SubmitCtx.Provider value={{ label: 'Activer et entrer', disabled: code.length !== 6 || !data }}>
+      <AuthCard
+        onSubmit={() => finishSetup(code).catch((e) => (setCode(''), Promise.reject(e)))}
+        footer={
+          <button type="button" className="text-sm font-bold text-muted" onClick={signOut}>
+            Annuler
+          </button>
+        }
+      >
+        <div className="flex flex-col gap-1">
+          <h1 className="font-display text-[22px] leading-tight font-bold">Protège ton compte</h1>
+          <p className="text-sm font-semibold text-muted">
+            {admin?.email} · la double authentification est obligatoire pour l’administration.
+          </p>
+        </div>
+        <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm font-semibold text-muted">
+          <li>Installe Google Authenticator (ou Microsoft Authenticator, 1Password…)</li>
+          <li>Scanne ce QR code avec l’application</li>
+          <li>Saisis le code à 6 chiffres affiché</li>
+        </ol>
+        {err && <ErrorText text={err} />}
+        {data ? (
+          <div className="flex flex-col items-center gap-2">
+            <img src={data.qr} alt="QR code à scanner avec l’application d’authentification" width={220} height={220} className="rounded-tile bg-white p-2" />
+            <details className="w-full text-center text-[12px] font-semibold text-muted">
+              <summary className="cursor-pointer">Impossible de scanner ? Clé à saisir</summary>
+              <code className="mt-1 block font-mono text-[13px] tracking-wider break-all text-ink">{data.secret.match(/.{1,4}/g)?.join(' ')}</code>
+            </details>
+          </div>
+        ) : (
+          !err && <div className="grid h-[236px] place-items-center text-sm font-semibold text-muted">Préparation…</div>
+        )}
+        <CodeField value={code} onChange={setCode} />
+      </AuthCard>
+    </SubmitCtx.Provider>
+  )
+}
+
+const ErrorText = ({ text }: { text: string }) => <p className="text-[13px] font-semibold text-err-ink">{text}</p>
 
 /* ---------- Ossature ---------- */
 
@@ -113,6 +285,7 @@ const NAV: Nav[] = [
   { to: '/offers', label: 'Offres à valider', short: 'Offres', icon: '✓', count: (c) => c.offersToReview, urgent: true, tab: true },
   { to: '/payouts', label: 'Versements', icon: '↗', count: (c) => c.payouts, urgent: true, tab: true },
   { to: '/payments', label: 'Paiements', icon: '₣', tab: true },
+  { to: '/disputes', label: 'Soucis signalés', short: 'Soucis', icon: '⚑', count: (c) => c.disputes, urgent: true },
   { to: '/requests', label: 'Demandes', icon: '⧗', count: (c) => c.requests },
   { to: '/users', label: 'Utilisateurs', icon: '◉' },
   { to: '/catalog', label: 'Catalogue', icon: '▦' },
@@ -144,7 +317,7 @@ export function Shell() {
     window.scrollTo(0, 0)
   }, [pathname])
 
-  const count = (n: Nav) => (counts && n.count ? n.count(counts) : 0)
+  const count = (n: Nav) => (counts && n.count ? n.count(counts) || 0 : 0)
   const moreCount = NAV.filter((n) => !n.tab).reduce((a, n) => a + count(n), 0)
   const moreActive = NAV.some((n) => !n.tab && pathname.startsWith(n.to))
 

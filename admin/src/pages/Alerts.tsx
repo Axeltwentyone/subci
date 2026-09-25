@@ -8,6 +8,7 @@ const HINTS: Record<string, string> = {
   payments: 'À chaque paiement confirmé par GeniusPay : montant, membre, service.',
   offers: 'Quand un hôte envoie une offre avec sa preuve d’abonnement.',
   payouts: 'Retrait demandé par un hôte, ou remboursement à envoyer.',
+  disputes: 'Un membre signale qu’il n’a plus accès (gains de l’hôte gelés).',
   signups: 'Chaque nouveau compte créé. Peut être fréquent.',
 }
 

@@ -72,7 +72,9 @@ const ms = (iso: string | null | undefined) => (iso ? Date.parse(iso) : undefine
 type ApiSub = {
   id: string; serviceId: string; price: number; hostName: string | null; state: UserSub['state']; startAt: string; endAt: string; activatesAt: string | null
   autoRenew: boolean; method: PayMethodId; profile: string | null; email: string | null; password: string | null; pin: string | null
+  dispute: { id: string; reason: IssueReason; at: string } | null
 }
+export type IssueReason = 'no_access' | 'wrong_password' | 'removed' | 'other'
 type ApiPayment = {
   id: string; ref: string; type: 'subscription' | 'earning' | 'withdrawal'; direction: 'in' | 'out'
   status: 'pending' | 'succeeded' | 'failed' | 'expired'; label: string; amount: number; months: number | null
@@ -92,7 +94,11 @@ export type ApiUser = {
   payout: { method: PayMethodId; phone: string }; lastMethod: PayMethodId; settings: Settings
 }
 type ApiService = Omit<Service, 'category'> & { category: Category }
-export type ApiHost = { balance: number; monthGain: number; offers: ApiOffer[] }
+export type ApiHost = {
+  balance: number; monthGain: number; offers: ApiOffer[]
+  /** Gains en séquestre (versés au solde mois par mois), dont gelés par un souci signalé. */
+  pending: number; held: number; nextRelease: string | null; withdrawLockedUntil: string | null
+}
 
 export const toSub = (s: ApiSub): UserSub => ({
   id: s.id,
@@ -109,6 +115,7 @@ export const toSub = (s: ApiSub): UserSub => ({
   email: s.email ?? '',
   password: s.password ?? '',
   pin: s.pin ?? undefined,
+  issue: s.dispute ? { reason: s.dispute.reason, at: ms(s.dispute.at)! } : undefined,
 })
 
 export const toPayment = (p: ApiPayment): Payment => ({
@@ -270,5 +277,10 @@ export const api = {
   declineRequest: (id: string) => request<Data<ApiOffer>>('POST', `/host/requests/${id}/decline`),
   cancelRequest: (id: string) => request<Data<ApiRequest>>('POST', `/join-requests/${id}/cancel`),
   invite: (offerId: string) => request<Data<ApiOffer>>('POST', `/host/offers/${offerId}/invite`),
+  payoutCode: () => request<{ sent: boolean; ttl: number; debugCode: string | null }>('POST', '/me/payout/code'),
+  updatePayout: (payout: { method: PayMethodId; phone: string; code: string }) => request<Data<ApiUser>>('PATCH', '/me', { payout }),
+  logoutOthers: () => request<{ ok: boolean; revoked: number }>('POST', '/auth/logout-others'),
+  reportIssue: (subId: string, reason: IssueReason, message?: string) => request<Data<ApiSub>>('POST', `/subscriptions/${subId}/dispute`, { reason, message }),
+  solveIssue: (subId: string) => request<Data<ApiSub>>('POST', `/subscriptions/${subId}/dispute/solve`),
   withdraw: (amount: number) => request<{ host: ApiHost; payment: ApiPayment }>('POST', '/host/withdrawals', { amount }),
 }

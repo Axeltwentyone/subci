@@ -11,7 +11,7 @@ export function Overview() {
   if (loading && !data) return <Loading />
   if (!data) return null
   const { kpis, money, todo } = data
-  const nothingToDo = todo.offersToReview + todo.payouts + todo.requests === 0
+  const nothingToDo = todo.offersToReview + todo.payouts + todo.requests + todo.disputes === 0
 
   return (
     <>
@@ -35,8 +35,9 @@ export function Overview() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.35fr_1fr]">
         <Panel title="À traiter" action={nothingToDo ? <span className="text-[13px] font-bold text-ok-ink">Tout est à jour ✓</span> : null}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <TodoCard to="/offers" count={todo.offersToReview} label="Offres à valider" hint="Preuves d’abonnement en attente" urgent />
+            <TodoCard to="/disputes" count={todo.disputes} label="Soucis signalés" hint="Membres sans accès · gains gelés" urgent />
             <TodoCard to="/payouts" count={todo.payouts} label="Versements à faire" hint={`${fcfa(money.payoutsPending)} FCFA à envoyer`} urgent />
             <TodoCard
               to="/requests"
@@ -56,6 +57,11 @@ export function Overview() {
         <Panel title="Argent en circulation">
           <div className="flex flex-col divide-y divide-line-soft">
             <MoneyRow label="Payé, en attente de l’hôte" value={money.held} hint="remboursé si refus ou sans réponse" />
+            <MoneyRow
+              label="Séquestre hôtes"
+              value={money.escrow}
+              hint={money.escrowHeld ? `versé mois par mois · dont ${fcfa(money.escrowHeld)} gelés` : 'versé au solde mois par mois, 72 h après'}
+            />
             <MoneyRow label="Soldes des hôtes" value={money.hostBalances} hint="dû aux hôtes, retirable" />
             <MoneyRow label="Versements à faire" value={money.payoutsPending} hint="remboursements + retraits demandés" strong />
           </div>

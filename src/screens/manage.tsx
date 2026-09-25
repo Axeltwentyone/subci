@@ -4,8 +4,10 @@ import { PullToRefresh } from '../components/gestures'
 import { IconEye, IconEyeOff, IconMore } from '../components/icons'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
-import { Avatars, Badge, Button, Card, Chip, ListLink, MethodLogo, Progress, RoundIconButton, Screen, SectionLabel, Segmented, ServiceLogo, StatusBadge, StickyAction, Toggle, TopBar, cx } from '../components/ui'
-import { getMethod, getService } from '../lib/data'
+import { OtpInput, PayMethodPicker } from '../components/inputs'
+import { Avatars, Badge, Button, Card, Chip, ListLink, MethodLogo, Progress, Radio, RoundIconButton, Screen, SectionLabel, Segmented, ServiceLogo, StatusBadge, StickyAction, Toggle, TopBar, cx } from '../components/ui'
+import type { IssueReason } from '../lib/api'
+import { getMethod, getService, type PayMethodId } from '../lib/data'
 import { daysLeft, fcfa, haptic, maskPhone, shortDate, timeLeft } from '../lib/format'
 import { byUrgency, errorMessage, hostNet, subStatus, useSavings, useStore, type HostOffer, type JoinRequest, type UserSub } from '../lib/store'
 import { NotFound } from './discover'
@@ -281,10 +283,23 @@ function HostDashboard() {
           </div>
           {state.monthGain > 0 && <span className="rounded-full bg-[#1F3A2E] px-[9px] py-[5px] text-xs font-extrabold text-ok-glow">+{fcfa(state.monthGain)} ce mois</span>}
         </div>
+        {state.pending > 0 && (
+          <div className="flex flex-col gap-0.5 rounded-[14px] bg-ink-3 px-3.5 py-2.5 text-[13px] font-semibold text-ink-muted">
+            <span>
+              <b className="text-sand">+{fcfa(state.pending)} FCFA à venir</b>
+              {state.nextRelease && <> · prochain versement le {shortDate(state.nextRelease)}</>}
+            </span>
+            <span>Chaque mois payé par un membre arrive dans ton solde 3 jours après son début.</span>
+            {state.held > 0 && <span className="text-warn">{fcfa(state.held)} FCFA en pause : un membre a signalé un souci.</span>}
+          </div>
+        )}
+        {state.withdrawLockedUntil && state.withdrawLockedUntil > Date.now() && (
+          <span className="text-[13px] font-semibold text-warn">Numéro de retrait modifié : retraits possibles à partir du {shortDate(state.withdrawLockedUntil)}.</span>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            disabled={state.balance === 0}
+            disabled={state.balance === 0 || (state.withdrawLockedUntil ?? 0) > Date.now()}
             onClick={() => setWithdraw(true)}
             className="pressable h-11 rounded-[14px] bg-brand text-[15px] font-bold text-ink disabled:bg-ink-3 disabled:text-ink-muted"
           >
@@ -380,6 +395,9 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
   }, [open, state.balance])
 
   const chips = [5000, 10000].filter((v) => v < state.balance)
+  const [change, setChange] = useState(false)
+
+  if (change) return <PayoutSheet open={open} onClose={() => (setChange(false), onClose())} onDone={() => setChange(false)} />
 
   return (
     <Sheet open={open} onClose={onClose} label="Retirer mes gains">
@@ -405,7 +423,7 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
             <span className="text-[15px] font-bold">{m.name}</span>
             <span className="text-[13px] font-semibold text-muted">{maskPhone(state.payout.phone)}</span>
           </span>
-          <button type="button" className="text-sm font-bold" onClick={() => toast({ text: 'Changement de compte : bientôt disponible' })}>
+          <button type="button" className="text-sm font-bold" onClick={() => setChange(true)}>
             Changer
           </button>
         </div>
@@ -437,6 +455,157 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
   )
 }
 
+/**
+ * Changer le numéro qui reçoit les gains : code SMS envoyé au numéro du compte,
+ * puis retraits bloqués 24 h (si ce n'était pas toi, tu as le temps de réagir).
+ */
+function PayoutSheet({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: () => void }) {
+  const { state, actions } = useStore()
+  const toast = useToast()
+  const [method, setMethod] = useState<PayMethodId>(state.payout.method === 'card' ? 'wave' : state.payout.method)
+  const [phone, setPhone] = useState(state.payout.phone)
+  const [step, setStep] = useState<'form' | 'code'>('form')
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const sendCode = async () => {
+    setLoading(true)
+    try {
+      const r = await actions.payoutCode()
+      setStep('code')
+      if (r.debugCode) toast({ text: `Code (dev) : ${r.debugCode}` })
+    } catch (e) {
+      toast({ tone: 'error', text: errorMessage(e) })
+    } finally {
+      setLoading(false)
+    }
+  }
+  const confirm = async (value = code) => {
+    if (value.length !== 6) return
+    setLoading(true)
+    try {
+      await actions.updatePayout(method, phone, value)
+      haptic(20)
+      toast({ tone: 'ink', text: 'Numéro de retrait mis à jour · retraits possibles dans 24 h' })
+      onDone()
+    } catch (e) {
+      setCode('')
+      toast({ tone: 'error', text: errorMessage(e) })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Sheet open={open} onClose={onClose} label="Où recevoir tes gains">
+      <div className="flex flex-col gap-4">
+        <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Où recevoir tes gains</h2>
+        {step === 'form' ? (
+          <>
+            <PayMethodPicker value={method} onChange={setMethod} phone={phone} onPhone={setPhone} methods={['wave', 'om', 'mtn', 'moov']} />
+            <p className="text-[13px] leading-snug font-semibold text-muted">
+              Par sécurité, on t’envoie un code par SMS au {maskPhone(state.user?.phone ?? '')}, et les retraits sont bloqués 24 h après le changement.
+            </p>
+            <Button loading={loading} disabled={phone.length !== 10} onClick={sendCode}>
+              Recevoir le code
+            </Button>
+          </>
+        ) : (
+          <>
+            <p className="text-[15px] font-semibold text-muted">Code envoyé au {maskPhone(state.user?.phone ?? '')}.</p>
+            <OtpInput value={code} onChange={setCode} onComplete={confirm} />
+            <Button loading={loading} disabled={code.length !== 6} onClick={() => confirm()}>
+              Confirmer le changement
+            </Button>
+            <button type="button" className="text-sm font-bold text-muted" onClick={() => (setStep('form'), setCode(''))}>
+              Modifier le numéro
+            </button>
+          </>
+        )}
+      </div>
+    </Sheet>
+  )
+}
+
+const ISSUES: { id: IssueReason; label: string; hint: string }[] = [
+  { id: 'wrong_password', label: 'Le mot de passe ne marche plus', hint: 'L’hôte l’a peut-être changé' },
+  { id: 'no_access', label: 'Je n’ai pas accès', hint: 'Profil introuvable, invitation jamais reçue…' },
+  { id: 'removed', label: 'J’ai été retiré·e du compte', hint: 'Déconnecté·e ou profil supprimé' },
+  { id: 'other', label: 'Autre souci', hint: 'Explique-nous en quelques mots' },
+]
+
+/** « Un souci ? » : l'hôte est prévenu et ses gains pour toi sont en pause jusqu'à ce que ce soit réglé. */
+function IssueSheet({ sub, open, onClose }: { sub: UserSub; open: boolean; onClose: () => void }) {
+  const { actions } = useStore()
+  const toast = useToast()
+  const [reason, setReason] = useState<IssueReason>('wrong_password')
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const svc = getService(sub.serviceId)!
+
+  return (
+    <Sheet open={open} onClose={onClose} label="Signaler un souci">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Un souci avec {svc.name} ?</h2>
+          <p className="text-sm font-semibold text-muted">{sub.hostName ?? 'Ton hôte'} est prévenu·e et ses gains pour toi sont mis en pause le temps que ce soit réglé.</p>
+        </div>
+        <div role="radiogroup" aria-label="Quel souci ?" className="overflow-hidden rounded-card bg-white">
+          {ISSUES.map((i) => (
+            <button
+              key={i.id}
+              type="button"
+              role="radio"
+              aria-checked={reason === i.id}
+              onClick={() => setReason(i.id)}
+              className="flex w-full items-center gap-3 border-b border-line-soft px-4 py-3.5 text-left last:border-b-0"
+            >
+              <span className="flex flex-1 flex-col gap-0.5">
+                <span className="text-[15px] font-bold">{i.label}</span>
+                <span className="text-[13px] font-semibold text-muted">{i.hint}</span>
+              </span>
+              <Radio checked={reason === i.id} />
+            </button>
+          ))}
+        </div>
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value.slice(0, 500))}
+          rows={3}
+          placeholder="Détails (facultatif)"
+          className="rounded-btn border-[1.5px] border-line bg-white p-3.5 text-[15px] font-medium outline-none focus:border-2 focus:border-ink"
+        />
+        <Button
+          loading={loading}
+          onClick={async () => {
+            setLoading(true)
+            try {
+              await actions.reportIssue(sub.id, reason, message.trim() || undefined)
+              haptic(20)
+              toast({ tone: 'ink', text: 'Souci signalé · on revient vers toi vite' })
+              onClose()
+            } catch (e) {
+              toast({ tone: 'error', text: errorMessage(e) })
+            } finally {
+              setLoading(false)
+            }
+          }}
+        >
+          Signaler le souci
+        </Button>
+        <a
+          href={`https://wa.me/2250700000000?text=${encodeURIComponent(`Bonjour, j’ai un souci avec ${svc.name}`)}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-center text-sm font-bold text-muted"
+        >
+          Ou écris-nous sur WhatsApp
+        </a>
+      </div>
+    </Sheet>
+  )
+}
+
 /* ---------- 12 · Détail d'un abonnement ---------- */
 
 /** Carte Ink = coffre des accès, mis en cache pour le hors-ligne. Copier → toast + vibration. */
@@ -448,6 +617,7 @@ export function SubDetail() {
   const [reveal, setReveal] = useState(state.settings.hideAccess === 'never')
   const [menu, setMenu] = useState(false)
   const [confirm, setConfirm] = useState(false)
+  const [issue, setIssue] = useState(false)
   const sub = state.subs.find((s) => s.id === id)
   if (!sub) return <NotFound />
   const svc = getService(sub.serviceId)!
@@ -541,10 +711,30 @@ export function SubDetail() {
           </div>
         )}
 
-        <div className="flex gap-2.5 rounded-[14px] bg-warn-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-[#6B3F00]">
-          <span className="font-extrabold">!</span>
-          Ne modifie pas le mot de passe ni les autres profils.
-        </div>
+        {sub.issue ? (
+          <div className="flex flex-col gap-2 rounded-[14px] bg-info-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-info">
+            <span>
+              <b>Souci signalé le {shortDate(sub.issue.at)}.</b> Ton hôte est prévenu·e et l’équipe Sub.ci suit ton dossier. Si ça ne s’arrange pas, tu es remboursé·e du temps restant.
+            </span>
+            <button
+              type="button"
+              className="self-start font-extrabold underline"
+              onClick={() =>
+                actions
+                  .solveIssue(sub.id)
+                  .then(() => toast({ text: 'Merci ! Souci marqué comme réglé' }))
+                  .catch((e) => toast({ tone: 'error', text: errorMessage(e) }))
+              }
+            >
+              C’est réglé
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2.5 rounded-[14px] bg-warn-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-[#6B3F00]">
+            <span className="font-extrabold">!</span>
+            Ne modifie pas le mot de passe ni les autres profils.
+          </div>
+        )}
 
         <Card className="px-[18px]">
           <div className="flex items-center justify-between gap-3 border-b border-line-soft py-4">
@@ -570,16 +760,18 @@ export function SubDetail() {
       </div>
 
       <StickyAction className="grid grid-cols-[auto_1fr] gap-2.5">
-        <a
-          href={`https://wa.me/2250700000000?text=${encodeURIComponent(`Bonjour, j’ai un souci avec ${svc.name}`)}`}
-          target="_blank"
-          rel="noreferrer"
-          className="pressable flex h-14 items-center rounded-btn border-[1.5px] border-line-strong px-4 text-sm font-bold"
+        <button
+          type="button"
+          disabled={!!sub.issue}
+          onClick={() => setIssue(true)}
+          className="pressable flex h-14 items-center rounded-btn border-[1.5px] border-line-strong px-4 text-sm font-bold disabled:opacity-50"
         >
           Un souci ?
-        </a>
+        </button>
         <Button onClick={() => navigate(`/checkout/${svc.id}`, { viewTransition: true })}>Renouveler · {fcfa(svc.price)}</Button>
       </StickyAction>
+
+      <IssueSheet sub={sub} open={issue} onClose={() => setIssue(false)} />
 
       <Sheet open={menu} onClose={() => setMenu(false)} label="Options">
         <div className="flex flex-col">

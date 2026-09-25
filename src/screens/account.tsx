@@ -255,6 +255,7 @@ export function SettingsScreen() {
   const [install, setInstall] = useState(false)
   const [askNotif, setAskNotif] = useState(false)
   const [logout, setLogout] = useState(false)
+  const [others, setOthers] = useState(false)
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     actions.setSetting(key, value).catch((e) => toast({ tone: 'error', text: errorMessage(e) }))
   const s = state.settings
@@ -298,6 +299,7 @@ export function SettingsScreen() {
             hint={s.hideAccess === 'always' ? 'Toujours' : 'Jamais'}
             onClick={() => set('hideAccess', s.hideAccess === 'always' ? 'never' : 'always')}
           />
+          <ListLink label="Déconnecter mes autres appareils" hint="Téléphone perdu ?" onClick={() => setOthers(true)} />
         </Card>
 
         <SectionLabel className="px-1 pt-3.5">App</SectionLabel>
@@ -317,6 +319,23 @@ export function SettingsScreen() {
       </div>
       <InstallSheet open={install} onClose={() => setInstall(false)} />
       <NotifSheet open={askNotif} onClose={() => setAskNotif(false)} />
+      {others && (
+        <ConfirmModal
+          title="Déconnecter les autres appareils ?"
+          text="Tous les autres téléphones et ordinateurs connectés à ton compte devront se reconnecter par SMS. Cet appareil reste connecté."
+          confirm="Déconnecter"
+          onCancel={() => setOthers(false)}
+          onConfirm={async () => {
+            try {
+              const n = await actions.logoutOthers()
+              toast({ tone: 'ink', text: n > 0 ? `${n} appareil${n > 1 ? 's' : ''} déconnecté${n > 1 ? 's' : ''}` : 'Aucun autre appareil connecté' })
+            } catch (e) {
+              toast({ tone: 'error', text: errorMessage(e) })
+            }
+            setOthers(false)
+          }}
+        />
+      )}
       {logout && (
         <ConfirmModal
           title="Se déconnecter ?"

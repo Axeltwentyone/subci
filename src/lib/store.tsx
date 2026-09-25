@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
-import { ApiError, UNAUTHORIZED_EVENT, api, getToken, setToken, toJoinRequest, toNotif, toOffer, toPayment, toPending, toSub, type ApiHost, type ApiUser, type Bootstrap, type PendingPayment } from './api'
+import { ApiError, UNAUTHORIZED_EVENT, api, getToken, setToken, toJoinRequest, toNotif, toOffer, toPayment, toPending, toSub, type ApiHost, type ApiUser, type Bootstrap, type IssueReason, type PendingPayment } from './api'
 import { getService, setCatalog, type Device, type PayMethodId, type Service } from './data'
 import { daysLeft } from './format'
 import { subscribePush, unsubscribePush } from './push'
@@ -22,6 +22,8 @@ export type UserSub = {
   email: string
   password: string
   pin?: string
+  /** Souci signalé, en cours de traitement (gains de l'hôte gelés). */
+  issue?: { reason: IssueReason; at: number }
 }
 
 export type Notif = {
@@ -113,6 +115,11 @@ export type State = {
   payments: Payment[]
   balance: number
   monthGain: number
+  /** Gains hôte en séquestre, versés au solde mois par mois */
+  pending: number
+  held: number
+  nextRelease: number | null
+  withdrawLockedUntil: number | null
   payout: { method: PayMethodId; phone: string }
   offers: HostOffer[]
   requests: JoinRequest[]
@@ -141,6 +148,10 @@ function empty(): State {
     payments: [],
     balance: 0,
     monthGain: 0,
+    pending: 0,
+    held: 0,
+    nextRelease: null,
+    withdrawLockedUntil: null,
     payout: { method: 'wave', phone: '' },
     offers: [],
     requests: [],
@@ -183,7 +194,15 @@ function userPart(u: ApiUser): Partial<State> {
 }
 
 function hostPart(h: ApiHost): Partial<State> {
-  return { balance: h.balance, monthGain: h.monthGain, offers: h.offers.map(toOffer) }
+  return {
+    balance: h.balance,
+    monthGain: h.monthGain,
+    pending: h.pending ?? 0,
+    held: h.held ?? 0,
+    nextRelease: h.nextRelease ? Date.parse(h.nextRelease) : null,
+    withdrawLockedUntil: h.withdrawLockedUntil ? Date.parse(h.withdrawLockedUntil) : null,
+    offers: h.offers.map(toOffer),
+  }
 }
 
 type Action =
@@ -376,6 +395,24 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
     invite: (offerId: string) => {
       const offers = get().offers
       return optimistic({ type: 'invited', offerId }, { type: 'patch', patch: { offers } }, () => api.invite(offerId))
+    },
+    /** Code SMS envoyé au numéro du compte avant de changer le numéro de retrait. */
+    payoutCode: () => api.payoutCode(),
+    async updatePayout(method: PayMethodId, phone: string, code: string) {
+      const { data } = await api.updatePayout({ method, phone, code })
+      dispatch({ type: 'patch', patch: userPart(data) })
+      await sync().catch(() => {})
+    },
+    async logoutOthers() {
+      return (await api.logoutOthers()).revoked
+    },
+    async reportIssue(subId: string, reason: IssueReason, message?: string) {
+      const { data } = await api.reportIssue(subId, reason, message)
+      dispatch({ type: 'patch', patch: { subs: get().subs.map((s) => (s.id === subId ? toSub(data) : s)) } })
+    },
+    async solveIssue(subId: string) {
+      const { data } = await api.solveIssue(subId)
+      dispatch({ type: 'patch', patch: { subs: get().subs.map((s) => (s.id === subId ? toSub(data) : s)) } })
     },
     /** Renvoie true si le versement est immédiat, false s'il est traité sous 48 h. */
     async withdraw(amount: number) {

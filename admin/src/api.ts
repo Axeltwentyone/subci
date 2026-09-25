@@ -166,8 +166,8 @@ export type Overview = {
     hosts: { value: number }
     newUsers: { value: number; previous: number }
   }
-  money: { held: number; hostBalances: number; payoutsPending: number }
-  todo: { offersToReview: number; payouts: number; requests: number; requestsExpiringSoon: number; paymentsPending: number }
+  money: { held: number; hostBalances: number; escrow: number; escrowHeld: number; payoutsPending: number }
+  todo: { offersToReview: number; disputes: number; payouts: number; requests: number; requestsExpiringSoon: number; paymentsPending: number }
   series: { date: string; gmv: number; payments: number; users: number }[]
   services: { id: string; name: string; color: string; gmv: number; members: number; offers: number }[]
   activity: { kind: string; at: string; title: string; amount: number | null; status: string | null; userId: number }[]
@@ -198,6 +198,31 @@ export type ServiceRow = {
 
 export type AuditRow = { id: number; admin: string; action: string; subjectType: string | null; subjectId: number | null; meta: Record<string, unknown> | null; ip: string | null; at: string }
 
+export type AdminMe = { id: number; name: string; email: string; twoFactor: boolean }
+/** Connexion : session ouverte, code à 6 chiffres demandé, ou double authentification à configurer. */
+export type LoginResult =
+  | { token: string; admin: AdminMe; setup?: undefined; twoFactor?: undefined }
+  | { twoFactor: true; challenge: string }
+  | { setup: true; token: string; admin: AdminMe }
+
+export type DisputeRow = {
+  id: number
+  status: 'open' | 'solved' | 'refunded' | 'rejected'
+  reason: string
+  reasonLabel: string
+  message: string | null
+  resolution: string | null
+  member: { id: number; name: string; phone: string } & Reliability
+  host: { id: number; name: string; phone: string; removalsCount: number } | null
+  offerId: number | null
+  service: Brand
+  subscription: { id: number; startsAt: string; endsAt: string }
+  refundable: number
+  hostDisputes: number
+  resolvedAt: string | null
+  createdAt: string
+}
+
 export type PushState = { publicKey: string | null; devices: number; alerts: { kind: string; label: string; on: boolean }[] }
 
 type Page<T> = { data: T[]; meta: { total: number; page: number; pages: number } }
@@ -210,8 +235,11 @@ const qs = (p: Record<string, string | number | undefined | null>) => {
 }
 
 export const api = {
-  login: (email: string, password: string) => call<{ token: string; admin: { name: string; email: string } }>('POST', '/auth/login', { email, password }),
-  me: () => call<{ data: { name: string; email: string } }>('GET', '/auth/me'),
+  login: (email: string, password: string) => call<LoginResult>('POST', '/auth/login', { email, password }),
+  twoFactor: (challenge: string, code: string) => call<{ token: string; admin: AdminMe }>('POST', '/auth/2fa', { challenge, code }),
+  setupTwoFactor: () => call<{ secret: string; uri: string }>('POST', '/auth/2fa/setup'),
+  confirmTwoFactor: (code: string) => call<{ token: string; admin: AdminMe }>('POST', '/auth/2fa/confirm', { code }),
+  me: () => call<{ data: AdminMe }>('GET', '/auth/me'),
   logout: () => call<unknown>('POST', '/auth/logout'),
 
   overview: () => call<Overview>('GET', '/overview'),
@@ -236,6 +264,9 @@ export const api = {
 
   requests: (status?: string) => call<{ data: RequestRow[]; counts: Record<string, number> }>('GET', `/requests${qs({ status })}`),
   declineRequest: (id: number) => call<unknown>('POST', `/requests/${id}/decline`),
+
+  disputes: (status = 'open') => call<{ data: DisputeRow[]; counts: Record<string, number> }>('GET', `/disputes${qs({ status })}`),
+  resolveDispute: (id: number, decision: 'refund' | 'reject', note?: string) => call<{ data: DisputeRow }>('POST', `/disputes/${id}/resolve`, { decision, note }),
 
   services: () => call<{ data: ServiceRow[] }>('GET', '/services'),
   updateService: (id: number, body: Partial<Pick<ServiceRow, 'name' | 'meta' | 'description' | 'price' | 'fullPrice' | 'isActive' | 'isPopular' | 'position'>>) =>
