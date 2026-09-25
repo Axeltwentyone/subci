@@ -134,6 +134,7 @@ class DemoSeeder extends Seeder
             ]],
             ['Ismaël', 'Bamba', '0700000005', [
                 ['disney', 'premium', $all, 3, 2000, []],
+                ['apple-music', 'famille', $all, 5, 1500, ['Grâce K.', 'Luc A.']],
                 ['netflix', 'premium', ['tv', 'computer'], 3, 2700, ['Olivier T.']],
             ]],
         ];

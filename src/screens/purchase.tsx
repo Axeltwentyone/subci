@@ -4,7 +4,7 @@ import { IconCheck, IconLock } from '../components/icons'
 import { PayMethodPicker } from '../components/inputs'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
-import { Button, Card, Row, Screen, StepBar, StickyAction, TopBar, cx } from '../components/ui'
+import { Button, Card, Row, Screen, ServiceLogo, StepBar, StickyAction, TopBar, cx } from '../components/ui'
 import { DURATIONS, durationPrice, getMethod, getService, type PayMethodId, type PublicOffer } from '../lib/data'
 import { api, type PendingPayment } from '../lib/api'
 import { fcfa, haptic, maskPhone, shortDate, timeLeft } from '../lib/format'
@@ -50,10 +50,10 @@ export function Checkout() {
   }, [current, offerId, offer, id, navigate, toast])
 
   if (!s) return <NotFound />
-  // Nouvel arrivant sans offre choisie : retour au choix.
-  if (!current && !offerId) return <Navigate to={`/service/${id}`} replace />
+  // Nouvel arrivant sans offre choisie (hors musique, attribuée par Sub.ci) : retour au choix.
+  if (!current && !offerId && s.chooseOffer) return <Navigate to={`/service/${id}`} replace />
 
-  const monthly = current ? current.price : offer?.price
+  const monthly = current ? current.price : s.chooseOffer ? offer?.price : s.price
   const amount = monthly ? durationPrice(monthly, months) : 0
 
   const pay = async () => {
@@ -80,6 +80,21 @@ export function Checkout() {
       <TopBar title={s.name} right={<span className="text-[13px] font-bold text-muted">2/3</span>} />
       <StepBar step={2} total={3} />
       <div className="flex flex-col gap-[22px] px-5 pt-5">
+        {!current && !s.chooseOffer && (
+          <section className="flex flex-col gap-2.5">
+            <h2 className="t-section">Ton groupe famille</h2>
+            <Card className="flex items-center gap-3 p-4">
+              <ServiceLogo service={s} size={40} />
+              <span className="flex flex-1 flex-col gap-0.5">
+                <span className="text-[15px] font-bold">{s.name} · ton propre compte</span>
+                <span className="text-[13px] font-semibold text-muted">Groupe attribué par Sub.ci · tous appareils</span>
+              </span>
+            </Card>
+            <p className="px-1 text-[13px] leading-normal font-medium text-muted">
+              Tu paies maintenant, l’hôte du groupe valide ta demande sous 24 h. Sinon, tu es remboursé automatiquement.
+            </p>
+          </section>
+        )}
         {!current && offer && (
           <section className="flex flex-col gap-2.5">
             <h2 className="t-section">Ton offre</h2>

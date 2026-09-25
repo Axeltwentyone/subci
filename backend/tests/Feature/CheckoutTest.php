@@ -223,4 +223,23 @@ class CheckoutTest extends TestCase
         $this->asHost()->postJson('/api/v1/host/withdrawals', ['amount' => 20000])->assertStatus(422);
         $this->postJson('/api/v1/host/withdrawals', ['amount' => 6000])->assertOk()->assertJsonPath('host.balance', 4000);
     }
+
+    public function test_music_needs_no_offer_choice_but_host_still_approves(): void
+    {
+        $family = ['plan' => 'famille', 'plan_label' => 'Famille · 6 comptes', 'access_mode' => 'family', 'access_email' => null, 'access_password' => null];
+        $this->offer('spotify', $family + ['price' => 1600]);
+        $cheapest = $this->offer('spotify', $family + ['price' => 1400]);
+        $this->assertFalse(collect($this->getJson('/api/v1/services')->json('data'))->firstWhere('id', 'spotify')['chooseOffer']);
+        $this->assertTrue(collect($this->getJson('/api/v1/services')->json('data'))->firstWhere('id', 'netflix')['chooseOffer']);
+
+        $member = User::factory()->create();
+        $this->actingAs($member);
+        $ref = $this->postJson('/api/v1/payments', ['serviceId' => 'spotify', 'months' => 1, 'method' => 'om', 'phone' => '0758421121'])
+            ->assertCreated()->assertJsonPath('data.amount', 1400)->json('data.ref');
+        $this->getJson("/api/v1/payments/{$ref}")->assertJsonPath('data.status', 'succeeded')->assertJsonPath('data.joinStatus', 'pending');
+
+        $request = JoinRequest::sole();
+        $this->assertSame($cheapest->id, $request->host_offer_id);
+        $this->assertSame(0, $member->subscriptions()->count()); // l'hôte doit encore accepter
+    }
 }

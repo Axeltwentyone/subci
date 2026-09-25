@@ -279,6 +279,7 @@ export function ServicePage() {
   useEffect(() => {
     let alive = true
     setOffers(null)
+    if (s && !s.chooseOffer) return
     api
       .offers(id)
       .then(({ data }) => alive && setOffers(data))
@@ -286,7 +287,7 @@ export function ServicePage() {
     return () => {
       alive = false
     }
-  }, [id])
+  }, [id, s])
 
   if (!s) return <NotFound />
 
@@ -295,7 +296,7 @@ export function ServicePage() {
   const pending = state.requests.find((r) => r.serviceId === s.id && r.status === 'pending')
   const visible = (offers ?? []).filter((o) => !device || o.devices.includes(device))
   const chosen = visible.find((o) => o.id === selected) ?? null
-  const cheapest = offers?.length ? Math.min(...offers.map((o) => o.price)) : s.price
+  const cheapest = s.chooseOffer && offers?.length ? Math.min(...offers.map((o) => o.price)) : s.price
   const availableDevices = DEVICES.map((d) => d.id).filter((d) => offers?.some((o) => o.devices.includes(d)))
 
   const share = async () => {
@@ -353,6 +354,19 @@ export function ServicePage() {
                 Ta demande est chez <b>{pending.hostName}</b>. Réponse d’ici {timeLeft(pending.expiresAt)}, sinon tu es remboursé.
               </span>
             </div>
+          ) : !s.chooseOffer ? (
+            // Musique : chacun garde son compte, toutes les offres se valent — pas de choix.
+            <Card className="flex flex-col gap-3 p-[18px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[15px] font-bold">{s.free ? `${s.free} place${s.free > 1 ? 's' : ''} disponible${s.free > 1 ? 's' : ''}` : 'Aucune place pour l’instant'}</span>
+                <DeviceList devices={['phone', 'tablet', 'computer', 'tv']} className="justify-end" />
+              </div>
+              <ul className="flex flex-col gap-2 text-[14px] leading-snug font-medium text-body">
+                <li>• Ton propre compte {s.name.replace(/ (Famille|Duo)$/, '')} : tes playlists et recommandations restent à toi.</li>
+                <li>• On te place dans un groupe famille, l’hôte valide sous 24 h.</li>
+                <li>• Si l’hôte refuse ou ne répond pas, tu es remboursé.</li>
+              </ul>
+            </Card>
           ) : (
             <section className="flex flex-col gap-3" aria-label="Offres disponibles">
               <div className="flex items-baseline justify-between px-1">
@@ -406,6 +420,14 @@ export function ServicePage() {
             <Button variant="ink" onClick={() => navigate('/subs')}>
               Voir ma demande
             </Button>
+          ) : !s.chooseOffer ? (
+            s.free > 0 ? (
+              <Button onClick={() => navigate(`/checkout/${s.id}`, { viewTransition: true })}>Rejoindre pour {fcfa(s.price)} FCFA</Button>
+            ) : (
+              <Button variant="ink" onClick={() => toast({ tone: 'success', text: 'Tu es sur la liste d’attente. On te prévient dès qu’une place se libère.' })}>
+                Me prévenir
+              </Button>
+            )
           ) : chosen ? (
             <Button onClick={() => navigate(`/checkout/${s.id}?offer=${chosen.id}`, { state: { offer: chosen }, viewTransition: true })}>
               Rejoindre {chosen.host.name} · {fcfa(chosen.price)} FCFA

@@ -28,6 +28,7 @@ class ServiceResource extends JsonResource
             'offers' => $this->avail_offers ?? 0,
             'activation' => $this->activation_minutes,
             'popular' => $this->is_popular,
+            'chooseOffer' => $this->choosesOffer(),
         ];
     }
 }

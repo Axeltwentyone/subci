@@ -18,6 +18,9 @@ return [
     'spotify' => [
         'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]],
     ],
+    'apple-music' => [
+        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]],
+    ],
     'spotify-duo' => [
         'duo' => ['label' => 'Duo · 2 comptes', 'max' => 1, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 4400, 'reco' => [2000, 2400]],
     ],

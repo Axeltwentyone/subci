@@ -19,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 class PaymentService
 {
-    public function __construct(private PaymentGateway $gateway, private JoinService $joins) {}
+    public function __construct(private PaymentGateway $gateway, private JoinService $joins, private Availability $availability) {}
 
     /**
      * Crée la demande de paiement et l'envoie à l'opérateur.
@@ -46,7 +46,13 @@ class PaymentService
             if ($user->joinRequests()->pending()->whereHas('offer', fn ($q) => $q->where('service_id', $service->id))->exists()) {
                 throw ValidationException::withMessages(['offerId' => 'Tu as déjà une demande en attente pour ce service.']);
             }
-            $offer = $offerId ? HostOffer::live()->withReservations()->where('service_id', $service->id)->find($offerId) : null;
+            $offer = match (true) {
+                $offerId !== null => HostOffer::live()->withReservations()->where('service_id', $service->id)->find($offerId),
+                // Musique : pas de choix, Sub.ci attribue la meilleure offre ouverte.
+                ! $service->choosesOffer() => $this->availability->bestOffer($service, $user)
+                    ?? throw ValidationException::withMessages(['service' => 'Plus de place libre sur ce service. Rejoins la liste d’attente.']),
+                default => null,
+            };
             if (! $offer) {
                 throw ValidationException::withMessages(['offerId' => 'Choisis une offre pour ce service.']);
             }

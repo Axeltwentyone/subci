@@ -18,6 +18,7 @@ class ServiceSeeder extends Seeder
             ['prime', 'P', 'Prime Video', '#1A98FF', '#0B0B0B', 'streaming', 'Films · séries', 'Films, séries et originaux Amazon. Ton profil perso.', 1200, 2700, 5, 3, 15, true],
             ['chatgpt', 'AI', 'ChatGPT Plus', '#10A37F', '#FFFFFF', 'ia', 'Modèles avancés · images', 'Accès prioritaire aux derniers modèles, génération d’images et analyse de fichiers.', 5000, 13000, 2, 1, 10, true],
             ['disney', 'D+', 'Disney+', '#0E2A6B', '#FFFFFF', 'streaming', 'Marvel · Pixar · Star Wars', 'Disney, Pixar, Marvel, Star Wars et National Geographic en 4K.', 2000, 6000, 4, 3, 15, true],
+            ['apple-music', 'AM', 'Apple Music', '#FA243C', '#FFFFFF', 'music', 'Famille · sans pub', 'Ton compte Apple Music perso dans un groupe famille : tout le catalogue, sans pub, écoute hors ligne.', 1500, 5500, 6, 3, 30, true],
             ['spotify-duo', 'S', 'Spotify Duo', '#1DB954', '#0B0B0B', 'music', '2 comptes Premium', 'Deux comptes Premium sous un même toit. Mix Duo inclus.', 2200, 4400, 2, 0, 30, false],
             ['canal-sport', 'C+', 'Canal+ Sport', '#16130F', '#FFFFFF', 'sport', 'Foot · Ligue 1 · CAN', 'Tout le sport Canal+ : championnats européens, CAN et Ligue 1.', 4000, 12000, 3, 1, 20, false],
         ];

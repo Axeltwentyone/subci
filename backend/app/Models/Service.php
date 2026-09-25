@@ -33,6 +33,16 @@ class Service extends Model
         $query->where('is_active', true);
     }
 
+    /**
+     * Le membre choisit-il son offre ? Non pour la musique : chacun garde son
+     * propre compte dans un groupe famille, toutes les offres se valent —
+     * Sub.ci attribue la meilleure, l'hôte valide ensuite.
+     */
+    public function choosesOffer(): bool
+    {
+        return $this->category !== Category::Music;
+    }
+
     public function savingPercent(): int
     {
         return (int) round((1 - $this->price / max(1, $this->full_price)) * 100);
