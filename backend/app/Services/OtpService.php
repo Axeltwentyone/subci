@@ -33,7 +33,12 @@ class OtpService
 
         OtpCode::where('phone', $phone)->where('purpose', $purpose)->whereNull('consumed_at')->delete();
 
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        // Numéro de test déclaré sur le serveur : code fixe, aucun SMS (en attendant la passerelle).
+        $test = config('services.otp.test_codes')[$phone] ?? null;
+        $code = $test ?? str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        if ($test) {
+            Log::notice('OTP : numéro de test utilisé', ['phone' => substr($phone, 0, 4).'••••'.substr($phone, -2)]);
+        }
         OtpCode::create([
             'phone' => $phone,
             'purpose' => $purpose,

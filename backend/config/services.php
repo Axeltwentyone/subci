@@ -87,6 +87,11 @@ return [
         'per_hour' => (int) env('OTP_PER_HOUR', 6),
         'per_day' => (int) env('OTP_PER_DAY', 12),
         'max_failures' => (int) env('OTP_MAX_FAILURES', 15),
+        // Numéros de test sans SMS : « 0700000000:482913,0102030405:111222 » (secret, à retirer avant l'ouverture).
+        'test_codes' => collect(explode(',', (string) env('OTP_TEST_CODES', '')))
+            ->map(fn ($pair) => array_map('trim', explode(':', $pair, 2)))
+            ->filter(fn ($p) => count($p) === 2 && preg_match('/^\d{10}$/', $p[0]) && preg_match('/^\d{6}$/', $p[1]))
+            ->mapWithKeys(fn ($p) => [$p[0] => $p[1]])->all(),
         // En local uniquement, le code est renvoyé dans la réponse (pas de passerelle SMS).
         // Jamais en production, même si OTP_EXPOSE_CODE est laissé à true par erreur.
         'expose_code' => in_array(env('APP_ENV'), ['local', 'testing'], true) && (bool) env('OTP_EXPOSE_CODE', true),

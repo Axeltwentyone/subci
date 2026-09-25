@@ -204,6 +204,19 @@ class SecurityTest extends TestCase
         $code->assertStatus(429);
     }
 
+    public function test_test_numbers_log_in_with_their_fixed_code_only(): void
+    {
+        config(['services.otp.expose_code' => false, 'services.otp.test_codes' => ['0700000009' => '482913']]);
+
+        $this->postJson('/api/v1/auth/otp', ['phone' => '0700000009'])->assertOk()->assertJsonPath('debugCode', null);
+        $this->postJson('/api/v1/auth/verify', ['phone' => '0700000009', 'code' => '000000'])->assertStatus(422);
+        $this->postJson('/api/v1/auth/verify', ['phone' => '0700000009', 'code' => '482913'])->assertOk()->assertJsonStructure(['token']);
+
+        // Un autre numéro n'a pas ce code.
+        $this->postJson('/api/v1/auth/otp', ['phone' => '0700000008'])->assertOk();
+        $this->postJson('/api/v1/auth/verify', ['phone' => '0700000008', 'code' => '482913'])->assertStatus(422);
+    }
+
     public function test_otp_sends_are_capped_per_hour(): void
     {
         config(['services.otp.per_hour' => 3]);

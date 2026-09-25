@@ -83,6 +83,11 @@ services:
       - key: ADMIN_REQUIRE_2FA
         value: "true"
 
+      # Numéros de test sans SMS, en attendant la passerelle : « 07XXXXXXXX:123456 » (séparés par des virgules).
+      # À vider avant l'ouverture au public.
+      - key: OTP_TEST_CODES
+        sync: false
+
 databases:
   - name: subci-db
     plan: free # la base gratuite est supprimée au bout de 30 jours : passer à « basic » avant d'ouvrir au public
