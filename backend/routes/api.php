@@ -97,6 +97,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('subscriptions/{subscription}', [SubscriptionController::class, 'update']);
         Route::post('subscriptions/{subscription}/cancel', [SubscriptionController::class, 'cancel']);
         Route::post('subscriptions/{subscription}/dispute', [SubscriptionController::class, 'dispute'])->middleware('throttle:5,1');
+        Route::post('subscriptions/{subscription}/invite/{status}', [SubscriptionController::class, 'invite'])->whereIn('status', ['joined', 'broken'])->middleware('throttle:10,1');
         Route::post('subscriptions/{subscription}/dispute/solve', [SubscriptionController::class, 'solveDispute']);
 
         Route::get('payments', [PaymentController::class, 'index']);

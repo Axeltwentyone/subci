@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PullToRefresh } from '../components/gestures'
-import { IconEye, IconEyeOff, IconMore } from '../components/icons'
+import { IconCheck, IconEye, IconEyeOff, IconMore } from '../components/icons'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { OtpInput, PayMethodPicker } from '../components/inputs'
@@ -603,43 +603,95 @@ function IssueSheet({ sub, open, onClose }: { sub: UserSub; open: boolean; onClo
  * Lien de l'hôte à ouvrir, ou invitation Apple à accepter sur l'iPhone.
  */
 function FamilyInvite({ sub, serviceName }: { sub: UserSub; serviceName: string }) {
+  const { actions } = useStore()
+  const toast = useToast()
+  const [busy, setBusy] = useState<'joined' | 'broken' | null>(null)
   const invite = sub.invite!
+  const brand = serviceName.split(' ')[0]
+  const host = sub.hostName ?? 'Ton hôte'
+
+  const mark = async (status: 'joined' | 'broken') => {
+    setBusy(status)
+    try {
+      await actions.inviteStatus(sub.id, status)
+      haptic(20)
+      toast({ tone: 'ink', text: status === 'joined' ? 'Bienvenue dans la famille !' : `${host} est prévenu·e : il t’envoie une nouvelle invitation` })
+    } catch (e) {
+      toast({ tone: 'error', text: errorMessage(e) })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  if (invite.joinedAt) {
+    return (
+      <div className="flex items-center gap-3 rounded-card bg-ink p-5 text-sand">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ok text-white">
+          <IconCheck size={20} />
+        </span>
+        <span className="flex flex-col gap-0.5">
+          <span className="text-[15px] font-bold">Tu fais partie de la famille {brand}</span>
+          <span className="text-[13px] font-semibold text-ink-muted">Avec ton propre compte. Un souci plus tard ? Touche « Un souci ? ».</span>
+        </span>
+      </div>
+    )
+  }
+
   const steps =
     invite.type === 'link'
       ? [
           'Touche « Rejoindre la famille » ci-dessous',
-          `Connecte-toi avec TON compte ${serviceName.split(' ')[0]} (ou crée-le, c’est gratuit)`,
-          'Confirme : tu profites du Premium avec ton compte, tes playlists et tes recommandations',
+          `Connecte-toi avec TON compte ${brand} (ou crée-le, c’est gratuit)`,
+          'Confirme, puis reviens ici toucher « J’ai rejoint »',
         ]
       : [
           `Sur ton iPhone : Réglages → ton nom → Partage familial`,
-          `Accepte l’invitation de ${sub.hostName ?? 'ton hôte'} (tu peux aussi l’accepter depuis Messages)`,
-          'Ouvre Apple Music : l’abonnement famille est actif',
+          `Accepte l’invitation de ${host} (tu peux aussi l’accepter depuis Messages)`,
+          'Reviens ici toucher « J’ai rejoint »',
         ]
   return (
     <div className="flex flex-col gap-4 rounded-card bg-ink p-5 text-sand">
       <div className="flex flex-col gap-1">
         <span className="text-xs font-semibold text-ink-muted">Invitation famille</span>
         <span className="text-[15px] leading-snug font-bold">
-          {invite.type === 'link'
-            ? `${sub.hostName ?? 'Ton hôte'} t’a envoyé son lien d’invitation`
-            : `${sub.hostName ?? 'Ton hôte'} a invité ${invite.email ?? 'ton identifiant Apple'}`}
+          {invite.type === 'link' ? `${host} t’a envoyé son lien d’invitation` : `${host} a invité ${invite.email ?? 'ton identifiant Apple'}`}
         </span>
       </div>
-      <ol className="flex flex-col gap-2.5">
-        {steps.map((t, i) => (
-          <li key={i} className="flex items-start gap-3 text-sm leading-snug font-semibold">
-            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-extrabold text-ink">{i + 1}</span>
-            <span>{t}</span>
-          </li>
-        ))}
-      </ol>
-      {invite.type === 'link' && invite.link && (
+      {invite.problemAt ? (
+        <p className="rounded-tile bg-ink-3 px-3.5 py-3 text-[13px] leading-snug font-semibold">
+          On a prévenu {host} : tu reçois une notification dès qu’{invite.type === 'link' ? 'un nouveau lien arrive' : 'il t’a réinvité·e'}.
+        </p>
+      ) : (
+        <ol className="flex flex-col gap-2.5">
+          {steps.map((t, i) => (
+            <li key={i} className="flex items-start gap-3 text-sm leading-snug font-semibold">
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-extrabold text-ink">{i + 1}</span>
+              <span>{t}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {invite.type === 'link' && invite.link && !invite.problemAt && (
         <a href={invite.link} target="_blank" rel="noopener noreferrer" className="pressable flex h-12 items-center justify-center rounded-btn bg-brand text-[15px] font-bold text-ink">
-          Rejoindre la famille {serviceName.split(' ')[0]}
+          Rejoindre la famille {brand}
         </a>
       )}
-      <p className="text-[12px] leading-snug font-semibold text-ink-muted">Ne partage pas ce lien : il est réservé à ta place. Un souci ? Touche « Un souci ? » plus bas.</p>
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" disabled={busy !== null} onClick={() => mark('joined')} className="pressable h-11 rounded-[14px] bg-ink-3 text-sm font-bold disabled:opacity-60">
+          {busy === 'joined' ? '…' : 'J’ai rejoint ✓'}
+        </button>
+        <button
+          type="button"
+          disabled={busy !== null || !!invite.problemAt}
+          onClick={() => mark('broken')}
+          className="pressable h-11 rounded-[14px] border-[1.5px] border-ink-3 text-sm font-bold text-ink-soft disabled:opacity-50"
+        >
+          {busy === 'broken' ? '…' : invite.type === 'link' ? 'Le lien ne marche plus' : 'Je n’ai rien reçu'}
+        </button>
+      </div>
+      <p className="text-[12px] leading-snug font-semibold text-ink-muted">
+        {invite.type === 'link' ? 'Le lien expire au bout de 7 jours environ. ' : ''}Ne le partage pas : il est réservé à ta place.
+      </p>
     </div>
   )
 }

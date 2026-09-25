@@ -7,10 +7,12 @@ use App\Enums\DisputeStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SubscriptionResource;
 use App\Models\Subscription;
+use App\Notifications\AppNotification;
 use App\Services\DisputeService;
 use App\Services\SubscriptionSweeper;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class SubscriptionController extends Controller
@@ -66,6 +68,31 @@ class SubscriptionController extends Controller
         $this->authorizeOwner($request, $subscription);
         $open = $subscription->disputes()->where('status', DisputeStatus::Open)->firstOrFail();
         $disputes->solve($open);
+
+        return new SubscriptionResource($subscription->fresh()->load('service', 'hostOffer.user'));
+    }
+
+    /** Offre famille : le membre confirme qu'il a rejoint, ou signale que l'invitation ne marche pas. */
+    public function invite(Request $request, Subscription $subscription, string $status): SubscriptionResource
+    {
+        $this->authorizeOwner($request, $subscription);
+        $subscription->load('hostOffer.user', 'service', 'user');
+        abort_unless($subscription->hostOffer?->inviteType() && $subscription->invite_sent_at, 409, 'Aucune invitation à confirmer pour cet abonnement.');
+
+        if ($status === 'joined') {
+            $subscription->update(['invite_joined_at' => now(), 'invite_problem_at' => null]);
+        } else {
+            abort_if($subscription->invite_problem_at?->gt(now()->subHour()), 429, 'Ton hôte est déjà prévenu. Il va t’envoyer une nouvelle invitation.');
+            $subscription->update(['invite_problem_at' => now(), 'invite_joined_at' => null]);
+            $short = Str::before($subscription->service->name, ' ');
+            $email = $subscription->hostOffer->inviteType() === 'email';
+            $subscription->hostOffer->user->notify(new AppNotification('host',
+                $subscription->user->shortName().($email ? ' n’a pas reçu ton invitation' : ' : le lien ne marche plus'),
+                $email
+                    ? "Vérifie que tu as invité {$subscription->invite_email} dans ton Partage familial {$short}, puis confirme."
+                    : "Crée un nouveau lien d’invitation {$short} et envoie-le depuis Gérer l’offre.",
+                ['label' => 'Renvoyer', 'to' => "/host/offers/{$subscription->host_offer_id}"]));
+        }
 
         return new SubscriptionResource($subscription->fresh()->load('service', 'hostOffer.user'));
     }

@@ -297,16 +297,21 @@ class HostController extends Controller
 
         DB::transaction(function () use ($offer, $member, $type, $data) {
             $sub = $offer->subscriptions()->with('user', 'service')->where('user_id', $member->user_id)->latest('ends_at')->firstOrFail();
+            $resend = $sub->invite_sent_at !== null;
             $sub->update([
                 'invite_link' => $type === 'link' ? trim($data['link']) : null,
                 'invite_sent_at' => now(),
+                // Nouveau lien : le membre doit le réutiliser, rappel et signalement repartent de zéro.
+                'invite_joined_at' => null,
+                'invite_problem_at' => null,
+                'invite_reminded_at' => null,
                 'status' => SubscriptionStatus::Active,
                 'profile_label' => 'Invitation famille envoyée',
             ]);
             $member->update(['invite_pending' => false]);
 
             $short = Str::before($offer->service->name, ' ');
-            $sub->user->notify(new AppNotification('ok', "Ton invitation {$short} est arrivée",
+            $sub->user->notify(new AppNotification('ok', $resend ? "Nouveau lien d’invitation {$short}" : "Ton invitation {$short} est arrivée",
                 $type === 'link'
                     ? 'Ouvre le lien dans ton coffre pour rejoindre la famille avec ton propre compte.'
                     : 'Accepte l’invitation sur ton iPhone : Réglages → ton nom → Partage familial.',

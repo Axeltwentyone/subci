@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Notifications\AppNotification;
 use App\Services\EarningService;
 use App\Services\ExpiryReminder;
+use App\Services\InviteReminder;
 use App\Services\JoinService;
 use App\Services\PaymentService;
 use App\Services\SubscriptionSweeper;
@@ -47,6 +48,13 @@ Schedule::call(function () {
     ->everyMinute()
     ->name('subscriptions:sweep')
     ->withoutOverlapping();
+
+// Liens d'invitation famille pas encore utilisés (expirent vers 7 jours chez Spotify) : rappel au membre et à l'hôte.
+Artisan::command('invites:remind', function () {
+    $this->info(app(InviteReminder::class)->run().' rappel(s) d’invitation envoyé(s).');
+})->purpose('Rappeler les invitations famille non utilisées');
+
+Schedule::command('invites:remind')->hourly()->withoutOverlapping();
 
 // Rappels d'échéance J-3 / J-1 (push + onglet Activité).
 Artisan::command('subscriptions:remind', function () {

@@ -472,6 +472,17 @@ function InviteMember({ offer, member, onSend }: { offer: HostOffer; member: Mem
   )
 }
 
+/** Où en est un membre d'une offre famille (ou depuis quand il est là). */
+function MemberStatus({ offer, member: m }: { offer: HostOffer; member: Member }) {
+  if (offer.invite && m.inviteProblemAt)
+    return <span className="text-[13px] font-bold text-err">{offer.invite === 'link' ? 'Le lien ne marche plus : renvoie-en un' : 'N’a pas reçu ton invitation'}</span>
+  if (m.invitePending) return <span className="text-[13px] font-semibold text-info">Attend ton invitation famille</span>
+  if (offer.invite && m.inviteSentAt && !m.inviteJoinedAt)
+    return <span className="text-[13px] font-semibold text-warn">Invitation envoyée le {shortDate(Date.parse(m.inviteSentAt))} · pas encore rejoint</span>
+  if (offer.invite && m.inviteJoinedAt) return <span className="text-[13px] font-semibold text-ok-ink">A rejoint ta famille</span>
+  return <span className="text-[13px] font-semibold text-muted">{m.joinedAt ? `Membre depuis le ${shortDate(Date.parse(m.joinedAt))}` : 'Membre'}</span>
+}
+
 export function ManageOffer() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
@@ -487,6 +498,8 @@ export function ManageOffer() {
   const [saving, setSaving] = useState(false)
   const [confirm, setConfirm] = useState<{ kind: 'remove'; member: Member } | { kind: 'close' } | { kind: 'decline'; request: HostRequest } | null>(null)
   const [deciding, setDeciding] = useState<string | null>(null)
+  // Offre famille : membre à qui l'hôte renvoie une invitation.
+  const [resend, setResend] = useState<string | null>(null)
 
   if (!offer) return <NotFound />
   const svc = getService(offer.serviceId)!
@@ -666,9 +679,7 @@ export function ManageOffer() {
               </span>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate text-[15px] font-bold">{m.name}</span>
-                <span className={cx('text-[13px] font-semibold', m.invitePending ? 'text-info' : 'text-muted')}>
-                  {m.invitePending ? 'Attend ton invitation famille' : m.joinedAt ? `Membre depuis le ${shortDate(Date.parse(m.joinedAt))}` : 'Membre'}
-                </span>
+                <MemberStatus offer={offer} member={m} />
               </span>
 
               {!closed && (
@@ -677,8 +688,21 @@ export function ManageOffer() {
                 </button>
               )}
             </div>
-            {m.invitePending && !closed && offer.invite && (
-              <InviteMember offer={offer} member={m} onSend={(link) => run(() => actions.inviteMember(offer.id, m.id, link), `Invitation envoyée à ${m.name}`)} />
+            {!closed && offer.invite && (m.invitePending || m.inviteProblemAt || resend === m.id) && (
+              <InviteMember
+                offer={offer}
+                member={m}
+                onSend={async (link) => {
+                  const ok = await run(() => actions.inviteMember(offer.id, m.id, link), `Invitation envoyée à ${m.name}`)
+                  if (ok) setResend(null)
+                  return ok
+                }}
+              />
+            )}
+            {!closed && offer.invite && m.inviteSentAt && !m.invitePending && !m.inviteProblemAt && !m.inviteJoinedAt && resend !== m.id && (
+              <button type="button" onClick={() => setResend(m.id)} className="mb-3 text-[13px] font-bold text-info">
+                {offer.invite === 'link' ? 'Renvoyer un nouveau lien' : 'Réinviter'}
+              </button>
             )}
             </div>
           ))}

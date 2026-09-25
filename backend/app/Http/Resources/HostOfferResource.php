@@ -43,6 +43,8 @@ class HostOfferResource extends JsonResource
                 'invitePending' => $m->invite_pending,
                 'inviteEmail' => $familySubs->get($m->user_id)?->invite_email,
                 'inviteSentAt' => $familySubs->get($m->user_id)?->invite_sent_at?->toIso8601String(),
+                'inviteJoinedAt' => $familySubs->get($m->user_id)?->invite_joined_at?->toIso8601String(),
+                'inviteProblemAt' => $familySubs->get($m->user_id)?->invite_problem_at?->toIso8601String(),
                 'joinedAt' => $m->joined_at?->toIso8601String(),
             ])->values(),
             'hasCredentials' => $this->access_email !== null,

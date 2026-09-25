@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'user_id', 'service_id', 'host_offer_id', 'status', 'starts_at', 'ends_at', 'activates_at', 'auto_renew', 'reminded_j3_at', 'reminded_j1_at', 'pay_method',
     'profile_label', 'access_email', 'access_password', 'access_pin', 'invite_email', 'invite_link', 'invite_sent_at',
+    'invite_joined_at', 'invite_problem_at', 'invite_reminded_at',
 ])]
 #[Hidden(['access_email', 'access_password', 'access_pin', 'invite_email', 'invite_link'])]
 class Subscription extends Model
@@ -35,6 +36,9 @@ class Subscription extends Model
             'invite_email' => 'encrypted',
             'invite_link' => 'encrypted',
             'invite_sent_at' => 'datetime',
+            'invite_joined_at' => 'datetime',
+            'invite_problem_at' => 'datetime',
+            'invite_reminded_at' => 'datetime',
         ];
     }
 

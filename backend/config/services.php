@@ -66,6 +66,8 @@ return [
 
     'offers' => [
         // null = modération manuelle ; un nombre = mise en ligne auto après N secondes (dev).
+        // Rappel si un lien d'invitation famille n'est pas utilisé (Spotify : expire vers 7 jours).
+        'invite_reminder_days' => (int) env('INVITE_REMINDER_DAYS', 5),
         'auto_approve_after' => env('OFFERS_AUTO_APPROVE_AFTER') === null ? null : (int) env('OFFERS_AUTO_APPROVE_AFTER'),
     ],
 

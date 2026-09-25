@@ -25,7 +25,7 @@ export type UserSub = {
   /** Souci signalé, en cours de traitement (gains de l'hôte gelés). */
   issue?: { reason: IssueReason; at: number }
   /** Offre famille : invitation de l'hôte (lien à ouvrir ou e-mail Apple invité) */
-  invite?: { type: 'link' | 'email'; email?: string; link?: string; sentAt?: number }
+  invite?: { type: 'link' | 'email'; email?: string; link?: string; sentAt?: number; joinedAt?: number; problemAt?: number }
 }
 
 export type Notif = {
@@ -58,6 +58,8 @@ export type Member = {
   /** Apple Music : e-mail de l'identifiant Apple à inviter (visible après acceptation) */
   inviteEmail?: string | null
   inviteSentAt?: string | null
+  inviteJoinedAt?: string | null
+  inviteProblemAt?: string | null
   joinedAt?: string | null
 }
 
@@ -407,6 +409,11 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
       await api.cancelRequest(requestId)
       dispatch({ type: 'patch', patch: { requests: get().requests.filter((r) => r.id !== requestId) } })
       sync().catch(() => {})
+    },
+    /** Membre d'une offre famille : « J'ai rejoint » / « Le lien ne marche plus » (l'hôte est prévenu). */
+    async inviteStatus(subId: string, status: 'joined' | 'broken') {
+      const { data } = await api.inviteStatus(subId, status)
+      dispatch({ type: 'patch', patch: { subs: get().subs.map((s) => (s.id === subId ? toSub(data) : s)) } })
     },
     /** Offre famille : envoie l'invitation à un membre accepté (lien du service, ou e-mail Apple invité). */
     async inviteMember(offerId: string, memberId: string, link?: string) {

@@ -73,7 +73,7 @@ type ApiSub = {
   id: string; serviceId: string; price: number; hostName: string | null; state: UserSub['state']; startAt: string; endAt: string; activatesAt: string | null
   autoRenew: boolean; method: PayMethodId; profile: string | null; email: string | null; password: string | null; pin: string | null
   dispute: { id: string; reason: IssueReason; at: string } | null
-  invite: { type: 'link' | 'email'; email: string | null; link: string | null; sentAt: string | null } | null
+  invite: { type: 'link' | 'email'; email: string | null; link: string | null; sentAt: string | null; joinedAt: string | null; problemAt: string | null } | null
 }
 export type IssueReason = 'no_access' | 'wrong_password' | 'removed' | 'other'
 type ApiPayment = {
@@ -119,7 +119,9 @@ export const toSub = (s: ApiSub): UserSub => ({
   password: s.password ?? '',
   pin: s.pin ?? undefined,
   issue: s.dispute ? { reason: s.dispute.reason, at: ms(s.dispute.at)! } : undefined,
-  invite: s.invite ? { type: s.invite.type, email: s.invite.email ?? undefined, link: s.invite.link ?? undefined, sentAt: ms(s.invite.sentAt) } : undefined,
+  invite: s.invite
+    ? { type: s.invite.type, email: s.invite.email ?? undefined, link: s.invite.link ?? undefined, sentAt: ms(s.invite.sentAt), joinedAt: ms(s.invite.joinedAt), problemAt: ms(s.invite.problemAt) }
+    : undefined,
 })
 
 export const toPayment = (p: ApiPayment): Payment => ({
@@ -281,6 +283,7 @@ export const api = {
   acceptRequest: (id: string) => request<Data<ApiOffer>>('POST', `/host/requests/${id}/accept`),
   declineRequest: (id: string) => request<Data<ApiOffer>>('POST', `/host/requests/${id}/decline`),
   cancelRequest: (id: string) => request<Data<ApiRequest>>('POST', `/join-requests/${id}/cancel`),
+  inviteStatus: (subId: string, status: 'joined' | 'broken') => request<Data<ApiSub>>('POST', `/subscriptions/${subId}/invite/${status}`),
   inviteMember: (offerId: string, memberId: string, link?: string) =>
     request<Data<ApiOffer>>('POST', `/host/offers/${offerId}/members/${memberId}/invite`, link ? { link } : {}),
   payoutCode: () => request<{ sent: boolean; ttl: number; debugCode: string | null }>('POST', '/me/payout/code'),

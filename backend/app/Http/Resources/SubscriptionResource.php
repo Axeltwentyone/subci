@@ -43,6 +43,8 @@ class SubscriptionResource extends JsonResource
                 'email' => $this->invite_email,
                 'link' => $this->invite_link,
                 'sentAt' => $this->invite_sent_at?->toIso8601String(),
+                'joinedAt' => $this->invite_joined_at?->toIso8601String(),
+                'problemAt' => $this->invite_problem_at?->toIso8601String(),
             ] : null,
             'dispute' => ($d = $this->disputes()->where('status', DisputeStatus::Open)->latest()->first())
                 ? ['id' => (string) $d->id, 'reason' => $d->reason, 'at' => $d->created_at->toIso8601String()]

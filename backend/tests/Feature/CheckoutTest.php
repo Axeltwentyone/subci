@@ -6,6 +6,9 @@ use App\Models\HostOffer;
 use App\Models\JoinRequest;
 use App\Models\Service;
 use App\Models\User;
+use App\Services\EarningService;
+use App\Services\InviteReminder;
+use App\Services\JoinService;
 use Database\Seeders\ServiceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -96,10 +99,10 @@ class CheckoutTest extends TestCase
         $this->postJson("/api/v1/host/requests/{$request->id}/accept")->assertStatus(409);
 
         $this->travel(73)->hours();
-        app(\App\Services\EarningService::class)->release();
+        app(EarningService::class)->release();
         $this->assertSame(2052, $this->host->fresh()->balance);
         $this->travel(1)->months();
-        app(\App\Services\EarningService::class)->release();
+        app(EarningService::class)->release();
         $this->assertSame(4104, $this->host->fresh()->balance);
     }
 
@@ -129,7 +132,7 @@ class CheckoutTest extends TestCase
         $request = $this->payFor($offer);
 
         $this->travel(25)->hours();
-        app(\App\Services\JoinService::class)->expireOverdue();
+        app(JoinService::class)->expireOverdue();
 
         $this->assertSame('expired', $request->fresh()->status->value);
         $this->assertNotNull($request->payment->fresh()->refunded_at);
@@ -200,6 +203,37 @@ class CheckoutTest extends TestCase
         $this->actingAs(User::factory()->create())->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite", ['link' => $link])->assertNotFound();
     }
 
+    public function test_member_reports_broken_link_host_resends_and_reminder_before_expiry(): void
+    {
+        $offer = $this->offer('spotify', ['plan' => 'famille', 'plan_label' => 'Famille · 6 comptes', 'access_mode' => 'family', 'access_email' => null, 'access_password' => null, 'price' => 1500]);
+        $member = User::factory()->create();
+        $this->actingAs($member);
+        $request = $this->payFor($offer);
+        $this->asHost()->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk();
+        $memberId = $offer->members()->value('id');
+        $this->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite", ['link' => 'https://www.spotify.com/family/join/invite/A1/'])->assertOk();
+        $sub = $member->subscriptions()->sole();
+
+        // Le membre signale un lien cassé : l'hôte est prévenu, une seule fois par heure.
+        $this->actingAs($member)->postJson("/api/v1/subscriptions/{$sub->id}/invite/broken")->assertOk()->assertJsonPath('data.invite.problemAt', fn ($v) => $v !== null);
+        $this->postJson("/api/v1/subscriptions/{$sub->id}/invite/broken")->assertStatus(429);
+        $this->assertSame(1, $this->host->notifications()->where('data->title', 'like', '%le lien ne marche plus%')->count());
+        $this->asHost()->getJson('/api/v1/host')->assertJsonPath('data.offers.0.members.0.inviteProblemAt', fn ($v) => $v !== null);
+
+        // L'hôte renvoie un lien : signalement effacé, le membre a le nouveau lien.
+        $this->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite", ['link' => 'https://www.spotify.com/family/join/invite/B2/'])->assertOk();
+        $this->actingAs($member)->getJson("/api/v1/subscriptions/{$sub->id}")
+            ->assertJsonPath('data.invite.link', 'https://www.spotify.com/family/join/invite/B2/')->assertJsonPath('data.invite.problemAt', null);
+
+        // 5 jours sans « J'ai rejoint » : un rappel (et un seul).
+        $this->travel(5)->days();
+        $this->assertSame(1, app(InviteReminder::class)->run());
+        $this->assertSame(0, app(InviteReminder::class)->run());
+
+        $this->actingAs($member)->postJson("/api/v1/subscriptions/{$sub->id}/invite/joined")->assertOk()->assertJsonPath('data.invite.joinedAt', fn ($v) => $v !== null);
+        $this->actingAs(User::factory()->create())->postJson("/api/v1/subscriptions/{$sub->id}/invite/joined")->assertNotFound();
+    }
+
     public function test_apple_music_member_gives_apple_id_email_seen_by_host_only_after_acceptance(): void
     {
         $offer = $this->offer('apple-music', ['plan' => 'famille', 'plan_label' => 'Famille · 6 comptes', 'access_mode' => 'family', 'access_email' => null, 'access_password' => null, 'price' => 1500]);
@@ -219,7 +253,7 @@ class CheckoutTest extends TestCase
         $this->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite", ['link' => 'https://x.y'])->assertStatus(422);
         $this->postJson("/api/v1/host/offers/{$offer->id}/members/{$memberId}/invite")->assertOk();
         $this->assertSame('active', $member->subscriptions()->sole()->status->value);
-        $this->assertNotSame('aya.kone@icloud.com', \Illuminate\Support\Facades\DB::table('payments')->where('reference', $ref)->value('invite_email'), 'chiffré en base');
+        $this->assertNotSame('aya.kone@icloud.com', DB::table('payments')->where('reference', $ref)->value('invite_email'), 'chiffré en base');
     }
 
     public function test_renewal_needs_no_approval_and_uses_current_price(): void
