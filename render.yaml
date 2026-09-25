@@ -87,6 +87,11 @@ services:
       # À vider avant l'ouverture au public.
       - key: OTP_TEST_CODES
         sync: false
+      # Bêta entre amis : code commun à 6 chiffres pour tous les numéros, jusqu'à OTP_BETA_UNTIL (AAAA-MM-JJ, obligatoire).
+      - key: OTP_BETA_CODE
+        sync: false
+      - key: OTP_BETA_UNTIL
+        sync: false
 
 databases:
   - name: subci-db

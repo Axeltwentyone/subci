@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\OtpCode;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -33,8 +34,8 @@ class OtpService
 
         OtpCode::where('phone', $phone)->where('purpose', $purpose)->whereNull('consumed_at')->delete();
 
-        // Numéro de test déclaré sur le serveur : code fixe, aucun SMS (en attendant la passerelle).
-        $test = config('services.otp.test_codes')[$phone] ?? null;
+        // Numéro de test déclaré sur le serveur, ou code commun de la bêta : code fixe, aucun SMS.
+        $test = config('services.otp.test_codes')[$phone] ?? self::betaCode();
         $code = $test ?? str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         if ($test) {
             Log::notice('OTP : numéro de test utilisé', ['phone' => substr($phone, 0, 4).'••••'.substr($phone, -2)]);
@@ -73,6 +74,21 @@ class OtpService
         $otp->update(['consumed_at' => now()]);
 
         return true;
+    }
+
+    /** Code commun de la bêta, seulement avant la date de fin (OTP_BETA_UNTIL, obligatoire). */
+    public static function betaCode(): ?string
+    {
+        $code = config('services.otp.beta_code');
+        $until = config('services.otp.beta_until');
+        if (! $code || ! $until) {
+            return null;
+        }
+        try {
+            return now()->lte(Carbon::parse($until)->endOfDay()) ? $code : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /** Trop d'échecs sur 24 h pour ce numéro : plus aucun code accepté (ni envoyé) jusqu'à demain. */

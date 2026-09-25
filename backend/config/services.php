@@ -91,6 +91,10 @@ return [
         'per_hour' => (int) env('OTP_PER_HOUR', 6),
         'per_day' => (int) env('OTP_PER_DAY', 12),
         'max_failures' => (int) env('OTP_MAX_FAILURES', 15),
+        // Bêta : un code commun pour tous les numéros, jusqu'à une date obligatoire (coupé automatiquement ensuite).
+        // Quiconque connaît le code peut se connecter sur n'importe quel numéro : bêta fermée uniquement.
+        'beta_code' => preg_match('/^\d{6}$/', (string) env('OTP_BETA_CODE')) ? (string) env('OTP_BETA_CODE') : null,
+        'beta_until' => env('OTP_BETA_UNTIL'),
         // Numéros de test sans SMS : « 0700000000:482913,0102030405:111222 » (secret, à retirer avant l'ouverture).
         'test_codes' => collect(explode(',', (string) env('OTP_TEST_CODES', '')))
             ->map(fn ($pair) => array_map('trim', explode(':', $pair, 2)))

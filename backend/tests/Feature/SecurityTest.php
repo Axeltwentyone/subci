@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
 use App\Services\EarningService;
+use App\Services\OtpService;
 use App\Services\PaymentService;
 use App\Support\Totp;
 use Database\Seeders\ServiceSeeder;
@@ -215,6 +216,22 @@ class SecurityTest extends TestCase
         // Un autre numéro n'a pas ce code.
         $this->postJson('/api/v1/auth/otp', ['phone' => '0700000008'])->assertOk();
         $this->postJson('/api/v1/auth/verify', ['phone' => '0700000008', 'code' => '482913'])->assertStatus(422);
+    }
+
+    public function test_beta_code_works_for_any_number_until_its_end_date_only(): void
+    {
+        config(['services.otp.expose_code' => false, 'services.otp.beta_code' => '246810', 'services.otp.beta_until' => now()->addDays(3)->toDateString()]);
+        $this->postJson('/api/v1/auth/otp', ['phone' => '0711223344'])->assertOk()->assertJsonPath('debugCode', null);
+        $this->postJson('/api/v1/auth/verify', ['phone' => '0711223344', 'code' => '246810'])->assertOk();
+
+        // Après la date de fin : coupé automatiquement.
+        $this->travel(4)->days();
+        $this->postJson('/api/v1/auth/otp', ['phone' => '0711223355'])->assertOk();
+        $this->postJson('/api/v1/auth/verify', ['phone' => '0711223355', 'code' => '246810'])->assertStatus(422);
+
+        // Sans date de fin : jamais actif.
+        config(['services.otp.beta_until' => null]);
+        $this->assertNull(OtpService::betaCode());
     }
 
     public function test_otp_sends_are_capped_per_hour(): void
