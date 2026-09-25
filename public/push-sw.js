@@ -11,6 +11,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Sub.ci'
   event.waitUntil(
     Promise.all([
+      // App ouverte : elle se met à jour tout de suite (demande acceptée, gains versés…).
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => windows.forEach((w) => w.postMessage({ type: 'push' }))),
       self.registration.showNotification(title, {
         body: data.body || '',
         icon: '/pwa-192.png',

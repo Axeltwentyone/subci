@@ -461,6 +461,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Appareil déjà autorisé : on (ré)enregistre l'abonnement push (clé renouvelée, nouveau navigateur…).
     if (getToken()) subscribePush().catch(() => {})
     const onVisible = () => document.visibilityState === 'visible' && Date.now() - ref.current.lastSync > 60_000 && run()
+    // Notification push reçue (demande acceptée, gains versés…) : l'écran se met à jour tout de suite.
+    const onPush = (e: MessageEvent) => e.data?.type === 'push' && run()
+    navigator.serviceWorker?.addEventListener('message', onPush)
+    // App ouverte au premier plan : rafraîchie toutes les 60 s.
+    const tick = setInterval(() => document.visibilityState === 'visible' && Date.now() - ref.current.lastSync > 55_000 && run(), 15_000)
     const onUnauthorized = () => dispatch({ type: 'signedOut' })
     window.addEventListener('online', run)
     document.addEventListener('visibilitychange', onVisible)
@@ -468,6 +473,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('online', run)
       document.removeEventListener('visibilitychange', onVisible)
+      navigator.serviceWorker?.removeEventListener('message', onPush)
+      clearInterval(tick)
       window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
     }
   }, [actions])
@@ -532,8 +539,10 @@ export function useSavings() {
     for (const s of active) {
       const svc = getService(s.serviceId)
       if (!svc) continue
-      monthly += svc.price
-      saved += svc.fullPrice - svc.price
+      // Prix réellement payé (celui de l'hôte), pas le prix de référence du catalogue.
+      const paid = s.price || svc.price
+      monthly += paid
+      saved += Math.max(0, svc.fullPrice - paid)
     }
     return { monthly, saved, count: active.length }
     // eslint-disable-next-line react-hooks/exhaustive-deps

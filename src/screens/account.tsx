@@ -175,10 +175,13 @@ function NotifCard({ n, onOpen }: { n: Notif; onOpen: () => void }) {
 
 /** Le profil montre la valeur (économies) avant les réglages. Parrainage = seule surface promo. */
 export function Profile() {
-  const { state } = useStore()
+  const { state, actions } = useStore()
   const navigate = useNavigate()
   const toast = useToast()
   const { count, saved } = useSavings()
+  const waiting = state.requests.filter((r) => r.status === 'pending').length
+  const members = state.offers.reduce((n, o) => n + o.members.length, 0)
+  const hostWaiting = state.offers.reduce((n, o) => n + (o.requests?.length ?? 0), 0)
   const [editName, setEditName] = useState(false)
   const user = state.user ?? { name: null, firstName: null, phone: '', referralCode: '' }
   const code = user.referralCode
@@ -197,51 +200,68 @@ export function Profile() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[720px] flex-col gap-[18px] px-5 pt-2 md:px-8 md:pt-7 desk:pt-9">
-      <div className="flex items-center gap-3.5">
-        <span className="grid size-16 place-items-center rounded-full bg-[#FFB38F] font-display text-[26px] font-extrabold">{(user.name ?? '?').charAt(0)}</span>
-        <div className="flex flex-1 flex-col gap-0.5">
-          <button type="button" onClick={() => setEditName(true)} className="text-left">
-            <h1 className={cx('font-display text-2xl font-bold tracking-[-0.02em]', !user.name && 'text-muted')}>{user.name ?? 'Ajoute ton prénom'}</h1>
-          </button>
-          <span className="text-sm font-semibold text-muted">+225 {formatPhone(user.phone)}</span>
+    <PullToRefresh onRefresh={() => actions.sync().catch(() => {})}>
+      <div className="mx-auto flex max-w-[720px] flex-col gap-[18px] px-5 pt-2 md:px-8 md:pt-7 desk:pt-9">
+        <div className="flex items-center gap-3.5">
+          <span className="grid size-16 place-items-center rounded-full bg-[#FFB38F] font-display text-[26px] font-extrabold">{(user.name ?? '?').charAt(0)}</span>
+          <div className="flex flex-1 flex-col gap-0.5">
+            <button type="button" onClick={() => setEditName(true)} className="text-left">
+              <h1 className={cx('font-display text-2xl font-bold tracking-[-0.02em]', !user.name && 'text-muted')}>{user.name ?? 'Ajoute ton prénom'}</h1>
+            </button>
+            <span className="text-sm font-semibold text-muted">+225 {formatPhone(user.phone)}</span>
+          </div>
+          <RoundIconButton label="Paramètres" onClick={() => navigate('/settings', { viewTransition: true })}>
+            <IconGear size={20} />
+          </RoundIconButton>
         </div>
-        <RoundIconButton label="Paramètres" onClick={() => navigate('/settings', { viewTransition: true })}>
-          <IconGear size={20} />
-        </RoundIconButton>
-      </div>
-      <div className="grid grid-cols-2 gap-2.5">
-        <Card className="flex flex-col gap-1 p-4">
-          <span className="font-display text-[28px] leading-none font-extrabold">{count}</span>
-          <span className="text-[13px] font-semibold text-muted">abonnement{count > 1 ? 's' : ''} actif{count > 1 ? 's' : ''}</span>
-        </Card>
-        <Card className="flex flex-col gap-1 p-4">
-          <span className="font-display text-[28px] leading-none font-extrabold">{fcfa(saved)}</span>
-          <span className="text-[13px] font-semibold text-muted">FCFA économisés / mois</span>
-        </Card>
-      </div>
-      <div className="flex flex-col gap-3 rounded-card bg-brand p-[18px]">
-        <span className="font-display text-xl leading-[1.15] font-bold">Invite un ami, gagnez 1 000 FCFA chacun</span>
-        <div className="flex gap-2">
-          <span className="flex h-11 flex-1 items-center rounded-tile bg-white px-3.5 text-[15px] font-extrabold tracking-[0.06em]">{code}</span>
-          <button type="button" onClick={share} className="pressable flex h-11 items-center rounded-tile bg-ink px-4 text-sm font-bold text-white">
-            Partager
-          </button>
+        <div className="grid grid-cols-2 gap-2.5">
+          <Stat
+            value={String(count)}
+            label={`abonnement${count > 1 ? 's' : ''} actif${count > 1 ? 's' : ''}`}
+            hint={waiting > 0 ? `+${waiting} en attente de l’hôte` : undefined}
+            onClick={() => navigate('/subs')}
+          />
+          <Stat value={fcfa(saved)} label="FCFA économisés / mois" onClick={() => navigate('/subs')} />
+          {state.offers.length > 0 && (
+            <>
+              <Stat
+                value={String(members)}
+                label={`membre${members > 1 ? 's' : ''} dans tes cercles`}
+                hint={hostWaiting > 0 ? `${hostWaiting} demande${hostWaiting > 1 ? 's' : ''} à traiter` : `${state.offers.length} offre${state.offers.length > 1 ? 's' : ''} partagée${state.offers.length > 1 ? 's' : ''}`}
+                onClick={() => navigate('/subs?mode=host')}
+              />
+              <Stat
+                value={fcfa(state.monthGain)}
+                label="FCFA gagnés ce mois"
+                hint={state.pending > 0 ? `dont ${fcfa(state.pending)} à venir` : undefined}
+                onClick={() => navigate('/subs?mode=host')}
+              />
+            </>
+          )}
         </div>
+        <div className="flex flex-col gap-3 rounded-card bg-brand p-[18px]">
+          <span className="font-display text-xl leading-[1.15] font-bold">Invite un ami, gagnez 1 000 FCFA chacun</span>
+          <div className="flex gap-2">
+            <span className="flex h-11 flex-1 items-center rounded-tile bg-white px-3.5 text-[15px] font-extrabold tracking-[0.06em]">{code}</span>
+            <button type="button" onClick={share} className="pressable flex h-11 items-center rounded-tile bg-ink px-4 text-sm font-bold text-white">
+              Partager
+            </button>
+          </div>
+        </div>
+        <Card className="px-[18px]">
+          <ListLink label="Partager & gagner" hint={state.offers.length ? `${fcfa(state.balance)} FCFA` : undefined} onClick={() => navigate(state.offers.length ? '/subs?mode=host' : '/host', { viewTransition: true })} />
+          <ListLink label="Moyens de paiement" hint={getMethod(state.lastMethod).name} onClick={() => navigate('/settings', { viewTransition: true })} />
+          <ListLink label="Historique des paiements" onClick={() => navigate('/activity?tab=payments')} />
+          <ListLink label="Aide & WhatsApp" onClick={() => window.open('https://wa.me/2250700000000', '_blank', 'noopener')} />
+          <ListLink label="Paramètres" onClick={() => navigate('/settings', { viewTransition: true })} />
+        </Card>
+        <div className="h-2" />
+        <Sheet open={editName} onClose={() => setEditName(false)} label="Prénom et nom">
+          <h2 className="mb-4 font-display text-2xl font-bold tracking-[-0.02em]">Prénom et nom</h2>
+          {editName && <NameForm submitLabel="Enregistrer" onDone={() => { setEditName(false); toast({ text: 'Nom mis à jour' }) }} />}
+        </Sheet>
       </div>
-      <Card className="px-[18px]">
-        <ListLink label="Partager & gagner" hint={state.offers.length ? `${fcfa(state.balance)} FCFA` : undefined} onClick={() => navigate(state.offers.length ? '/subs?mode=host' : '/host', { viewTransition: true })} />
-        <ListLink label="Moyens de paiement" hint={getMethod(state.lastMethod).name} onClick={() => navigate('/settings', { viewTransition: true })} />
-        <ListLink label="Historique des paiements" onClick={() => navigate('/activity?tab=payments')} />
-        <ListLink label="Aide & WhatsApp" onClick={() => window.open('https://wa.me/2250700000000', '_blank', 'noopener')} />
-        <ListLink label="Paramètres" onClick={() => navigate('/settings', { viewTransition: true })} />
-      </Card>
-      <div className="h-2" />
-      <Sheet open={editName} onClose={() => setEditName(false)} label="Prénom et nom">
-        <h2 className="mb-4 font-display text-2xl font-bold tracking-[-0.02em]">Prénom et nom</h2>
-        {editName && <NameForm submitLabel="Enregistrer" onDone={() => { setEditName(false); toast({ text: 'Nom mis à jour' }) }} />}
-      </Sheet>
-    </div>
+    </PullToRefresh>
   )
 }
 
@@ -361,5 +381,18 @@ function SettingRow({ label, hint, children }: { label: string; hint?: string; c
       </div>
       {children}
     </div>
+  )
+}
+
+/** Chiffre clé du profil, cliquable vers le détail. */
+function Stat({ value, label, hint, onClick }: { value: string; label: string; hint?: string; onClick?: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="pressable text-left">
+      <Card className="flex h-full flex-col gap-1 p-4">
+        <span className="font-display text-[28px] leading-none font-extrabold">{value}</span>
+        <span className="text-[13px] font-semibold text-muted">{label}</span>
+        {hint && <span className="text-[12px] font-bold text-brand-ink">{hint}</span>}
+      </Card>
+    </button>
   )
 }
