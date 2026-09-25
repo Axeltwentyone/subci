@@ -1,11 +1,14 @@
 # Sub.ci
 
-PWA mobile (React + Tailwind v4) et API Laravel 13 / MySQL.
+PWA mobile (React + Tailwind v4), tableau de bord admin, et API Laravel 13 (MySQL en local, Postgres en production).
 
 ```
 .
-├── src/        PWA (Vite, React Router, vite-plugin-pwa)
-└── backend/    API Laravel (Sanctum, MySQL `subci_pwa`)
+├── frontend/       Tout le front (un seul package npm)
+│   ├── src/        PWA membres (Vite, React Router, vite-plugin-pwa)
+│   └── admin/      Tableau de bord admin (réutilise les composants de src/)
+├── backend/        API Laravel (Sanctum)
+└── render.yaml     Déploiement de l'API (Render)
 ```
 
 ## Lancer en local
@@ -20,7 +23,8 @@ cp .env.example .env && php artisan key:generate   # 1re fois seulement
 php artisan migrate --seed                         # catalogue + compte démo
 php artisan serve --port=8000
 
-# PWA (autre terminal, à la racine)
+# PWA (autre terminal)
+cd frontend
 npm install
 npm run dev
 ```
@@ -103,12 +107,12 @@ cd backend && php artisan test     # SQLite en mémoire, ne touche pas MySQL
 
 ## Administration
 
-Tableau de bord séparé de la PWA (`admin/`), servi sur http://localhost:5174.
+Tableau de bord séparé de la PWA (`frontend/admin/`), servi sur http://localhost:5174.
 
 ```bash
 cd backend && php artisan admin:create toi@exemple.ci   # demande le mot de passe (12 caractères min.)
-npm run admin:dev                                        # dev
-npm run admin:build                                      # build dans dist-admin/
+cd frontend && npm run admin:dev                         # dev
+cd frontend && npm run admin:build                       # build dans frontend/dist-admin/
 ```
 
 Sur téléphone : ouvre l'admin, puis « Ajouter à l'écran d'accueil » (icône orange). Dans **Plus → Notifications**, active les alertes sur l'appareil : paiement reçu, offre à valider, versement à faire, nouvelles inscriptions (au choix). Sur iPhone, les notifications ne marchent que depuis l'app installée, en HTTPS. Les alertes partent via la file d'attente : `php artisan queue:work` doit tourner (comme pour les notifications des membres).
@@ -118,7 +122,7 @@ Offres à valider (preuve d'abonnement), versements à faire à la main (rembour
 ## Déploiement (Vercel + Render)
 
 - **API** : Render, image Docker (`backend/Dockerfile`) décrite dans `render.yaml` avec sa base Postgres. Nginx, PHP-FPM, la file d'attente et le planificateur tournent dans le même conteneur. Au démarrage : migrations puis catalogue des services (jamais les données de démo).
-- **PWA** et **admin** : deux projets Vercel sur ce dépôt, qui partagent `vercel.json` (réécriture SPA, en-têtes de sécurité).
+- **PWA** et **admin** : deux projets Vercel sur ce dépôt, **Root Directory = `frontend`** pour les deux. Ils partagent `frontend/vercel.json` (réécriture SPA, en-têtes de sécurité).
 - **Preuves d'abonnement** : Cloudflare R2 (bucket privé, compatible S3).
 
 | Projet Vercel | Commande de build | Dossier de sortie | Variable |

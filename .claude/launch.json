@@ -16,6 +16,8 @@
       "name": "subci-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
+        "--prefix",
+        "frontend",
         "run",
         "dev",
         "--",
@@ -29,6 +31,8 @@
       "name": "subci-preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
+        "--prefix",
+        "frontend",
         "run",
         "preview",
         "--",
@@ -42,6 +46,8 @@
       "name": "subci-admin",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
+        "--prefix",
+        "frontend",
         "run",
         "admin:dev"
       ],
@@ -51,6 +57,8 @@
       "name": "subci-admin-preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
+        "--prefix",
+        "frontend",
         "run",
         "admin:preview"
       ],
