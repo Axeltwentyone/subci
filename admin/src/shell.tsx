@@ -32,6 +32,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     admin,
     async signIn(email, password) {
       const res = await api.login(email, password)
+      if (!res?.token) throw new Error('Réponse inattendue du serveur. Recharge la page et réessaie.')
       setToken(res.token)
       setAdmin(res.admin)
     },

@@ -55,7 +55,7 @@ async function call<T>(method: string, path: string, body?: unknown, raw = false
 }
 
 export const errorText = (e: unknown) =>
-  e instanceof ApiError ? Object.values(e.errors)[0]?.[0] ?? e.message : 'Erreur inattendue.'
+  e instanceof ApiError ? Object.values(e.errors)[0]?.[0] ?? e.message : e instanceof Error ? e.message : 'Erreur inattendue.'
 
 /* ---------- Types ---------- */
 
