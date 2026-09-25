@@ -55,12 +55,16 @@ class Payment extends Model
         ];
     }
 
-    /** Historique : paiements aboutis + remboursements / retraits / gains en cours. */
+    /**
+     * Historique : paiements aboutis + remboursements / retraits en cours.
+     * Les gains d'hôte en séquestre n'y figurent qu'une fois versés au solde
+     * (ils sont résumés dans « à venir » du portefeuille).
+     */
     public function scopeVisibleInHistory(Builder $query): void
     {
         $query->where(fn (Builder $q) => $q
             ->where('status', PaymentStatus::Succeeded)
-            ->orWhere(fn (Builder $q) => $q->where('status', PaymentStatus::Pending)->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal, PaymentType::Earning])));
+            ->orWhere(fn (Builder $q) => $q->where('status', PaymentStatus::Pending)->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal])));
     }
 
     /** Gains d'hôte encore en séquestre (pas encore dans le solde retirable). */

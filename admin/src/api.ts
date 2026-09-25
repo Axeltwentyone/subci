@@ -95,6 +95,12 @@ export type PaymentRow = {
   service: Brand | null
   user: { id: number; name: string; phone: string } | null
   joinStatus: string | null
+  /** Gain d'hôte : mois couvert, versement au solde, gel, paiement du membre d'origine. */
+  gross: number | null
+  periodStart: string | null
+  availableAt: string | null
+  heldAt: string | null
+  source: { id: number; ref: string; user: string | null } | null
   refundedAt: string | null
   confirmedAt: string | null
   createdAt: string
@@ -198,6 +204,13 @@ export type ServiceRow = {
 
 export type AuditRow = { id: number; admin: string; action: string; subjectType: string | null; subjectId: number | null; meta: Record<string, unknown> | null; ip: string | null; at: string }
 
+export type PaymentSplit = {
+  host: { id: number; name: string } | null
+  commission: number
+  refunded: number
+  installments: { id: number; label: string; amount: number; gross: number | null; status: PaymentRow['status']; periodStart: string | null; availableAt: string | null; heldAt: string | null }[]
+}
+
 export type AdminMe = { id: number; name: string; email: string; twoFactor: boolean }
 /** Connexion : session ouverte, code à 6 chiffres demandé, ou double authentification à configurer. */
 export type LoginResult =
@@ -253,6 +266,7 @@ export const api = {
   toggleOffer: (id: number) => call<{ data: OfferRow }>('POST', `/offers/${id}/toggle`),
 
   payments: (p: { status?: string; type?: string; q?: string; page?: number; userId?: number }) => call<Page<PaymentRow>>('GET', `/payments${qs(p)}`),
+  payment: (id: number) => call<{ data: PaymentRow & { split: PaymentSplit | null } }>('GET', `/payments/${id}`),
   payouts: () => call<{ pending: PaymentRow[]; done: PaymentRow[]; total: number }>('GET', '/payouts'),
   markPaid: (id: number, note?: string) => call<{ data: PaymentRow }>('POST', `/payments/${id}/paid`, { note }),
   reconcile: (id: number) => call<{ data: PaymentRow }>('POST', `/payments/${id}/reconcile`),

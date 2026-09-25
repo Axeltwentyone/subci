@@ -205,7 +205,7 @@ function FocusCard({ sub, onGo }: { sub?: UserSub; onGo: (to: string, o?: { view
       </div>
       <div className="flex items-center justify-between desk:justify-end">
         <span className="font-display text-xl font-extrabold desk:hidden">
-          {fcfa(svc.price)} <span className="font-sans text-[13px] font-semibold text-ink-muted">FCFA</span>
+          {fcfa(sub.price)} <span className="font-sans text-[13px] font-semibold text-ink-muted">FCFA/mois</span>
         </span>
         {due ? (
           <button
@@ -213,7 +213,7 @@ function FocusCard({ sub, onGo }: { sub?: UserSub; onGo: (to: string, o?: { view
             onClick={() => onGo(`/checkout/${svc.id}`, { viewTransition: true })}
             className="pressable flex h-11 items-center rounded-[14px] bg-brand px-5 text-[15px] font-bold text-ink desk:h-[52px] desk:rounded-btn desk:px-6 desk:text-base"
           >
-            Renouveler<span className="hidden desk:inline">&nbsp;· {fcfa(svc.price)} FCFA</span>
+            Renouveler<span className="hidden desk:inline">&nbsp;· {fcfa(sub.price)} FCFA/mois</span>
           </button>
         ) : (
           <button

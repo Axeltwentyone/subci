@@ -134,6 +134,26 @@ class SecurityTest extends TestCase
         $this->assertSame(2160, $trusted->fresh()->balance);
     }
 
+    public function test_host_history_shows_earnings_once_paid_out_and_admin_sees_the_split(): void
+    {
+        $member = $this->joined($this->offer(), 3);
+        $payment = $member->payments()->where('type', 'subscription')->sole();
+
+        // Historique de l'hôte : rien tant que le mois n'est pas versé (c'est dans « à venir »).
+        $this->actingAs($this->host)->getJson('/api/v1/payments')->assertJsonCount(0, 'data');
+        $this->travel(49)->hours();
+        app(EarningService::class)->release();
+        $this->getJson('/api/v1/payments')->assertJsonCount(1, 'data')->assertJsonPath('data.0.amount', 2052);
+
+        $admin = Admin::create(['name' => 'A', 'email' => 'a@sub.ci', 'password' => 'un-mot-de-passe-long']);
+        $this->app['auth']->forgetGuards();
+        $split = $this->withToken($admin->createToken('admin', ['admin'])->plainTextToken)
+            ->getJson("/api/v1/admin/payments/{$payment->id}")->assertOk()->json('data.split');
+        $this->assertSame(684, $split['commission']);       // 6 840 − 3 × 2 052
+        $this->assertCount(3, $split['installments']);
+        $this->assertSame(['succeeded', 'pending', 'pending'], array_column($split['installments'], 'status'));
+    }
+
     public function test_member_can_close_their_dispute_and_earnings_resume(): void
     {
         $member = $this->joined($this->offer(), 1);

@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useToast } from '../../../src/components/Toast'
 import { api, errorText, type PaymentRow, type RequestRow } from '../api'
 import { useCounts } from '../shell'
 import {
-  Avatar, Brandmark, Button, Confirm, Copy, Drawer, ErrorBox, Loading, PAYMENT_STATUS, PAYMENT_TYPE, PageHeader, Pager, Panel, REQUEST_STATUS, SearchInput, Segments, StatusPill, Table, Td, Tr, ago, cx, dateTime, fcfa, phone,
+  Avatar, Brandmark, Button, Confirm, Copy, Drawer, ErrorBox, Loading, PAYMENT_STATUS, PAYMENT_TYPE, PageHeader, Pager, Panel, Pill, REQUEST_STATUS, SearchInput, Segments, StatusPill, Table, Td, Tr, ago, cx, date, dateTime, fcfa, phone,
   useAsync, useDebounced,
 } from '../kit'
 
@@ -118,15 +118,19 @@ export function Payouts() {
 export function Payments() {
   const [params, setParams] = useSearchParams()
   const status = params.get('status') ?? ''
-  const type = params.get('type') ?? ''
+  // Par défaut : ce que les membres ont payé (les versements aux hôtes ont leur propre onglet).
+  const type = params.get('type') ?? 'subscription'
   const [q, setQ] = useState(params.get('q') ?? '')
   const [page, setPage] = useState(1)
+  // Lien « Issu du paiement … » : la recherche suit l'URL.
+  const urlQ = params.get('q') ?? ''
+  useEffect(() => setQ(urlQ), [urlQ])
   const debounced = useDebounced(q)
   const [open, setOpen] = useState<PaymentRow | null>(null)
   const { data, error, loading, reload } = useAsync(() => api.payments({ status, type, q: debounced, page }), [status, type, debounced, page])
   const set = (k: string, v: string) => {
     const next = new URLSearchParams(params)
-    if (v) next.set(k, v)
+    if (v || k === 'type') next.set(k, v)
     else next.delete(k)
     setPage(1)
     setParams(next)
@@ -134,12 +138,21 @@ export function Payments() {
 
   return (
     <>
-      <PageHeader title="Paiements" subtitle="Tous les mouvements d’argent : abonnements, gains des hôtes, retraits et remboursements." />
+      <PageHeader
+        title="Paiements"
+        subtitle="Payés par les membres : l’argent qui entre. Gains des hôtes : ce que Sub.ci leur reverse, mois par mois, 48 h après le début de chaque mois payé."
+      />
       <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
         <Segments
           value={type as '' | 'subscription' | 'earning' | 'withdrawal' | 'refund'}
           onChange={(v) => set('type', v)}
-          options={[{ value: '', label: 'Tous' }, ...(['subscription', 'earning', 'withdrawal', 'refund'] as const).map((t) => ({ value: t, label: PAYMENT_TYPE[t] }))]}
+          options={[
+            { value: 'subscription', label: 'Payés par les membres' },
+            { value: 'earning', label: 'Gains des hôtes' },
+            { value: 'withdrawal', label: 'Retraits' },
+            { value: 'refund', label: 'Remboursements' },
+            { value: '', label: 'Tout' },
+          ]}
         />
         <Segments
           value={status as '' | 'pending' | 'succeeded' | 'failed' | 'expired'}
@@ -164,14 +177,17 @@ export function Payments() {
                   <Td className="max-w-[220px] truncate font-semibold">
                     <span className="flex items-center gap-2">
                       {p.service && <Brandmark s={p.service} size={22} />}
-                      <span className="truncate">{p.label}</span>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate">{p.label}</span>
+                        {p.source && <span className="text-[11px] font-semibold text-muted">payé par {p.source.user} · {p.source.ref}</span>}
+                      </span>
                     </span>
                   </Td>
                   <Td desktop className="text-[13px] font-semibold text-muted">{PAYMENT_TYPE[p.type]}</Td>
                   <Td desktop className="text-[13px] font-semibold">{p.methodLabel}</Td>
                   <Td className={cx('tabular font-bold', p.direction === 'in' && p.type === 'earning' && 'text-ok-ink')}>{fcfa(p.amount)}</Td>
                   <Td>
-                    <StatusPill map={PAYMENT_STATUS} value={p.status} />
+                    <PaymentState p={p} />
                     {p.refundedAt && <span className="ml-1 text-[11px] font-extrabold text-err">remboursé</span>}
                   </Td>
                   <Td className="text-[13px] font-semibold text-muted">{dateTime(p.createdAt)}</Td>
@@ -187,6 +203,68 @@ export function Payments() {
   )
 }
 
+/** Où va l'argent payé par le membre : commission Sub.ci + un versement à l'hôte par mois. */
+function Split({ id, amount }: { id: number; amount: number }) {
+  const { data, loading } = useAsync(() => api.payment(id).then((r) => r.data.split), [id])
+  if (loading && !data) return <Loading />
+  if (!data) return null
+  const toHost = data.installments.filter((i) => i.status !== 'failed').reduce((n, i) => n + i.amount, 0)
+
+  return (
+    <Panel title="Où va cet argent">
+      <div className="flex flex-col gap-3 text-sm">
+        <div className="flex justify-between font-semibold">
+          <span className="text-muted">Payé par le membre</span>
+          <span className="tabular font-bold">{fcfa(amount)} FCFA</span>
+        </div>
+        <div className="flex justify-between font-semibold">
+          <span className="text-muted">Commission Sub.ci (10 %)</span>
+          <span className="tabular font-bold">{fcfa(data.commission)} FCFA</span>
+        </div>
+        {data.refunded > 0 && (
+          <div className="flex justify-between font-semibold text-err-ink">
+            <span>Rendu au membre</span>
+            <span className="tabular font-bold">{fcfa(data.refunded)} FCFA</span>
+          </div>
+        )}
+        <div className="flex justify-between border-t border-line-soft pt-3 font-semibold">
+          <span className="text-muted">Pour {data.host ? <Link to={`/users/${data.host.id}`} className="font-bold text-ink hover:underline">{data.host.name}</Link> : 'l’hôte'}</span>
+          <span className="tabular font-bold">{fcfa(toHost)} FCFA</span>
+        </div>
+        {data.installments.length === 0 ? (
+          <p className="text-[13px] font-semibold text-muted">Rien de versé à l’hôte : demande pas encore acceptée, refusée ou remboursée.</p>
+        ) : (
+          <ol className="flex flex-col divide-y divide-line-soft rounded-tile bg-sand">
+            {data.installments.map((i, k) => (
+              <li key={i.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                <span className="flex flex-col">
+                  <span className="font-bold">Mois {k + 1}</span>
+                  <span className="text-[12px] font-semibold text-muted">à partir du {date(i.periodStart)}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="tabular font-bold whitespace-nowrap">{fcfa(i.amount)}</span>
+                  <PaymentState p={{ type: 'earning', ...i }} />
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </Panel>
+  )
+}
+
+/** Statut : un gain d'hôte « en attente » n'est pas un paiement bloqué, c'est un versement prévu. */
+function PaymentState({ p }: { p: { type: string; status: string; availableAt: string | null; heldAt: string | null } }) {
+  if (p.type === 'earning') {
+    if (p.status === 'succeeded') return <Pill tone="ok">Versé au solde</Pill>
+    if (p.status === 'failed') return <Pill tone="muted">Rendu au membre</Pill>
+    if (p.heldAt) return <Pill tone="warn">Gelé · souci</Pill>
+    return <Pill tone="info">Prévu le {date(p.availableAt)}</Pill>
+  }
+  return <StatusPill map={PAYMENT_STATUS} value={p.status} />
+}
+
 function PaymentDrawer({ payment: p, onClose, onChanged }: { payment: PaymentRow | null; onClose: () => void; onChanged: (p: PaymentRow) => void }) {
   const toast = useToast()
   const [busy, setBusy] = useState(false)
@@ -199,7 +277,7 @@ function PaymentDrawer({ payment: p, onClose, onChanged }: { payment: PaymentRow
               <span className="tabular font-display text-[32px] font-extrabold">
                 {fcfa(p.amount)} <span className="font-sans text-sm font-bold text-muted">FCFA</span>
               </span>
-              <StatusPill map={PAYMENT_STATUS} value={p.status} />
+              <PaymentState p={p} />
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               {[
@@ -219,6 +297,12 @@ function PaymentDrawer({ payment: p, onClose, onChanged }: { payment: PaymentRow
               ))}
             </dl>
           </Panel>
+          {p.type === 'subscription' && p.status === 'succeeded' && <Split id={p.id} amount={p.amount} />}
+          {p.source && (
+            <Link to={`/payments?type=&q=${encodeURIComponent(p.source.ref)}`} onClick={onClose} className="rounded-card bg-white px-5 py-4 text-sm font-bold hover:bg-line">
+              Issu du paiement {p.source.ref} de {p.source.user} →
+            </Link>
+          )}
           {p.user && (
             <Link to={`/users/${p.user.id}`} className="rounded-card bg-white px-5 py-4 text-sm font-bold hover:bg-line">
               Voir la fiche de {p.user.name} →

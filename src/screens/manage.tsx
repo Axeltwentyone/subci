@@ -744,7 +744,7 @@ export function SubDetail() {
             <div className="flex flex-col gap-0.5">
               <span className="text-[15px] font-bold">Renouvellement auto</span>
               <span className="text-[13px] font-semibold text-muted">
-                {m.name} · {fcfa(svc.price)} FCFA
+                {m.name} · {fcfa(sub.price)} FCFA/mois
               </span>
             </div>
             <Toggle
@@ -771,7 +771,7 @@ export function SubDetail() {
         >
           Un souci ?
         </button>
-        <Button onClick={() => navigate(`/checkout/${svc.id}`, { viewTransition: true })}>Renouveler · {fcfa(svc.price)}</Button>
+        <Button onClick={() => navigate(`/checkout/${svc.id}`, { viewTransition: true })}>Renouveler · {fcfa(sub.price)}/mois</Button>
       </StickyAction>
 
       <IssueSheet sub={sub} open={issue} onClose={() => setIssue(false)} />

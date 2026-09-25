@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\PaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\JoinRequestResource;
 use App\Http\Resources\NotificationResource;
@@ -31,7 +30,7 @@ class BootstrapController extends Controller
             'user' => new UserResource($user),
             'services' => ServiceResource::collection($availability->annotate(Service::active()->orderBy('position')->get(), $user)),
             'subscriptions' => SubscriptionResource::collection($user->subscriptions()->with('service', 'hostOffer.user')->latest()->get()),
-            'payments' => PaymentResource::collection($user->payments()->with('service', 'hostOffer.user', 'joinRequest')->visibleInHistory()->latest()->limit(100)->get()),
+            'payments' => PaymentResource::collection($user->payments()->with('service', 'hostOffer.user', 'joinRequest')->visibleInHistory()->latest('updated_at')->limit(100)->get()),
             'notifications' => NotificationResource::collection($user->notifications()->whereNull('archived_at')->latest()->limit(100)->get()),
             'host' => HostController::summary($user),
             // Demandes du membre en attente de réponse d'un hôte.

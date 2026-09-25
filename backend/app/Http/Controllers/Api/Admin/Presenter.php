@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\JoinStatus;
+use App\Enums\PaymentStatus;
+use App\Enums\PaymentType;
 use App\Models\Dispute;
 use App\Models\HostOffer;
 use App\Models\JoinRequest;
@@ -60,6 +62,34 @@ final class Presenter
         ];
     }
 
+    /** Où va l'argent d'un paiement de membre : commission Sub.ci + versements à l'hôte (mois par mois). */
+    public static function split(Payment $p): ?array
+    {
+        if ($p->type !== PaymentType::Subscription || $p->status !== PaymentStatus::Succeeded) {
+            return null;
+        }
+        $earnings = Payment::with('user')->where('source_payment_id', $p->id)->orderBy('available_at')->get();
+        $refunds = Payment::where('type', PaymentType::Refund)->where('user_id', $p->user_id)
+            ->where(fn ($q) => $q->where('subscription_id', $p->subscription_id ?? 0)->orWhere('label', 'like', '%'.$p->reference.'%'))
+            ->where('created_at', '>=', $p->created_at)->get();
+
+        return [
+            'host' => $earnings->first()?->user ? ['id' => $earnings->first()->user->id, 'name' => $earnings->first()->user->shortName()] : null,
+            'commission' => (int) ($earnings->sum('gross') - $earnings->sum('amount')),
+            'installments' => $earnings->map(fn (Payment $e) => [
+                'id' => $e->id,
+                'label' => $e->label,
+                'amount' => $e->amount,
+                'gross' => $e->gross,
+                'status' => $e->status->value,
+                'periodStart' => $e->period_start?->toIso8601String(),
+                'availableAt' => $e->available_at?->toIso8601String(),
+                'heldAt' => $e->held_at?->toIso8601String(),
+            ])->values(),
+            'refunded' => (int) $refunds->sum('amount'),
+        ];
+    }
+
     public static function payment(Payment $p): array
     {
         return [
@@ -78,6 +108,14 @@ final class Presenter
             'service' => $p->service ? ['id' => $p->service->slug, 'name' => $p->service->name, 'color' => $p->service->color, 'fg' => $p->service->fg, 'mono' => $p->service->mono] : null,
             'user' => $p->relationLoaded('user') && $p->user ? ['id' => $p->user->id, 'name' => $p->user->shortName(), 'phone' => $p->user->phone] : null,
             'joinStatus' => $p->relationLoaded('joinRequest') ? $p->joinRequest?->status->value : null,
+            // Gain d'hôte : mois couvert, date de versement au solde, gel éventuel, paiement du membre d'origine.
+            'gross' => $p->gross,
+            'periodStart' => $p->period_start?->toIso8601String(),
+            'availableAt' => $p->available_at?->toIso8601String(),
+            'heldAt' => $p->held_at?->toIso8601String(),
+            'source' => $p->source_payment_id && $p->relationLoaded('source') && $p->source
+                ? ['id' => $p->source->id, 'ref' => $p->source->reference, 'user' => $p->source->user?->shortName()]
+                : null,
             'refundedAt' => $p->refunded_at?->toIso8601String(),
             'confirmedAt' => $p->confirmed_at?->toIso8601String(),
             'createdAt' => $p->created_at->toIso8601String(),

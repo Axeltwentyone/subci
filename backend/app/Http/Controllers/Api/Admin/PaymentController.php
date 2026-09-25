@@ -25,13 +25,15 @@ class PaymentController extends Controller
             'userId' => ['nullable', 'integer'],
         ]);
 
-        $payments = Payment::with('user', 'service', 'joinRequest')
+        $payments = Payment::with('user', 'service', 'joinRequest', 'source.user')
             ->when($data['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
             ->when($data['type'] ?? null, fn ($q, $t) => $q->where('type', $t))
             ->when($data['userId'] ?? null, fn ($q, $id) => $q->where('user_id', $id))
             ->when($data['q'] ?? null, fn ($q, $term) => $q->where(fn ($q) => $q
                 ->where('reference', 'like', "%{$term}%")->orWhere('provider_reference', 'like', "%{$term}%")->orWhere('phone', 'like', "%{$term}%")
-                ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$term}%")->orWhere('phone', 'like', "%{$term}%"))))
+                ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$term}%")->orWhere('phone', 'like', "%{$term}%"))
+                // Une référence de paiement retrouve aussi les versements à l'hôte qui en découlent.
+                ->orWhereHas('source', fn ($s) => $s->where('reference', 'like', "%{$term}%"))))
             ->latest()
             ->paginate(30);
 
@@ -42,6 +44,14 @@ class PaymentController extends Controller
     }
 
     /** À verser à la main : remboursements et retraits des hôtes. */
+    /** Détail d'un paiement, avec la répartition (commission, versements à l'hôte). */
+    public function show(Payment $payment): JsonResponse
+    {
+        $payment->load('user', 'service', 'joinRequest', 'source.user');
+
+        return response()->json(['data' => Presenter::payment($payment) + ['split' => Presenter::split($payment)]]);
+    }
+
     public function payouts(): JsonResponse
     {
         $pending = Payment::with('user', 'service')->where('status', PaymentStatus::Pending)

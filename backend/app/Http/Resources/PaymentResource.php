@@ -2,10 +2,13 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\PaymentStatus;
+use App\Enums\PaymentType;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Payment */
+/** @mixin Payment */
 class PaymentResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -29,8 +32,9 @@ class PaymentResource extends JsonResource
             'periodEnd' => $this->period_end?->toIso8601String(),
             'expiresAt' => $this->expires_at?->toIso8601String(),
             // Page de la passerelle où valider (uniquement tant que c'est en attente).
-            'checkoutUrl' => $this->status === \App\Enums\PaymentStatus::Pending ? $this->checkout_url : null,
-            'at' => $this->created_at->toIso8601String(),
+            'checkoutUrl' => $this->status === PaymentStatus::Pending ? $this->checkout_url : null,
+            // Un gain d'hôte date du jour où il arrive dans le solde, pas du paiement du membre.
+            'at' => ($this->type === PaymentType::Earning ? ($this->confirmed_at ?? $this->available_at ?? $this->created_at) : $this->created_at)->toIso8601String(),
         ];
     }
 }
