@@ -110,6 +110,23 @@ class JoinService
         return $this->close($request, JoinStatus::Cancelled);
     }
 
+    /** Demande bientôt expirée (moins de 6 h) : l'hôte est relancé une fois, avant le remboursement automatique. */
+    public function remindHosts(): int
+    {
+        return JoinRequest::pending()->with('user', 'offer.user', 'offer.service')
+            ->whereNull('host_reminded_at')->where('expires_at', '<=', now()->addHours(6))->where('expires_at', '>', now())
+            ->limit(200)->get()
+            ->each(function (JoinRequest $r) {
+                $r->update(['host_reminded_at' => now()]);
+                $hours = max(1, (int) ceil(now()->diffInMinutes($r->expires_at) / 60));
+                $short = Str::before($r->offer->service->name, ' ');
+                $r->offer->user->notify(new AppNotification('host', "Plus que {$hours} h pour répondre",
+                    $r->user->shortName()." attend ta réponse pour ton {$short}. Sans réponse, il est remboursé et la place reste vide.",
+                    ['label' => 'Répondre', 'to' => "/host/offers/{$r->host_offer_id}"]));
+            })
+            ->count();
+    }
+
     /** Demandes sans réponse après 24 h. */
     public function expireOverdue(): int
     {

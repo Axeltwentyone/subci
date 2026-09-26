@@ -152,6 +152,20 @@ class CheckoutTest extends TestCase
         $this->assertSame(1, $this->getJson('/api/v1/services/netflix/offers')->json('data.0.free'));
     }
 
+    public function test_host_is_reminded_once_6h_before_a_request_expires(): void
+    {
+        $offer = $this->offer();
+        $this->actingAs(User::factory()->create(['first_name' => 'Aya', 'last_name' => 'Koné']));
+        $this->payFor($offer);
+        $joins = app(\App\Services\JoinService::class);
+
+        $this->assertSame(0, $joins->remindHosts());
+        $this->travel(19)->hours();
+        $this->assertSame(1, $joins->remindHosts());
+        $this->assertSame(0, $joins->remindHosts());
+        $this->assertSame(1, $this->host->notifications()->where('data->title', 'like', 'Plus que%')->count());
+    }
+
     public function test_no_answer_after_24h_is_refunded(): void
     {
         $offer = $this->offer();

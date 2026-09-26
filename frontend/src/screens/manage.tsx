@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { PullToRefresh } from '../components/gestures'
 import { IconCheck, IconEye, IconEyeOff, IconMore } from '../components/icons'
+import { InstallSheet, NotifSheet } from '../components/pwa'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { OtpInput, PayMethodPicker } from '../components/inputs'
@@ -9,6 +10,7 @@ import { Avatars, Badge, Button, Card, Chip, ListLink, MethodLogo, Progress, Rad
 import type { IssueReason } from '../lib/api'
 import { getMethod, getService, type PayMethodId } from '../lib/data'
 import { daysLeft, fcfa, haptic, maskPhone, shortDate, timeLeft } from '../lib/format'
+import { usePushState } from '../lib/push'
 import { byUrgency, errorMessage, hostNet, subStatus, useSavings, useStore, type HostOffer, type JoinRequest, type UserSub } from '../lib/store'
 import { NotFound } from './discover'
 
@@ -269,6 +271,19 @@ function HostDashboard() {
   const { state } = useStore()
   const navigate = useNavigate()
   const [withdraw, setWithdraw] = useState(false)
+  const [push, refreshPush] = usePushState()
+  const [params, setParams] = useSearchParams()
+  const [notifSheet, setNotifSheet] = useState(false)
+  const [installSheet, setInstallSheet] = useState(false)
+
+  // Juste après la publication d'une offre : proposer les notifications (une fois).
+  useEffect(() => {
+    if (params.get('notif') !== '1' || push === null) return
+    if (push === 'off') setNotifSheet(true)
+    if (push === 'install') setInstallSheet(true)
+    params.delete('notif')
+    setParams(params, { replace: true })
+  }, [push, params, setParams])
 
   return (
     <div className="flex flex-col gap-4">
@@ -313,6 +328,30 @@ function HostDashboard() {
         </div>
       </div>
 
+      {state.offers.length > 0 && push && push !== 'on' && push !== 'unsupported' && (
+        <div className="flex items-start gap-3 rounded-card bg-warn-soft p-4 text-[13px] leading-snug font-semibold text-[#6B3F00] md:max-w-[420px]">
+          <span className="font-extrabold">!</span>
+          <span className="flex flex-1 flex-col gap-2">
+            <span>
+              {push === 'install'
+                ? 'Sur iPhone, installe l’app pour être prévenu·e des demandes : tu as 24 h pour répondre à chacune.'
+                : push === 'denied'
+                  ? 'Notifications bloquées : tu ne sauras pas quand un membre veut rejoindre. Réactive-les dans les réglages de ton téléphone (Réglages → Notifications → Sub.ci).'
+                  : 'Active les notifications : tu as 24 h pour accepter chaque demande, sinon le membre est remboursé.'}
+            </span>
+            {push !== 'denied' && (
+              <button
+                type="button"
+                onClick={() => (push === 'install' ? setInstallSheet(true) : setNotifSheet(true))}
+                className="self-start rounded-[10px] bg-ink px-3 py-2 text-[13px] font-bold text-white"
+              >
+                {push === 'install' ? 'Installer l’app' : 'Activer les notifications'}
+              </button>
+            )}
+          </span>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 md:gap-3 desk:grid-cols-3">
         {state.offers.map((o) => (
           <OfferCard key={o.id} offer={o} />
@@ -324,6 +363,8 @@ function HostDashboard() {
       </Button>
 
       <WithdrawSheet open={withdraw} onClose={() => setWithdraw(false)} />
+      <NotifSheet host open={notifSheet} onClose={() => (setNotifSheet(false), refreshPush())} />
+      <InstallSheet open={installSheet} onClose={() => setInstallSheet(false)} />
     </div>
   )
 }

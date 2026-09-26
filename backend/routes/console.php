@@ -39,6 +39,8 @@ Schedule::call(function () {
     $sweeper->run();
     $sweeper->approveOffers();
     // Demandes sans réponse de l'hôte sous 24 h → remboursées.
+    // Relance de l'hôte à 6 h de la fin, puis remboursement après 24 h.
+    app(JoinService::class)->remindHosts();
     app(JoinService::class)->expireOverdue();
     // Paiements en attente : on relit la passerelle (membre jamais revenu, webhook manqué).
     app(PaymentService::class)->reconcile();

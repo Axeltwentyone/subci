@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['host_offer_id', 'user_id', 'payment_id', 'status', 'expires_at', 'decided_at'])]
+#[Fillable(['host_offer_id', 'user_id', 'payment_id', 'status', 'expires_at', 'host_reminded_at', 'decided_at'])]
 class JoinRequest extends Model
 {
     /** Délai de réponse de l'hôte. */
@@ -19,6 +19,7 @@ class JoinRequest extends Model
         return [
             'status' => JoinStatus::class,
             'expires_at' => 'datetime',
+            'host_reminded_at' => 'datetime',
             'decided_at' => 'datetime',
         ];
     }

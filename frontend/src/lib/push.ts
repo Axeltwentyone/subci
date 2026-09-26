@@ -1,4 +1,6 @@
+import { useCallback, useEffect, useState } from 'react'
 import { api } from './api'
+import { isIOS, isStandalone } from './hooks'
 
 /*
  * Notifications push (Web Push + VAPID).
@@ -62,4 +64,34 @@ export async function unsubscribePush(): Promise<void> {
   if (!sub) return
   await api.deletePush(sub.endpoint).catch(() => {})
   await sub.unsubscribe().catch(() => {})
+}
+
+/**
+ * Où en sont les notifications sur cet appareil :
+ * on (abonné) · off (jamais demandé) · denied (refusé dans le navigateur / le téléphone)
+ * · install (iPhone : il faut d'abord installer l'app) · unsupported.
+ */
+export type PushState = 'on' | 'off' | 'denied' | 'install' | 'unsupported'
+
+export async function pushState(): Promise<PushState> {
+  if (isIOS() && !isStandalone()) return 'install'
+  if (!pushSupported()) return 'unsupported'
+  if (Notification.permission === 'denied') return 'denied'
+  if (Notification.permission === 'default') return 'off'
+  // Autorisé : on (ré)enregistre l'abonnement pour être sûr que le serveur le connaît.
+  return (await subscribePush().catch(() => false)) ? 'on' : 'off'
+}
+
+export function usePushState(): [PushState | null, () => void] {
+  const [state, setState] = useState<PushState | null>(null)
+  const refresh = useCallback(() => {
+    pushState().then(setState).catch(() => setState('unsupported'))
+  }, [])
+  useEffect(() => {
+    refresh()
+    const onVisible = () => document.visibilityState === 'visible' && refresh()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [refresh])
+  return [state, refresh]
 }

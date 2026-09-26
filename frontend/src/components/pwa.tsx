@@ -234,7 +234,7 @@ export function shouldOfferInstall(purchases: number, dismissedAt: number, insta
  * 20 · Pré-prompt maison avant la demande navigateur
  * (qu'on ne peut demander qu'une fois). Aperçu réel de la notif.
  */
-export function NotifSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function NotifSheet({ open, onClose, host }: { open: boolean; onClose: () => void; host?: boolean }) {
   const { actions } = useStore()
   const toast = useToast()
 
@@ -250,11 +250,19 @@ export function NotifSheet({ open, onClose }: { open: boolean; onClose: () => vo
           <LogoMark size={36} />
           <div className="flex flex-col gap-0.5">
             <span className="text-[13px] font-bold">Sub.ci · maintenant</span>
-            <span className="text-[13px] font-medium text-muted">Netflix expire dans 3 jours. Renouvelle en 1 tap.</span>
+            <span className="text-[13px] font-medium text-muted">
+              {host ? 'Aya K. veut rejoindre ton Netflix. Réponds sous 24 h.' : 'Netflix expire dans 3 jours. Renouvelle en 1 tap.'}
+            </span>
           </div>
         </div>
-        <h2 className="font-display text-2xl leading-[1.15] font-bold tracking-[-0.02em]">On te prévient avant que ça coupe ?</h2>
-        <p className="text-[15px] leading-normal font-medium text-muted">Échéances, activations, places libérées. Pas de spam.</p>
+        <h2 className="font-display text-2xl leading-[1.15] font-bold tracking-[-0.02em]">
+          {host ? 'Sois prévenu·e à chaque demande ?' : 'On te prévient avant que ça coupe ?'}
+        </h2>
+        <p className="text-[15px] leading-normal font-medium text-muted">
+          {host
+            ? 'Tu as 24 h pour accepter un membre. Sans réponse, il est remboursé et ta place reste vide.'
+            : 'Échéances, activations, places libérées. Pas de spam.'}
+        </p>
         <div className="flex flex-col gap-1.5">
           <Button
             onClick={async () => {
@@ -265,11 +273,11 @@ export function NotifSheet({ open, onClose }: { open: boolean; onClose: () => vo
                 /* navigateur sans API */
               }
               done()
-              if (result === 'granted') toast({ tone: 'success', text: 'Rappels activés. On te prévient à J-3.' })
+              if (result === 'granted') toast({ tone: 'success', text: host ? 'Notifications activées : on te prévient à chaque demande.' : 'Rappels activés. On te prévient à J-3.' })
               else toast({ tone: 'ink', text: 'Tu pourras les activer dans Paramètres.' })
             }}
           >
-            Activer les rappels
+            {host ? 'Activer les notifications' : 'Activer les rappels'}
           </Button>
           <Button variant="text" size="link" onClick={done}>
             Pas maintenant

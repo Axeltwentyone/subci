@@ -193,7 +193,8 @@ export function HostSetup() {
       await actions.publishOffer(form)
       haptic(20)
       toast({ tone: 'success', text: 'Offre envoyée. Vérification de la preuve sous 1 h.' })
-      navigate('/subs?mode=host', { replace: true })
+      // Sans notifications, l'hôte rate les demandes (24 h pour répondre) : on les propose tout de suite.
+      navigate('/subs?mode=host&notif=1', { replace: true })
     } catch (e) {
       toast({ tone: 'error', text: errorMessage(e) })
       setLoading(false)
