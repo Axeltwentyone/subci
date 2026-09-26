@@ -1,19 +1,20 @@
-/* Client de l'API d'administration (/api/v1/admin). Jeton séparé de celui des membres. */
+/* Client de l'API d'administration (/api/v1/admin). Jeton séparé de celui des membres,
+   gardé sur l'appareil (session de 7 jours côté serveur). */
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '/api/v1'
 const TOKEN_KEY = 'subci:admin-token'
 
 export const getToken = () => {
   try {
-    return sessionStorage.getItem(TOKEN_KEY)
+    return localStorage.getItem(TOKEN_KEY)
   } catch {
     return null
   }
 }
 export const setToken = (t: string | null) => {
   try {
-    if (t) sessionStorage.setItem(TOKEN_KEY, t)
-    else sessionStorage.removeItem(TOKEN_KEY)
+    if (t) localStorage.setItem(TOKEN_KEY, t)
+    else localStorage.removeItem(TOKEN_KEY)
   } catch {
     /* stockage indisponible */
   }

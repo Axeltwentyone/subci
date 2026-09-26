@@ -142,7 +142,7 @@ class AuthController extends Controller
 
         return response()->json([
             // Session admin courte : 12 h.
-            'token' => $admin->createToken('admin', ['admin'], now()->addHours(12))->plainTextToken,
+            'token' => $admin->createToken('admin', ['admin'], now()->addDays(7))->plainTextToken,
             'admin' => self::present($admin),
         ]);
     }
