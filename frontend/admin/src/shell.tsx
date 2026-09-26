@@ -366,7 +366,7 @@ export function Shell() {
         </nav>
 
         <div className="min-w-0">
-          <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-canvas/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur lg:gap-4 lg:px-8">
+          <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-canvas px-4 pt-[env(safe-area-inset-top)] lg:gap-4 lg:px-8">
             <div className="flex h-14 w-full items-center gap-3 lg:h-16 lg:gap-4">
               <Link to="/" className="lg:hidden" aria-label="Accueil">
                 <LogoMark size={32} tone="brand" />

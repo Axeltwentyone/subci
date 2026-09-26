@@ -4,7 +4,8 @@
 @source '.';
 
 @layer base {
-  body { background: var(--color-canvas); overscroll-behavior-y: auto; }
+  html, body { background: var(--color-canvas); }
+  body { overscroll-behavior-y: auto; }
 }
 
 @utility tabular { font-variant-numeric: tabular-nums; }
