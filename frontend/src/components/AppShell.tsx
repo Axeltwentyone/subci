@@ -40,7 +40,7 @@ export function AppShell() {
           <Wordmark className="hidden px-3 pb-6 text-[26px] desk:block" />
           <span className="h-3 desk:hidden" />
           {TABS.map(({ to, label, Icon }) => (
-            <NavLink key={to} to={to} aria-label={label} className="group relative">
+            <NavLink key={to} to={to} replace aria-label={label} className="group relative">
               {({ isActive }) => (
                 <>
                   {/* rail */}
@@ -75,13 +75,14 @@ export function AppShell() {
         </main>
       </div>
 
-      {/* Bottom nav (mobile) */}
+      {/* Bottom nav (mobile). replace : changer d'onglet n'ajoute rien à l'historique,
+          le geste « retour » du téléphone ne fait donc pas défiler les onglets. */}
       <nav
         aria-label="Navigation principale"
         className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-white/96 px-1.5 pt-2 pb-[calc(env(safe-area-inset-bottom)+14px)] backdrop-blur md:hidden"
       >
         {TABS.map(({ to, label, Icon }) => (
-          <NavLink key={to} to={to} className="pressable relative flex flex-col items-center gap-1 text-[11px] font-bold">
+          <NavLink key={to} to={to} replace className="pressable relative flex flex-col items-center gap-1 text-[11px] font-bold">
             {({ isActive }) => (
               <>
                 <span className={cx('grid h-8 w-14 place-items-center rounded-2xl transition-colors duration-150', isActive ? 'bg-ink text-brand' : 'text-subtle')}>
