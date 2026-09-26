@@ -30,7 +30,7 @@ export function PhoneInput({
       )}
       <div
         className={cx(
-          'flex items-center gap-3 rounded-btn bg-white px-4 transition-[border-color] duration-150',
+          'flex items-center gap-3 rounded-btn bg-surface px-4 transition-[border-color] duration-150',
           compact ? 'h-12 rounded-tile' : 'h-[60px]',
           error ? 'border-2 border-err' : focus ? 'border-2 border-ink' : 'border-[1.5px] border-line',
         )}
@@ -110,7 +110,7 @@ export function OtpInput({ value, onChange, onComplete }: { value: string; onCha
             <div
               key={i}
               className={cx(
-                'grid h-14 place-items-center rounded-[14px] bg-white font-display text-[22px] font-bold transition-[border-color] duration-150',
+                'grid h-14 place-items-center rounded-[14px] bg-surface font-display text-[22px] font-bold transition-[border-color] duration-150',
                 active ? 'border-2 border-brand' : 'border-[1.5px] border-line',
               )}
             >
@@ -139,7 +139,7 @@ export function PayMethodPicker({
 }) {
   const list = PAY_METHODS.filter((m) => methods.includes(m.id))
   return (
-    <div role="radiogroup" aria-label="Moyen de paiement" className="overflow-hidden rounded-card bg-white">
+    <div role="radiogroup" aria-label="Moyen de paiement" className="overflow-hidden rounded-card bg-surface">
       {list.map((m) => {
         const selected = m.id === value
         return (
@@ -173,11 +173,11 @@ export function PayMethodPicker({
                   inputMode="numeric"
                   autoComplete="cc-number"
                   placeholder="Numéro de carte"
-                  className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 text-base font-semibold outline-none focus:border-2 focus:border-ink"
+                  className="h-12 rounded-tile border-[1.5px] border-line bg-surface px-3.5 text-base font-semibold outline-none focus:border-2 focus:border-ink"
                 />
                 <div className="grid grid-cols-2 gap-2">
-                  <input aria-label="Expiration" autoComplete="cc-exp" placeholder="MM/AA" inputMode="numeric" className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 text-base font-semibold outline-none focus:border-2 focus:border-ink" />
-                  <input aria-label="Cryptogramme" autoComplete="cc-csc" placeholder="CVC" inputMode="numeric" className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 text-base font-semibold outline-none focus:border-2 focus:border-ink" />
+                  <input aria-label="Expiration" autoComplete="cc-exp" placeholder="MM/AA" inputMode="numeric" className="h-12 rounded-tile border-[1.5px] border-line bg-surface px-3.5 text-base font-semibold outline-none focus:border-2 focus:border-ink" />
+                  <input aria-label="Cryptogramme" autoComplete="cc-csc" placeholder="CVC" inputMode="numeric" className="h-12 rounded-tile border-[1.5px] border-line bg-surface px-3.5 text-base font-semibold outline-none focus:border-2 focus:border-ink" />
                 </div>
               </div>
             )}

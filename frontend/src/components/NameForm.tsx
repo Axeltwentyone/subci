@@ -30,7 +30,7 @@ function Field({ label, value, onChange, error, autoComplete, autoFocus, placeho
         placeholder={placeholder}
         aria-invalid={!!error}
         className={cx(
-          'h-[60px] rounded-btn bg-white px-4 text-lg font-semibold caret-brand outline-none placeholder:font-medium placeholder:text-subtle',
+          'h-[60px] rounded-btn bg-surface px-4 text-lg font-semibold caret-brand outline-none placeholder:font-medium placeholder:text-subtle',
           error ? 'border-2 border-err' : 'border-[1.5px] border-line focus:border-2 focus:border-ink',
         )}
       />

@@ -6,23 +6,24 @@ import { InstallSheet, NotifSheet, canAskNotifications } from '../components/pwa
 import { NameForm } from '../components/NameForm'
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
-import { BackButton, Card, Chip, ListLink, MethodLogo, RoundIconButton, Screen, SectionLabel, Toggle, cx } from '../components/ui'
+import { BackButton, Card, Chip, ListLink, MethodLogo, RoundIconButton, Screen, SectionLabel, Segmented, Toggle, cx } from '../components/ui'
 import { getMethod } from '../lib/data'
 import { supportWhatsApp } from '../lib/support'
 import { DAY, clock, fcfa, formatPhone, shortDate } from '../lib/format'
 import { isStandalone } from '../lib/hooks'
 import { subscribePush } from '../lib/push'
+import { setThemePref, useThemePref, type ThemePref } from '../lib/theme'
 import { errorMessage, useSavings, useStore, type Notif, type Settings } from '../lib/store'
 import { ConfirmModal } from './manage'
 
 /* ---------- 13 · Activité (notifications + paiements) ---------- */
 
 const NOTIF_ICON: Record<Notif['kind'], { bg: string; fg: string; glyph: string }> = {
-  ok: { bg: '#DDF3E8', fg: '#0B6B49', glyph: '✓' },
-  pay: { bg: '#E3EBFF', fg: '#2446A8', glyph: '₣' },
-  due: { bg: '#FFF1D6', fg: '#8A5000', glyph: '!' },
-  seat: { bg: '#FFE6DA', fg: '#A83A0E', glyph: '+1' },
-  host: { bg: '#DDF3E8', fg: '#0B6B49', glyph: '↗' },
+  ok: { bg: 'var(--color-ok-soft)', fg: 'var(--color-ok-ink)', glyph: '✓' },
+  pay: { bg: 'var(--color-info-soft)', fg: 'var(--color-info)', glyph: '₣' },
+  due: { bg: 'var(--color-warn-soft)', fg: 'var(--color-warn-ink)', glyph: '!' },
+  seat: { bg: 'var(--color-brand-soft)', fg: 'var(--color-brand-ink)', glyph: '+1' },
+  host: { bg: 'var(--color-ok-soft)', fg: 'var(--color-ok-ink)', glyph: '↗' },
 }
 
 function groupOf(ts: number) {
@@ -163,7 +164,7 @@ function NotifCard({ n, onOpen }: { n: Notif; onOpen: () => void }) {
         <button
           type="button"
           onClick={() => navigate(n.action!.to, { viewTransition: true })}
-          className="pressable ml-[52px] flex h-10 items-center self-start rounded-tile bg-brand px-4 text-sm font-bold"
+          className="pressable ml-[52px] flex h-10 items-center self-start rounded-tile bg-brand px-4 text-sm font-bold text-on-accent"
         >
           {n.action!.label}
         </button>
@@ -205,7 +206,7 @@ export function Profile() {
     <PullToRefresh onRefresh={() => actions.sync().catch(() => {})}>
       <div className="mx-auto flex max-w-[720px] flex-col gap-[18px] px-5 pt-2 md:px-8 md:pt-7 desk:pt-9">
         <div className="flex items-center gap-3.5">
-          <span className="grid size-16 place-items-center rounded-full bg-[#FFB38F] font-display text-[26px] font-extrabold">{(user.name ?? '?').charAt(0)}</span>
+          <span className="grid size-16 place-items-center rounded-full bg-[#FFB38F] text-on-accent font-display text-[26px] font-extrabold">{(user.name ?? '?').charAt(0)}</span>
           <div className="flex flex-1 flex-col gap-0.5">
             <button type="button" onClick={() => setEditName(true)} className="text-left">
               <h1 className={cx('font-display text-2xl font-bold tracking-[-0.02em]', !user.name && 'text-muted')}>{user.name ?? 'Ajoute ton prénom'}</h1>
@@ -273,6 +274,7 @@ export function SettingsScreen() {
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     actions.setSetting(key, value).catch((e) => toast({ tone: 'error', text: errorMessage(e) }))
   const s = state.settings
+  const theme = useThemePref()
 
   const notifToggle = (key: 'notifDue' | 'notifSeats' | 'notifPromo') => (v: boolean) => {
     set(key, v)
@@ -310,6 +312,18 @@ export function SettingsScreen() {
           />
           <ListLink label="Déconnecter mes autres appareils" hint="Téléphone perdu ?" onClick={() => setOthers(true)} />
         </Card>
+
+        <SectionLabel className="px-1 pt-3.5">Apparence</SectionLabel>
+        <Segmented<ThemePref>
+          value={theme}
+          onChange={setThemePref}
+          options={[
+            { value: 'auto', label: 'Auto' },
+            { value: 'light', label: 'Clair' },
+            { value: 'dark', label: 'Sombre' },
+          ]}
+        />
+        <p className="px-1 text-[13px] font-semibold text-muted">Auto suit le mode de ton téléphone.</p>
 
         <SectionLabel className="px-1 pt-3.5">App</SectionLabel>
         <Card className="px-[18px]">
@@ -396,7 +410,7 @@ function ReferralCard({ code, onShare }: { code: string; onShare: () => void }) 
   const [busy, setBusy] = useState(false)
 
   return (
-    <div className="flex flex-col gap-3 rounded-card bg-brand p-[18px]">
+    <div className="scheme-light flex flex-col gap-3 rounded-card bg-brand p-[18px] text-ink">
       <div className="flex flex-col gap-1">
         <span className="font-display text-xl leading-[1.15] font-bold">Invite un ami, gagne {fcfa(reward)} FCFA</span>
         <span className="text-[13px] leading-snug font-semibold text-ink/75">
@@ -404,20 +418,20 @@ function ReferralCard({ code, onShare }: { code: string; onShare: () => void }) 
         </span>
       </div>
       <div className="flex gap-2">
-        <span className="flex h-11 flex-1 items-center rounded-tile bg-white px-3.5 text-[15px] font-extrabold tracking-[0.06em]">{code}</span>
-        <button type="button" onClick={onShare} className="pressable flex h-11 items-center rounded-tile bg-ink px-4 text-sm font-bold text-white">
+        <span className="flex h-11 flex-1 items-center rounded-tile bg-surface px-3.5 text-[15px] font-extrabold tracking-[0.06em]">{code}</span>
+        <button type="button" onClick={onShare} className="pressable flex h-11 items-center rounded-tile bg-ink px-4 text-sm font-bold text-sand">
           Partager
         </button>
       </div>
       {r && (r.friends > 0 || r.pending > 0 || r.credit > 0) && (
         <div className="grid grid-cols-2 gap-2 text-ink">
-          <span className="flex flex-col rounded-tile bg-white/55 px-3 py-2">
+          <span className="flex flex-col rounded-tile bg-surface/55 px-3 py-2">
             <span className="font-display text-lg leading-none font-extrabold">{r.friends}</span>
             <span className="text-[12px] font-semibold">
               ami{r.friends > 1 ? 's' : ''} parrainé{r.friends > 1 ? 's' : ''}{r.pending > 0 ? ` · ${r.pending} en route` : ''}
             </span>
           </span>
-          <span className="flex flex-col rounded-tile bg-white/55 px-3 py-2">
+          <span className="flex flex-col rounded-tile bg-surface/55 px-3 py-2">
             <span className="font-display text-lg leading-none font-extrabold">{fcfa(r.credit)} F</span>
             <span className="text-[12px] font-semibold">de crédit à utiliser</span>
           </span>
@@ -448,9 +462,9 @@ function ReferralCard({ code, onShare }: { code: string; onShare: () => void }) 
               onChange={(e) => setFriend(e.target.value.toUpperCase().slice(0, 16))}
               placeholder="Code de ton ami"
               aria-label="Code de parrainage d’un ami"
-              className="h-11 min-w-0 flex-1 rounded-tile bg-white px-3.5 text-[15px] font-bold tracking-[0.06em] outline-none placeholder:font-medium placeholder:tracking-normal"
+              className="h-11 min-w-0 flex-1 rounded-tile bg-surface px-3.5 text-[15px] font-bold tracking-[0.06em] outline-none placeholder:font-medium placeholder:tracking-normal"
             />
-            <button type="submit" disabled={busy || friend.length < 4} className="pressable h-11 rounded-tile bg-ink px-4 text-sm font-bold text-white disabled:opacity-50">
+            <button type="submit" disabled={busy || friend.length < 4} className="pressable h-11 rounded-tile bg-ink px-4 text-sm font-bold text-sand disabled:opacity-50">
               OK
             </button>
           </form>

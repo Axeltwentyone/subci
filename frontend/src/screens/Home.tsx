@@ -61,14 +61,14 @@ export function Home() {
             <Link
               to="/explore/search"
               viewTransition
-              className="hidden h-12 w-[340px] items-center gap-2.5 rounded-[14px] bg-white px-4 text-[15px] font-semibold text-subtle desk:flex"
+              className="hidden h-12 w-[340px] items-center gap-2.5 rounded-[14px] bg-surface px-4 text-[15px] font-semibold text-subtle desk:flex"
             >
               <IconSearch size={18} strokeWidth={2} />
               Rechercher un service
             </Link>
-            <Link to="/activity" aria-label={`Activité, ${unread} non lues`} className="pressable relative grid size-12 place-items-center rounded-full bg-white md:hidden">
+            <Link to="/activity" aria-label={`Activité, ${unread} non lues`} className="pressable relative grid size-12 place-items-center rounded-full bg-surface md:hidden">
               <IconBell />
-              {unread > 0 && <span className="absolute top-[11px] right-3 size-[9px] rounded-full border-2 border-white bg-brand" />}
+              {unread > 0 && <span className="absolute top-[11px] right-3 size-[9px] rounded-full border-2 border-surface bg-brand" />}
             </Link>
           </header>
           <InstallBanner onOpen={() => setSheet('install')} />
@@ -90,7 +90,7 @@ export function Home() {
 
           <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 md:hidden">
             {CATEGORIES.slice(1).map((c) => (
-              <Link key={c.id} to={`/explore?cat=${c.id}`} className="pressable flex h-10 shrink-0 items-center rounded-full bg-white px-4 text-sm font-bold">
+              <Link key={c.id} to={`/explore?cat=${c.id}`} className="pressable flex h-10 shrink-0 items-center rounded-full bg-surface px-4 text-sm font-bold">
                 {c.chip}
               </Link>
             ))}
@@ -110,7 +110,7 @@ export function Home() {
                     key={s.id}
                     to={`/service/${s.id}`}
                     viewTransition
-                    className={cx('pressable flex w-[148px] shrink-0 flex-col gap-3 rounded-card bg-white p-3.5 md:w-auto desk:p-[18px]', k === 3 && 'md:hidden desk:flex')}
+                    className={cx('pressable flex w-[148px] shrink-0 flex-col gap-3 rounded-card bg-surface p-3.5 md:w-auto desk:p-[18px]', k === 3 && 'md:hidden desk:flex')}
                   >
                     <ServiceLogo service={s} size={40} />
                     <span className="flex flex-col gap-0.5">
@@ -129,7 +129,7 @@ export function Home() {
           <div className="h-2" />
         </div>
 
-        <aside className="hidden flex-col gap-3.5 border-l border-line bg-white px-6 py-9 desk:flex">
+        <aside className="hidden flex-col gap-3.5 border-l border-line bg-surface px-6 py-9 desk:flex">
           <h2 className="t-section">Prochaines échéances</h2>
           {subs.length === 0 && <p className="text-sm font-medium text-muted">Aucune échéance à venir.</p>}
           {subs.map((s) => (
@@ -156,11 +156,11 @@ export function Home() {
 function FocusCard({ sub, onGo }: { sub?: UserSub; onGo: (to: string, o?: { viewTransition: boolean }) => void }) {
   if (!sub) {
     return (
-      <div className="flex flex-col gap-4 rounded-[24px] bg-ink p-5 text-sand desk:p-7">
+      <div className="flex flex-col gap-4 scheme-card rounded-[24px] bg-ink p-5 text-sand desk:p-7">
         <span className="t-over text-brand">Bienvenue</span>
         <span className="font-display text-2xl leading-[1.1] font-bold tracking-[-0.02em]">Trouve ton 1er abonnement</span>
         <span className="text-sm font-medium text-ink-muted">Netflix dès 2 500 FCFA, Spotify dès 1 500 FCFA.</span>
-        <button type="button" onClick={() => onGo('/explore')} className="pressable flex h-11 items-center self-start rounded-[14px] bg-brand px-5 text-[15px] font-bold text-ink">
+        <button type="button" onClick={() => onGo('/explore')} className="pressable flex h-11 items-center self-start rounded-[14px] bg-brand px-5 text-[15px] font-bold text-on-accent">
           Explorer
         </button>
       </div>
@@ -174,7 +174,7 @@ function FocusCard({ sub, onGo }: { sub?: UserSub; onGo: (to: string, o?: { view
   const due = status === 'due'
 
   return (
-    <div className="flex flex-col gap-[18px] rounded-[24px] bg-ink p-5 text-sand desk:flex-row desk:items-center desk:gap-6 desk:rounded-[28px] desk:p-7">
+    <div className="flex flex-col gap-[18px] scheme-card rounded-[24px] bg-ink p-5 text-sand desk:flex-row desk:items-center desk:gap-6 desk:rounded-[28px] desk:p-7">
       <div className="flex items-center gap-3 desk:contents">
         <span className="desk:hidden">
           <ServiceLogo service={svc} size={44} />
@@ -210,7 +210,7 @@ function FocusCard({ sub, onGo }: { sub?: UserSub; onGo: (to: string, o?: { view
           <button
             type="button"
             onClick={() => onGo(`/checkout/${svc.id}`, { viewTransition: true })}
-            className="pressable flex h-11 items-center rounded-[14px] bg-brand px-5 text-[15px] font-bold text-ink desk:h-[52px] desk:rounded-btn desk:px-6 desk:text-base"
+            className="pressable flex h-11 items-center rounded-[14px] bg-brand px-5 text-[15px] font-bold text-on-accent desk:h-[52px] desk:rounded-btn desk:px-6 desk:text-base"
           >
             Renouveler<span className="hidden desk:inline">&nbsp;· {fcfa(sub.price)} FCFA/mois</span>
           </button>
@@ -259,9 +259,9 @@ function HomeSkeleton() {
         <Skeleton shimmer={false} className="h-10 w-[100px] rounded-full" />
       </div>
       <div className="-mr-5 flex gap-3 overflow-hidden">
-        <span className="h-[150px] w-[148px] shrink-0 rounded-card bg-white" />
-        <span className="h-[150px] w-[148px] shrink-0 rounded-card bg-white" />
-        <span className="h-[150px] w-[148px] shrink-0 rounded-card bg-white" />
+        <span className="h-[150px] w-[148px] shrink-0 rounded-card bg-surface" />
+        <span className="h-[150px] w-[148px] shrink-0 rounded-card bg-surface" />
+        <span className="h-[150px] w-[148px] shrink-0 rounded-card bg-surface" />
       </div>
     </div>
   )

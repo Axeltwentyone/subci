@@ -82,7 +82,7 @@ export function Sheet({ open, onClose, children, label, className }: Props) {
   return createPortal(
     <div className="fixed inset-0 z-50" role="presentation">
       <div
-        className={cx('absolute inset-0 bg-ink/55 transition-opacity duration-200', leaving ? 'opacity-0' : 'animate-fade-in', className)}
+        className={cx('absolute inset-0 bg-scrim/55 transition-opacity duration-200', leaving ? 'opacity-0' : 'animate-fade-in', className)}
         onClick={close}
         aria-hidden
       />
@@ -93,7 +93,7 @@ export function Sheet({ open, onClose, children, label, className }: Props) {
         aria-label={label}
         tabIndex={-1}
         className={cx(
-          'absolute bg-white text-ink outline-none',
+          'absolute bg-surface text-ink outline-none',
           wide
             ? 'inset-y-0 right-0 flex w-[420px] max-w-full flex-col overflow-y-auto px-6 pt-6 pb-8 animate-panel-in'
             : 'inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto rounded-t-sheet px-6 pt-2.5 pb-[calc(env(safe-area-inset-bottom)+28px)] animate-sheet-in',

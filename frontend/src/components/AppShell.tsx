@@ -16,7 +16,7 @@ const TABS = [
 function CountBadge({ n, className }: { n: number; className?: string }) {
   if (!n) return null
   return (
-    <span className={cx('min-w-4 rounded-lg bg-brand px-1 text-center text-[10px] leading-4 font-extrabold text-ink', className)} aria-label={`${n} non lues`}>
+    <span className={cx('min-w-4 rounded-lg bg-brand px-1 text-center text-[10px] leading-4 font-extrabold text-on-accent', className)} aria-label={`${n} non lues`}>
       {n}
     </span>
   )
@@ -32,7 +32,7 @@ export function AppShell() {
   return (
     <div className="min-h-dvh bg-sand md:grid md:grid-cols-[88px_1fr] desk:grid-cols-[248px_1fr]">
       {/* Rail / sidebar */}
-      <nav aria-label="Navigation principale" className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-white md:flex">
+      <nav aria-label="Navigation principale" className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface md:flex">
         <div className="flex flex-col items-center gap-[18px] py-6 desk:items-stretch desk:gap-1.5 desk:px-[18px] desk:py-7">
           <span className="desk:hidden">
             <LogoMark size={44} />
@@ -52,7 +52,7 @@ export function AppShell() {
                   <span
                     className={cx(
                       'hidden h-12 items-center gap-3 rounded-[14px] px-3.5 text-[15px] font-bold desk:flex',
-                      isActive ? 'bg-ink text-white' : 'text-muted hover:bg-sand',
+                      isActive ? 'bg-ink text-sand' : 'text-muted hover:bg-sand',
                     )}
                   >
                     <span className={cx('flex', isActive && 'text-brand')}>
@@ -79,7 +79,7 @@ export function AppShell() {
           le geste « retour » du téléphone ne fait donc pas défiler les onglets. */}
       <nav
         aria-label="Navigation principale"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-white/96 px-1.5 pt-2 pb-[calc(env(safe-area-inset-bottom)+14px)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-surface/96 px-1.5 pt-2 pb-[calc(env(safe-area-inset-bottom)+14px)] backdrop-blur md:hidden"
       >
         {TABS.map(({ to, label, Icon }) => (
           <NavLink key={to} to={to} replace className="pressable relative flex flex-col items-center gap-1 text-[11px] font-bold">

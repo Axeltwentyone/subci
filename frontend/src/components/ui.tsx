@@ -21,8 +21,8 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand text-ink',
-  ink: 'bg-ink text-white',
+  primary: 'bg-brand text-on-accent',
+  ink: 'bg-ink text-sand',
   outline: 'border-[1.5px] border-line-strong text-ink bg-transparent',
   text: 'text-muted bg-transparent',
   plain: 'text-ink bg-transparent',
@@ -49,7 +49,7 @@ export function Button({ variant = 'primary', size = 'lg', loading, block = true
         'pressable inline-flex items-center justify-center gap-2.5 font-sans font-bold select-none',
         sizes[size],
         block && 'w-full',
-        disabled && !loading ? 'bg-line text-[#8A8278]' : variants[variant],
+        disabled && !loading ? 'bg-line text-disabled' : variants[variant],
         className,
       )}
     >
@@ -135,7 +135,7 @@ const badgeTones: Record<string, string> = {
   due: 'bg-warn-soft text-warn-ink',
   pending: 'bg-info-soft text-info',
   expired: 'bg-err-soft text-err-ink',
-  brand: 'bg-brand text-ink',
+  brand: 'bg-brand text-on-accent',
   soft: 'bg-brand-soft text-brand-ink',
 }
 
@@ -169,7 +169,7 @@ export function Chip({ active, tone, surface, children, onClick, size = 'md', cl
       className={cx(
         'pressable inline-flex shrink-0 items-center gap-1.5 rounded-full font-bold whitespace-nowrap',
         size === 'md' ? 'h-10 px-4 text-sm' : 'h-9 px-3 text-[13px]',
-        active ? (tone === 'ok' ? 'bg-ok-soft text-ok-ink' : 'bg-ink text-white') : surface ? 'bg-white' : 'border-[1.5px] border-line-strong bg-transparent',
+        active ? (tone === 'ok' ? 'bg-ok-soft text-ok-ink' : 'bg-ink text-sand') : surface ? 'bg-surface' : 'border-[1.5px] border-line-strong bg-transparent',
         className,
       )}
     >
@@ -190,7 +190,7 @@ export function Segmented<T extends string>({ value, options, onChange, classNam
           type="button"
           aria-selected={o.value === value}
           onClick={() => onChange(o.value)}
-          className={cx('h-10 rounded-[10px] transition-colors duration-150', o.value === value ? 'bg-white text-ink shadow-[0_1px_2px_rgba(22,19,15,.06)]' : 'text-muted')}
+          className={cx('h-10 rounded-[10px] transition-colors duration-150', o.value === value ? 'bg-surface text-ink shadow-[0_1px_2px_rgba(22,19,15,.06)]' : 'text-muted')}
         >
           {o.label}
         </button>
@@ -201,7 +201,7 @@ export function Segmented<T extends string>({ value, options, onChange, classNam
 
 export function UnderlineTabs<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
   return (
-    <div role="tablist" className="no-scrollbar -mx-5 flex gap-[22px] overflow-x-auto border-b border-[#E1DACE] px-5 text-[15px] font-bold">
+    <div role="tablist" className="no-scrollbar -mx-5 flex gap-[22px] overflow-x-auto border-b border-line px-5 text-[15px] font-bold">
       {options.map((o) => (
         <button
           key={o.value}
@@ -230,7 +230,7 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
       onClick={() => onChange(!checked)}
       className={cx('relative h-8 w-[52px] shrink-0 rounded-2xl transition-colors duration-200', checked ? 'bg-ok' : 'bg-line-strong')}
     >
-      <span className={cx('absolute top-[3px] size-[26px] rounded-full bg-white shadow-sm transition-[left] duration-200 ease-app', checked ? 'left-[23px]' : 'left-[3px]')} />
+      <span className={cx('absolute top-[3px] size-[26px] rounded-full bg-surface shadow-sm transition-[left] duration-200 ease-app', checked ? 'left-[23px]' : 'left-[3px]')} />
     </button>
   )
 }
@@ -252,7 +252,7 @@ export function RoundIconButton({ label, onClick, children, dark, className }: {
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={cx('pressable grid size-11 shrink-0 place-items-center rounded-full', dark ? 'bg-ink-3 text-sand' : 'bg-white text-ink', className)}
+      className={cx('pressable grid size-11 shrink-0 place-items-center rounded-full', dark ? 'bg-ink-3 text-sand' : 'bg-surface text-ink', className)}
     >
       {children}
     </button>
@@ -296,7 +296,7 @@ export function StepBar({ step, total }: { step: number; total: number }) {
 export function Screen({ children, dark, className, style }: { children: ReactNode; dark?: boolean; className?: string; style?: CSSProperties }) {
   useTopColor(dark ? INK : SAND)
   return (
-    <div className={cx('min-h-dvh', dark ? 'bg-ink text-sand' : 'bg-sand text-ink')}>
+    <div className={cx('min-h-dvh', dark ? 'scheme-dark bg-ink text-sand' : 'bg-sand text-ink')}>
       <div className={cx('pt-safe relative mx-auto flex min-h-dvh w-full max-w-[440px] flex-col', className)} style={style}>
         {children}
       </div>
@@ -310,14 +310,14 @@ export function StickyAction({ children, className }: { children: ReactNode; cla
     <>
       <div className="h-32 shrink-0" aria-hidden />
       <div className="fixed inset-x-0 bottom-0 z-30">
-        <div className={cx('pb-safe mx-auto max-w-[440px] border-t border-line bg-white px-5 pt-3 md:rounded-t-card md:border-x', className)}>{children}</div>
+        <div className={cx('pb-safe mx-auto max-w-[440px] border-t border-line bg-surface px-5 pt-3 md:rounded-t-card md:border-x', className)}>{children}</div>
       </div>
     </>
   )
 }
 
 export function Card({ children, className, dark, onClick }: { children: ReactNode; className?: string; dark?: boolean; onClick?: () => void }) {
-  const cls = cx('rounded-card', dark ? 'bg-ink text-sand' : 'bg-white', className)
+  const cls = cx('rounded-card', dark ? 'scheme-card bg-ink text-sand' : 'bg-surface', className)
   if (onClick)
     return (
       <button type="button" onClick={onClick} className={cx('pressable block w-full text-left', cls)}>
@@ -335,14 +335,14 @@ export function Progress({ value, color, track = 'bg-line-soft' }: { value: numb
   )
 }
 
-export function Avatars({ members, size = 32, ring = '#fff', extra }: { members: { name: string; color: string }[]; size?: number; ring?: string; extra?: ReactNode }) {
+export function Avatars({ members, size = 32, ring = 'var(--color-surface)', extra }: { members: { name: string; color: string }[]; size?: number; ring?: string; extra?: ReactNode }) {
   return (
     <div className="flex">
       {members.map((m, i) => (
         <span
           key={m.name + i}
           title={m.name}
-          className="grid place-items-center rounded-full text-xs font-extrabold text-ink"
+          className="grid place-items-center rounded-full text-xs font-extrabold text-on-accent"
           style={{ width: size, height: size, background: m.color, border: `${size > 32 ? 3 : 2}px solid ${ring}`, marginLeft: i ? -size / 4 : 0 }}
         >
           {m.name.charAt(0)}
@@ -402,7 +402,7 @@ export function Steps({ items, tone = 'brand' }: { items: string[]; tone?: 'bran
     <ol className="flex flex-col gap-3.5">
       {items.map((t, i) => (
         <li key={t} className="flex items-center gap-3.5">
-          <span className={cx('grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-extrabold', tone === 'brand' ? 'bg-brand text-ink' : 'bg-ink text-white')}>{i + 1}</span>
+          <span className={cx('grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-extrabold', tone === 'brand' ? 'bg-brand text-on-accent' : 'bg-ink text-sand')}>{i + 1}</span>
           <span className="text-[15px] leading-[1.4] font-semibold">{t}</span>
         </li>
       ))}

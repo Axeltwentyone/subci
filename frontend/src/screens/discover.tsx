@@ -8,6 +8,7 @@ import { CATEGORIES, DEVICES, SERVICES, availLabel, getService, savingPct, type 
 import { api } from '../lib/api'
 import { fcfa, since, timeLeft } from '../lib/format'
 import { SAND, tintOf, useOnline, useTopColor } from '../lib/hooks'
+import { useDark } from '../lib/theme'
 import { errorMessage, useStore } from '../lib/store'
 import { OfflineScreen } from './system'
 import { useBack } from '../lib/nav'
@@ -41,7 +42,7 @@ export function Explore() {
   return (
     <div className="mx-auto flex max-w-[960px] flex-col gap-4 px-5 pt-2 md:px-8 md:pt-7 desk:px-10 desk:pt-9">
       <h1 className="t-title">Explorer</h1>
-      <Link to="/explore/search" viewTransition className="flex h-[52px] items-center gap-2.5 rounded-btn bg-white px-4 text-base font-semibold text-subtle">
+      <Link to="/explore/search" viewTransition className="flex h-[52px] items-center gap-2.5 rounded-btn bg-surface px-4 text-base font-semibold text-subtle">
         <IconSearch size={20} strokeWidth={2} />
         Netflix, Spotify, ChatGPT…
       </Link>
@@ -129,7 +130,7 @@ export function Explore() {
 
 function CatalogCard({ s }: { s: Service }) {
   return (
-    <Link to={`/service/${s.id}`} viewTransition className="pressable flex items-center gap-3.5 rounded-card bg-white p-3.5">
+    <Link to={`/service/${s.id}`} viewTransition className="pressable flex items-center gap-3.5 rounded-card bg-surface p-3.5">
       <ServiceLogo service={s} size={52} />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate text-base font-bold">{s.name}</span>
@@ -193,7 +194,7 @@ export function Search() {
             if (results[0]) open(results[0])
           }}
         >
-          <label className="flex h-[52px] flex-1 items-center gap-2.5 rounded-btn border-2 border-ink bg-white px-3.5">
+          <label className="flex h-[52px] flex-1 items-center gap-2.5 rounded-btn border-2 border-ink bg-surface px-3.5">
             <IconSearch size={20} strokeWidth={2} />
             <input
               ref={input}
@@ -247,7 +248,7 @@ export function Search() {
             </div>
             <div className="flex flex-wrap gap-2">
               {state.recent.map((r) => (
-                <button key={r} type="button" onClick={() => setQ(r)} className="pressable flex h-10 items-center gap-2 rounded-full bg-white px-3.5 text-sm font-bold">
+                <button key={r} type="button" onClick={() => setQ(r)} className="pressable flex h-10 items-center gap-2 rounded-full bg-surface px-3.5 text-sm font-bold">
                   <IconHistory size={14} />
                   {r}
                 </button>
@@ -279,7 +280,8 @@ export function ServicePage() {
   const sharedId = params.get('offer')
   const [selected, setSelected] = useState<string | null>(sharedId)
   // Haut de l'écran (heure, batterie) dans la teinte du service.
-  useTopColor(s ? tintOf(s.color) : SAND)
+  const dark = useDark()
+  useTopColor(s ? tintOf(s.color, 0.12, dark) : SAND)
 
   useEffect(() => {
     let alive = true
@@ -296,7 +298,7 @@ export function ServicePage() {
 
   if (!s) return <NotFound />
 
-  const tint = tintOf(s.color)
+  const tint = tintOf(s.color, 0.12, dark)
   const current = state.subs.find((x) => x.serviceId === s.id && x.state !== 'expired')
   const pending = state.requests.find((r) => r.serviceId === s.id && r.status === 'pending')
   const visible = (offers ?? []).filter((o) => !device || o.devices.includes(device))
@@ -409,7 +411,7 @@ export function ServicePage() {
                     </p>
                   )}
                   {sharedId && offers.length > 0 && !offers.some((o) => o.id === sharedId) && (
-                    <p className="rounded-tile bg-warn-soft px-3.5 py-2.5 text-[13px] font-semibold text-[#6B3F00]">
+                    <p className="rounded-tile bg-warn-soft px-3.5 py-2.5 text-[13px] font-semibold text-warn-deep">
                       L’offre qu’on t’a partagée est complète ou n’est plus en ligne. Voici les autres places disponibles.
                     </p>
                   )}
@@ -493,14 +495,14 @@ export function OfferOption({ offer, selected, onSelect }: { offer: PublicOffer;
       </div>
     </>
   )
-  if (!onSelect) return <div className="flex flex-col gap-3 rounded-card bg-white p-4">{body}</div>
+  if (!onSelect) return <div className="flex flex-col gap-3 rounded-card bg-surface p-4">{body}</div>
   return (
     <button
       type="button"
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className={cx('pressable flex flex-col gap-3 rounded-card bg-white p-4 text-left', selected ? 'outline-2 outline-ink' : 'outline-0')}
+      className={cx('pressable flex flex-col gap-3 rounded-card bg-surface p-4 text-left', selected ? 'outline-2 outline-ink' : 'outline-0')}
     >
       {body}
     </button>

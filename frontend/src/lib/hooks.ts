@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from 'react'
+import { useDark } from './theme'
 
 export function useMedia(query: string): boolean {
   return useSyncExternalStore(
@@ -97,12 +98,16 @@ export function useInstall() {
 
 export const SAND = '#F5F2EC'
 export const INK = '#16130F'
+/** Fond des écrans clairs en thème sombre (--color-sand sombre). */
+export const NIGHT = '#110F0C'
 
 /**
  * Couleur derrière l'heure et la batterie (iPhone : fond de la page ; Android : theme-color).
  * Chaque écran donne la couleur de son haut, sinon l'iPhone affiche un dégradé de la couleur de fond.
  */
-export function useTopColor(color: string) {
+export function useTopColor(wanted: string) {
+  const dark = useDark()
+  const color = dark && wanted === SAND ? NIGHT : wanted
   useLayoutEffect(() => {
     const meta = document.querySelector('meta[name="theme-color"]')
     const html = document.documentElement
@@ -118,9 +123,11 @@ export function useTopColor(color: string) {
   }, [color])
 }
 
-/** Couleur de marque mélangée au blanc (ex. 12 %), en hexadécimal utilisable par theme-color. */
-export function tintOf(hex: string, amount = 0.12) {
+/** Couleur de marque mélangée au blanc (ou au fond sombre), en hexadécimal utilisable par theme-color. */
+export function tintOf(hex: string, amount = 0.12, dark = false) {
   const n = parseInt(hex.replace('#', ''), 16)
-  const mix = (c: number) => Math.round(c * amount + 255 * (1 - amount))
-  return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => mix(c).toString(16).padStart(2, '0')).join('')
+  const base = dark ? [17, 15, 12] : [255, 255, 255]
+  const a = dark ? amount * 1.6 : amount
+  const mix = (c: number, i: number) => Math.round(c * a + base[i] * (1 - a))
+  return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c, i) => mix(c, i).toString(16).padStart(2, '0')).join('')
 }

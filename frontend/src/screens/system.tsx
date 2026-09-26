@@ -17,7 +17,7 @@ export function OfflineScreen({ embedded }: { embedded?: boolean }) {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-160px)] max-w-[560px] flex-col">
       <div className="flex flex-col gap-3.5 px-6 pt-12">
-        <span className="grid size-16 place-items-center rounded-card bg-white">
+        <span className="grid size-16 place-items-center rounded-card bg-surface">
           <IconWifiOff size={30} />
         </span>
         <h1 className="t-title">
@@ -35,7 +35,7 @@ export function OfflineScreen({ embedded }: { embedded?: boolean }) {
               key={sub.id}
               type="button"
               onClick={() => navigate(`/subs/${sub.id}`, { viewTransition: true })}
-              className="pressable flex items-center gap-3 rounded-card bg-white p-3.5 text-left"
+              className="pressable flex items-center gap-3 rounded-card bg-surface p-3.5 text-left"
             >
               <ServiceLogo service={svc} size={40} />
               <span className="flex-1 text-[15px] font-bold">{svc.name}</span>

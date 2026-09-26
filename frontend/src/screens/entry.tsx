@@ -17,20 +17,20 @@ const SLIDES = [
 
 function SlideVisual({ i }: { i: number }) {
   return (
-    <div className="relative mx-6 mt-2 h-[min(360px,42dvh)] overflow-hidden rounded-[32px] bg-ink">
+    <div className="relative mx-6 mt-2 h-[min(360px,42dvh)] scheme-card overflow-hidden rounded-[32px] bg-ink">
       {i === 0 && (
         <>
-          <div className="absolute top-12 left-[34px] flex w-[150px] -rotate-6 flex-col gap-2.5 rounded-card bg-white p-3.5">
+          <div className="absolute top-12 left-[34px] flex w-[150px] -rotate-6 flex-col gap-2.5 rounded-card bg-surface p-3.5">
             <span className="grid size-10 place-items-center rounded-tile bg-[#E50914] font-display text-xl font-extrabold text-white">N</span>
             <span className="text-sm font-bold">Netflix Premium</span>
             <span className="font-display text-base font-extrabold">2 500 <span className="font-sans text-[11px] font-semibold text-muted">FCFA</span></span>
           </div>
-          <div className="absolute top-[120px] right-[30px] flex w-[150px] rotate-[5deg] flex-col gap-2.5 rounded-card bg-brand p-3.5">
+          <div className="absolute top-[120px] right-[30px] flex w-[150px] rotate-[5deg] flex-col gap-2.5 rounded-card bg-brand p-3.5 text-on-accent">
             <span className="grid size-10 place-items-center rounded-tile bg-[#1DB954] font-display text-xl font-extrabold text-[#0B0B0B]">S</span>
             <span className="text-sm font-bold">Spotify Famille</span>
             <span className="font-display text-base font-extrabold">1 500 <span className="font-sans text-[11px] font-semibold">FCFA</span></span>
           </div>
-          <div className="absolute bottom-10 left-[60px] flex items-center gap-2.5 rounded-full bg-sand py-2.5 pr-3.5 pl-2.5">
+          <div className="absolute bottom-10 left-[60px] flex items-center gap-2.5 rounded-full bg-sand py-2.5 pr-3.5 pl-2.5 text-ink">
             <div className="flex">
               {['#FFB38F', '#9FD7BE', '#C9B8F2'].map((c, k) => (
                 <span key={c} className="size-7 rounded-full border-2 border-sand" style={{ background: c, marginLeft: k ? -8 : 0 }} />
@@ -43,7 +43,7 @@ function SlideVisual({ i }: { i: number }) {
       )}
       {i === 1 && (
         <>
-          <div className="absolute top-10 left-1/2 flex w-[230px] -translate-x-1/2 flex-col gap-3 rounded-card bg-white p-4">
+          <div className="absolute top-10 left-1/2 flex w-[230px] -translate-x-1/2 flex-col gap-3 rounded-card bg-surface p-4">
             {[
               { m: 'OM', c: '#FF7900', f: '#fff', n: 'Orange Money', on: true },
               { m: 'W', c: '#1DC8F2', f: '#0B0B0B', n: 'Wave' },
@@ -56,7 +56,7 @@ function SlideVisual({ i }: { i: number }) {
               </div>
             ))}
           </div>
-          <div className="absolute right-8 bottom-10 left-8 grid h-14 place-items-center rounded-btn bg-brand text-base font-bold text-ink">Payer 2 500 FCFA</div>
+          <div className="absolute right-8 bottom-10 left-8 grid h-14 place-items-center rounded-btn bg-brand text-base font-bold text-on-accent">Payer 2 500 FCFA</div>
         </>
       )}
       {i === 2 && (
@@ -291,7 +291,7 @@ export function NameSetup() {
                 onChange={(e) => setRef(e.target.value.toUpperCase().slice(0, 16))}
                 placeholder="AYA-7K2"
                 autoCapitalize="characters"
-                className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 text-base font-bold tracking-[0.06em] outline-none placeholder:font-medium placeholder:tracking-normal placeholder:text-subtle focus:border-2 focus:border-ink"
+                className="h-12 rounded-tile border-[1.5px] border-line bg-surface px-3.5 text-base font-bold tracking-[0.06em] outline-none placeholder:font-medium placeholder:tracking-normal placeholder:text-subtle focus:border-2 focus:border-ink"
               />
               <span className="text-[12px] font-semibold text-muted">Tes frais de service sont offerts ; ton ami gagne du crédit.</span>
             </label>

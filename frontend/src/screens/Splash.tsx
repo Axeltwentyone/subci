@@ -35,7 +35,7 @@ export function Splash() {
   }, [navigate, state.onboarded, state.user])
 
   return (
-    <div className="relative grid min-h-dvh place-items-center bg-ink">
+    <div className="scheme-dark relative grid min-h-dvh place-items-center bg-ink">
       <div className="flex flex-col items-center gap-[22px]">
         <LogoMark size={112} tone="sand" />
         <Wordmark dark className="text-[40px]" />

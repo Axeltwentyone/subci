@@ -54,7 +54,7 @@ export function Conditions() {
         <h1 className="font-display text-[22px] font-bold">Conditions</h1>
       </div>
       <div className="flex flex-col gap-6 px-5 pt-4 pb-12">
-        <p className="rounded-tile bg-warn-soft px-3.5 py-3 text-[13px] leading-snug font-semibold text-[#6B3F00]">
+        <p className="rounded-tile bg-warn-soft px-3.5 py-3 text-[13px] leading-snug font-semibold text-warn-deep">
           Version bêta : ces conditions sont provisoires et peuvent évoluer avant l’ouverture au public. Tu seras prévenu·e de tout changement important.
         </p>
         {SECTIONS.map((s) => (

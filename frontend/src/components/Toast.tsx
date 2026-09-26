@@ -33,15 +33,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const tone = toast?.tone ?? 'ink'
   const styles: Record<Tone, string> = {
-    ink: 'bg-ink text-white',
-    update: 'bg-ink text-sand shadow-[0_12px_30px_-10px_rgba(22,19,15,.5)]',
+    ink: 'scheme-card bg-ink text-sand',
+    update: 'scheme-card bg-ink text-sand shadow-[0_12px_30px_-10px_rgba(22,19,15,.5)]',
     error: 'bg-err-soft text-err-ink font-bold',
-    warn: 'bg-white border-[1.5px] border-[#F5C9C5]',
-    success: 'bg-white',
+    warn: 'bg-surface border-[1.5px] border-err/30',
+    success: 'bg-surface',
   }
   const icons: Record<Tone, ReactNode> = {
     ink: <span className="text-ok-glow">✓</span>,
-    update: <span className="grid size-8 place-items-center rounded-[10px] bg-brand font-extrabold text-ink">↑</span>,
+    update: <span className="grid size-8 place-items-center rounded-[10px] bg-brand font-extrabold text-on-accent">↑</span>,
     error: <span>!</span>,
     warn: <span className="grid size-8 place-items-center rounded-[10px] bg-err-soft font-extrabold text-err">!</span>,
     success: <span className="grid size-8 place-items-center rounded-[10px] bg-ok-soft font-extrabold text-ok-ink">✓</span>,

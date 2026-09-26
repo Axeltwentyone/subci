@@ -39,6 +39,12 @@
   --color-err-soft: #fde4e1;
   --color-err-ink: #a3231d;
 
+  /* Fixes quel que soit le thème */
+  --color-on-accent: #16130f; /* texte sur orange / pastels */
+  --color-scrim: #16130f; /* voile derrière les feuilles */
+  --color-warn-deep: #6b3f00;
+  --color-disabled: #8a8278;
+
   /* Rail ≥ 768 (md), sidebar ≥ 1200 (desk) */
   --breakpoint-desk: 75rem;
 
@@ -96,6 +102,103 @@
   }
 }
 
+/*
+ * Thème sombre (html[data-theme=dark], posé par lib/theme.ts).
+ * Les écrans clairs s'inversent ; les écrans et cartes déjà sombres
+ * (.scheme-dark, .scheme-card) gardent leur encre.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-sand: #110f0c;
+  --color-surface: #1c1915;
+  --color-canvas: #0b0a08;
+  --color-line: #2c2822;
+  --color-line-strong: #3b362e;
+  --color-line-soft: #24201b;
+  --color-radio: #544d43;
+  --color-muted: #aaa194;
+  --color-subtle: #978e81;
+  --color-body: #d2cabd;
+  --color-disabled: #6f675c;
+
+  /* « encre » = texte principal et contrôles pleins → clairs */
+  --color-ink: #f3efe8;
+  --color-ink-2: #e2dcd2;
+  --color-ink-3: #d3ccc0;
+  --color-ink-line: #c9c1b4;
+  --color-ink-muted: #5e574d;
+  --color-ink-soft: #4a443b;
+
+  --color-brand-soft: #3d2215;
+  --color-brand-tint: #221710;
+  --color-brand-ink: #ff9a6e;
+  --color-ok: #22a773;
+  --color-ok-soft: #12291f;
+  --color-ok-ink: #5fd3a0;
+  --color-warn-soft: #33260e;
+  --color-warn-ink: #f2b54d;
+  --color-warn-deep: #f5c46b;
+  --color-wait: #e3a04a;
+  --color-info: #7c9bf5;
+  --color-info-soft: #172040;
+  --color-info-ink: #a9bdff;
+  --color-err: #e5534b;
+  --color-err-soft: #361512;
+  --color-err-ink: #ff8e86;
+}
+/* Écrans sombres d'origine et blocs orange : palette d'origine intacte. */
+:root[data-theme='dark'] .scheme-dark,
+:root[data-theme='dark'] .scheme-light {
+  --color-sand: #f5f2ec;
+  --color-surface: #ffffff;
+  --color-canvas: #e6e0d5;
+  --color-line: #e7e1d6;
+  --color-line-strong: #d8d0c3;
+  --color-line-soft: #f0ebe2;
+  --color-radio: #cfc7ba;
+  --color-muted: #5e574d;
+  --color-subtle: #6f675c;
+  --color-body: #4a443b;
+  --color-disabled: #8a8278;
+  --color-ink: #16130f;
+  --color-ink-2: #221e19;
+  --color-ink-3: #2e2a24;
+  --color-ink-line: #332e27;
+  --color-ink-muted: #a89f92;
+  --color-ink-soft: #d9d1c4;
+  --color-brand-soft: #ffe6da;
+  --color-brand-tint: #fff6f1;
+  --color-brand-ink: #a83a0e;
+  --color-ok: #0f8a5f;
+  --color-ok-soft: #ddf3e8;
+  --color-ok-ink: #0b6b49;
+  --color-warn-soft: #fff1d6;
+  --color-warn-ink: #8a5000;
+  --color-warn-deep: #6b3f00;
+  --color-wait: #a86200;
+  --color-info: #2446a8;
+  --color-info-soft: #e3ebff;
+  --color-info-ink: #1d3a8f;
+  --color-err: #c8322b;
+  --color-err-soft: #fde4e1;
+  --color-err-ink: #a3231d;
+}
+:root[data-theme='dark'] .scheme-light {
+  color: var(--color-ink);
+}
+:root[data-theme='dark'] .scheme-card {
+  --color-sand: #f5f2ec;
+  --color-ink-muted: #a89f92;
+  --color-ink-soft: #d9d1c4;
+}
+/* Cartes sombres posées sur un fond sombre : un cran plus haut. */
+:root[data-theme='dark'] .scheme-card {
+  --color-ink: #262019;
+  --color-ink-2: #302a22;
+  --color-ink-3: #3a332a;
+  --color-ink-line: #443c32;
+}
+
 /* Type scale */
 @utility t-display {
   font: 700 38px/1.02 var(--font-display);
@@ -119,7 +222,7 @@
   text-transform: uppercase;
 }
 @utility skeleton {
-  background: linear-gradient(90deg, #e7e1d6 0, #f2eee7 50%, #e7e1d6 100%);
+  background: linear-gradient(90deg, var(--color-line) 0, var(--color-line-soft) 50%, var(--color-line) 100%);
   background-size: 400px 100%;
   animation: var(--animate-shimmer);
 }

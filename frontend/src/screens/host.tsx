@@ -102,12 +102,12 @@ function PayoutRules({ dark }: { dark?: boolean }) {
     ['Tu retires quand tu veux', 'Vers Wave, Orange Money, MTN ou Moov. Reçu sous 48 h.'],
   ]
   return (
-    <section className={cx('flex flex-col gap-3 rounded-[20px] p-4', dark ? 'bg-ink-2 text-sand' : 'bg-white')}>
+    <section className={cx('flex flex-col gap-3 rounded-[20px] p-4', dark ? 'bg-ink-2 text-sand' : 'bg-surface')}>
       <h2 className="text-[15px] font-bold">Comment tu es payé</h2>
       <ol className="flex flex-col gap-3">
         {steps.map(([t, d], i) => (
           <li key={t} className="flex gap-3">
-            <span className={cx('grid size-6 shrink-0 place-items-center rounded-full text-[12px] font-extrabold', dark ? 'bg-brand text-ink' : 'bg-ink text-white')}>{i + 1}</span>
+            <span className={cx('grid size-6 shrink-0 place-items-center rounded-full text-[12px] font-extrabold', dark ? 'bg-brand text-on-accent' : 'bg-ink text-sand')}>{i + 1}</span>
             <span className="flex flex-col gap-0.5">
               <span className="text-sm font-bold">{t}</span>
               <span className={cx('text-[13px] leading-snug font-semibold', dark ? 'text-ink-muted' : 'text-muted')}>{d}</span>
@@ -234,7 +234,7 @@ export function HostSetup() {
                       role="radio"
                       aria-checked={on}
                       onClick={() => pickService(id)}
-                      className={cx('pressable flex h-[76px] flex-col items-center justify-center gap-1.5 rounded-btn bg-white px-1', on ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
+                      className={cx('pressable flex h-[76px] flex-col items-center justify-center gap-1.5 rounded-btn bg-surface px-1', on ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
                     >
                       <ServiceLogo service={sv} size={36} radius={10} />
                       <span className="w-full truncate text-center text-[11px] font-bold">{sv.name.replace(' Premium', '').replace(' Famille', '')}</span>
@@ -244,9 +244,9 @@ export function HostSetup() {
                 <button
                   type="button"
                   onClick={() => toast({ text: 'Un autre service ? Écris-nous sur WhatsApp, on l’ajoute.' })}
-                  className="pressable flex h-[76px] flex-col items-center justify-center gap-1.5 rounded-btn border-[1.5px] border-line bg-white"
+                  className="pressable flex h-[76px] flex-col items-center justify-center gap-1.5 rounded-btn border-[1.5px] border-line bg-surface"
                 >
-                  <ServiceLogo service={{ mono: '+', color: '#E7E1D6', fg: '#16130F' }} size={36} radius={10} />
+                  <ServiceLogo service={{ mono: '+', color: 'var(--color-line)', fg: 'var(--color-ink)' }} size={36} radius={10} />
                   <span className="text-[11px] font-bold">Autre</span>
                 </button>
               </div>
@@ -263,7 +263,7 @@ export function HostSetup() {
                       role="radio"
                       aria-checked={p.key === planKey}
                       onClick={() => choosePlan(p)}
-                      className={cx('flex items-center gap-3 rounded-btn bg-white px-4 py-3.5 text-left', p.key === planKey ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
+                      className={cx('flex items-center gap-3 rounded-btn bg-surface px-4 py-3.5 text-left', p.key === planKey ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
                     >
                       <span className="flex flex-1 flex-col gap-0.5">
                         <span className="text-[15px] font-bold">
@@ -320,9 +320,9 @@ export function HostSetup() {
                   placeholder={`Email du compte ${service?.name.split(' ')[0] ?? ''}`}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 text-[16px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
+                  className="h-12 rounded-tile border-[1.5px] border-line bg-surface px-3.5 text-[16px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
                 />
-                <div className="flex h-12 items-center rounded-tile border-[1.5px] border-line bg-white pr-3.5 focus-within:border-2 focus-within:border-ink">
+                <div className="flex h-12 items-center rounded-tile border-[1.5px] border-line bg-surface pr-3.5 focus-within:border-2 focus-within:border-ink">
                   <input
                     type={showPwd ? 'text' : 'password'}
                     autoComplete="off"
@@ -351,7 +351,7 @@ export function HostSetup() {
               Tu choisis qui entre : chaque membre paie d’abord, puis tu acceptes ou refuses sous 24 h (il est remboursé si tu refuses).
             </div>
 
-            <label htmlFor={proofId} className="pressable flex items-center gap-3 rounded-card bg-white p-4">
+            <label htmlFor={proofId} className="pressable flex items-center gap-3 rounded-card bg-surface p-4">
               <span className={cx('grid size-11 shrink-0 place-items-center rounded-tile', proof ? 'bg-ok-soft text-ok-ink' : 'bg-brand-soft text-brand-ink')}>
                 {proof ? <IconCheck size={20} /> : <IconPlus size={18} />}
               </span>
@@ -377,7 +377,7 @@ export function HostSetup() {
               <input type="checkbox" checked={agreePay} onChange={(e) => setAgreePay(e.target.checked)} className="peer sr-only" />
               <span
                 aria-hidden
-                className={cx('grid size-[22px] shrink-0 place-items-center rounded-md text-[13px] font-extrabold text-white peer-focus-visible:outline-2 peer-focus-visible:outline-brand', agreePay ? 'bg-ink' : 'border-2 border-radio bg-white')}
+                className={cx('grid size-[22px] shrink-0 place-items-center rounded-md text-[13px] font-extrabold text-sand peer-focus-visible:outline-2 peer-focus-visible:outline-brand', agreePay ? 'bg-ink' : 'border-2 border-radio bg-surface')}
               >
                 {agreePay && '✓'}
               </span>
@@ -388,7 +388,7 @@ export function HostSetup() {
               <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="peer sr-only" />
               <span
                 aria-hidden
-                className={cx('grid size-[22px] shrink-0 place-items-center rounded-md text-[13px] font-extrabold text-white peer-focus-visible:outline-2 peer-focus-visible:outline-brand', agree ? 'bg-ink' : 'border-2 border-radio bg-white')}
+                className={cx('grid size-[22px] shrink-0 place-items-center rounded-md text-[13px] font-extrabold text-sand peer-focus-visible:outline-2 peer-focus-visible:outline-brand', agree ? 'bg-ink' : 'border-2 border-radio bg-surface')}
               >
                 {agree && '✓'}
               </span>
@@ -465,7 +465,7 @@ function InviteMember({ offer, member, onSend }: { offer: HostOffer; member: Mem
         aria-label={`Lien d’invitation pour ${member.name}`}
         value={link}
         onChange={(e) => setLink(e.target.value.trim())}
-        className="h-11 rounded-[12px] border-[1.5px] border-line bg-white px-3 text-[15px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
+        className="h-11 rounded-[12px] border-[1.5px] border-line bg-surface px-3 text-[15px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
       />
       <Button size="sm" variant="ink" loading={busy} disabled={!link.startsWith('https://')} onClick={() => send(link)}>
         Envoyer à {member.name}
@@ -555,7 +555,7 @@ export function ManageOffer() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-btn bg-ink px-4 py-3.5 text-sand">
+        <div className="flex items-center justify-between scheme-card rounded-btn bg-ink px-4 py-3.5 text-sand">
           <div className="flex flex-col gap-0.5">
             <span className="text-xs font-semibold text-ink-muted">Tu reçois / mois</span>
             <span className="font-display text-xl font-extrabold">{fcfa(net)} FCFA</span>
@@ -574,7 +574,7 @@ export function ManageOffer() {
             {offer.requests.map((r) => (
               <div key={r.id} className="flex flex-col gap-3 rounded-card border-2 border-brand bg-brand-tint p-4">
                 <div className="flex items-start gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white font-display text-base font-extrabold">{r.member.name.charAt(0)}</span>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface font-display text-base font-extrabold">{r.member.name.charAt(0)}</span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="text-[15px] font-bold">{r.member.name}</span>
                     <span className="text-[13px] font-semibold text-muted">
@@ -612,7 +612,7 @@ export function ManageOffer() {
         )}
 
         {closed ? (
-          <div className="flex gap-2.5 rounded-[14px] bg-warn-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-[#6B3F00]">
+          <div className="flex gap-2.5 rounded-[14px] bg-warn-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-warn-deep">
             <span className="font-extrabold">!</span>
             Tu as arrêté ce partage. Tes membres gardent leur accès jusqu’à leur échéance, sans renouvellement.
           </div>
@@ -632,7 +632,7 @@ export function ManageOffer() {
               ].filter(Boolean).join(' · ')}
             />
 
-            <section className="flex flex-col gap-3 rounded-card bg-white p-[18px]">
+            <section className="flex flex-col gap-3 rounded-card bg-surface p-[18px]">
               <span className="text-base font-bold">Accès des membres</span>
               {offer.mode === 'credentials' ? (
                 <>
@@ -643,9 +643,9 @@ export function ManageOffer() {
                     placeholder={`Email du compte ${svc.name.split(' ')[0]}`}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 rounded-tile border-[1.5px] border-line bg-sand px-3.5 text-[16px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink focus:bg-white"
+                    className="h-12 rounded-tile border-[1.5px] border-line bg-sand px-3.5 text-[16px] font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink focus:bg-surface"
                   />
-                  <div className="flex h-12 items-center rounded-tile border-[1.5px] border-line bg-sand pr-3.5 focus-within:border-2 focus-within:border-ink focus-within:bg-white">
+                  <div className="flex h-12 items-center rounded-tile border-[1.5px] border-line bg-sand pr-3.5 focus-within:border-2 focus-within:border-ink focus-within:bg-surface">
                     <input
                       type={showPwd ? 'text' : 'password'}
                       autoComplete="new-password"
@@ -670,7 +670,7 @@ export function ManageOffer() {
           </>
         )}
 
-        <section className="flex flex-col gap-1 rounded-card bg-white px-[18px] py-2">
+        <section className="flex flex-col gap-1 rounded-card bg-surface px-[18px] py-2">
           <span className="pt-2 pb-1 text-base font-bold">Membres</span>
           {members.length === 0 && <p className="py-3 text-sm font-medium text-muted">Personne pour l’instant. On te prévient au 1er membre.</p>}
           {members.map((m) => (
@@ -833,7 +833,7 @@ export function ManageOffer() {
 
 function SeatStepper({ value, onChange, min, max, hint }: { value: number; onChange: (n: number) => void; min: number; max: number; hint: string }) {
   return (
-    <div className="flex items-center justify-between rounded-card bg-white p-[18px]">
+    <div className="flex items-center justify-between rounded-card bg-surface p-[18px]">
       <div className="flex flex-col gap-0.5">
         <span className="text-base font-bold">Places à partager</span>
         <span className="text-[13px] font-semibold text-muted">{hint}</span>
@@ -844,7 +844,7 @@ function SeatStepper({ value, onChange, min, max, hint }: { value: number; onCha
           aria-label="Une place de moins"
           disabled={value <= min}
           onClick={() => onChange(Math.max(min, value - 1))}
-          className="pressable grid size-11 place-items-center rounded-tile bg-sand disabled:bg-line disabled:text-[#8A8278]"
+          className="pressable grid size-11 place-items-center rounded-tile bg-sand disabled:bg-line disabled:text-disabled"
         >
           <IconMinus size={18} />
         </button>
@@ -856,7 +856,7 @@ function SeatStepper({ value, onChange, min, max, hint }: { value: number; onCha
           aria-label="Une place de plus"
           disabled={value >= max}
           onClick={() => onChange(Math.min(max, value + 1))}
-          className="pressable grid size-11 place-items-center rounded-tile bg-sand disabled:bg-line disabled:text-[#8A8278]"
+          className="pressable grid size-11 place-items-center rounded-tile bg-sand disabled:bg-line disabled:text-disabled"
         >
           <IconPlus size={18} />
         </button>
@@ -875,7 +875,7 @@ function PriceCard({ value, onChange, reco, note }: { value: number; onChange: (
   const pct = (v: number) => ((v - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100
   const zone = value < lo ? 'low' : value > hi ? 'high' : 'ok'
   return (
-    <div className="flex flex-col gap-3.5 rounded-card bg-white p-[18px]">
+    <div className="flex flex-col gap-3.5 rounded-card bg-surface p-[18px]">
       <div className="flex items-baseline justify-between">
         <label htmlFor={id} className="text-base font-bold">
           Prix par place
@@ -889,7 +889,7 @@ function PriceCard({ value, onChange, reco, note }: { value: number; onChange: (
         <span className="absolute h-1.5 rounded-[3px] bg-ok/25" style={{ left: `${pct(lo)}%`, width: `${pct(hi) - pct(lo)}%` }} />
         <span className="absolute left-0 h-1.5 rounded-[3px] bg-ink" style={{ width: `${pct(value)}%` }} />
         <span className="absolute -top-1 h-9 w-0.5 bg-ok opacity-50" style={{ left: `${pct((lo + hi) / 2)}%` }} />
-        <span className="pointer-events-none absolute size-7 rounded-full border-[3px] border-ink bg-white" style={{ left: `calc(${pct(value)}% - 14px)` }} />
+        <span className="pointer-events-none absolute size-7 rounded-full border-[3px] border-ink bg-surface" style={{ left: `calc(${pct(value)}% - 14px)` }} />
         <input
           id={id}
           type="range"
@@ -915,7 +915,7 @@ function PriceCard({ value, onChange, reco, note }: { value: number; onChange: (
 function DevicePicker({ allowed, value, onChange }: { allowed: Device[]; value: Device[]; onChange: (v: Device[]) => void }) {
   const list = DEVICES.map((d) => d.id).filter((d) => allowed.includes(d))
   return (
-    <div className="flex flex-col gap-3 rounded-card bg-white p-[18px]">
+    <div className="flex flex-col gap-3 rounded-card bg-surface p-[18px]">
       <div className="flex flex-col gap-0.5">
         <span className="text-base font-bold">Appareils des membres</span>
         <span className="text-[13px] font-semibold text-muted">Les membres choisissent ton offre selon ce qu’ils utilisent.</span>

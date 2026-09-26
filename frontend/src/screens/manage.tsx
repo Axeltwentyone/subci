@@ -110,7 +110,7 @@ function PendingRequests() {
       {pending.map((r) => {
         const svc = getService(r.serviceId)
         return (
-          <div key={r.id} className="flex flex-col gap-3 rounded-card border-[1.5px] border-dashed border-info/40 bg-white p-4">
+          <div key={r.id} className="flex flex-col gap-3 rounded-card border-[1.5px] border-dashed border-info/40 bg-surface p-4">
             <div className="flex items-center gap-3">
               {svc && <ServiceLogo service={svc} />}
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -161,7 +161,7 @@ function MemberList({ subs, hasRequests }: { subs: UserSub[]; hasRequests?: bool
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between rounded-btn bg-ink px-4 py-3.5 text-sand md:max-w-[420px]">
+      <div className="flex items-center justify-between scheme-card rounded-btn bg-ink px-4 py-3.5 text-sand md:max-w-[420px]">
         <div className="flex flex-col gap-0.5">
           <span className="text-xs font-semibold text-ink-muted">Ce mois-ci</span>
           <span className="font-display text-xl font-extrabold">{fcfa(monthly)} FCFA</span>
@@ -193,7 +193,7 @@ function MemberList({ subs, hasRequests }: { subs: UserSub[]; hasRequests?: bool
             )
 
           return (
-            <div key={sub.id} className="flex flex-col gap-3.5 rounded-card bg-white p-4">
+            <div key={sub.id} className="flex flex-col gap-3.5 rounded-card bg-surface p-4">
               <Link to={`/subs/${sub.id}`} viewTransition className="flex items-center gap-3">
                 <ServiceLogo service={svc} />
                 <span className="flex flex-1 flex-col gap-0.5">
@@ -232,7 +232,7 @@ function ExpiredList({ subs }: { subs: UserSub[] }) {
       {subs.map((sub) => {
         const svc = getService(sub.serviceId)!
         return (
-          <div key={sub.id} className="flex items-center gap-3 rounded-card bg-white p-4">
+          <div key={sub.id} className="flex items-center gap-3 rounded-card bg-surface p-4">
             <ServiceLogo service={svc} />
             <span className="flex flex-1 flex-col gap-0.5">
               <span className="text-base font-bold">{svc.name}</span>
@@ -256,7 +256,7 @@ function EmptySubs() {
       <div className="relative h-[130px] w-[200px]" aria-hidden>
         <span className="absolute top-[30px] left-2.5 h-20 w-[120px] -rotate-8 rounded-[18px] border-2 border-dashed border-radio" />
         <span className="absolute top-[18px] right-2.5 h-20 w-[120px] rotate-7 rounded-[18px] border-2 border-dashed border-radio" />
-        <span className="absolute top-6 left-10 grid h-[84px] w-[120px] place-items-center rounded-[18px] bg-white font-display text-[32px] font-extrabold text-brand">+</span>
+        <span className="absolute top-6 left-10 grid h-[84px] w-[120px] place-items-center rounded-[18px] bg-surface font-display text-[32px] font-extrabold text-brand">+</span>
       </div>
       <h2 className="font-display text-[26px] leading-[1.15] font-bold tracking-[-0.02em]">Aucun abonnement pour l’instant</h2>
       <p className="text-base leading-normal font-medium text-muted">Netflix dès 2 500 FCFA, Spotify dès 1 500 FCFA.</p>
@@ -289,7 +289,7 @@ function HostDashboard() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3.5 rounded-[24px] bg-ink p-5 text-sand md:max-w-[420px]">
+      <div className="flex flex-col gap-3.5 scheme-card rounded-[24px] bg-ink p-5 text-sand md:max-w-[420px]">
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-1">
             <span className="flex items-center gap-2 text-[13px] font-semibold text-ink-muted">
@@ -320,7 +320,7 @@ function HostDashboard() {
             type="button"
             disabled={state.balance === 0 || (state.withdrawLockedUntil ?? 0) > Date.now()}
             onClick={() => setWithdraw(true)}
-            className="pressable h-11 rounded-[14px] bg-brand text-[15px] font-bold text-ink disabled:bg-ink-3 disabled:text-ink-muted"
+            className="pressable h-11 rounded-[14px] bg-brand text-[15px] font-bold text-on-accent disabled:bg-ink-3 disabled:text-ink-muted"
           >
             Retirer
           </button>
@@ -331,7 +331,7 @@ function HostDashboard() {
       </div>
 
       {state.offers.length > 0 && push && push !== 'on' && push !== 'unsupported' && (
-        <div className="flex items-start gap-3 rounded-card bg-warn-soft p-4 text-[13px] leading-snug font-semibold text-[#6B3F00] md:max-w-[420px]">
+        <div className="flex items-start gap-3 rounded-card bg-warn-soft p-4 text-[13px] leading-snug font-semibold text-warn-deep md:max-w-[420px]">
           <span className="font-extrabold">!</span>
           <span className="flex flex-1 flex-col gap-2">
             <span>
@@ -345,7 +345,7 @@ function HostDashboard() {
               <button
                 type="button"
                 onClick={() => (push === 'install' ? setInstallSheet(true) : setNotifSheet(true))}
-                className="self-start rounded-[10px] bg-ink px-3 py-2 text-[13px] font-bold text-white"
+                className="self-start rounded-[10px] bg-ink px-3 py-2 text-[13px] font-bold text-sand"
               >
                 {push === 'install' ? 'Installer l’app' : 'Activer les notifications'}
               </button>
@@ -392,7 +392,7 @@ function OfferCard({ offer }: { offer: HostOffer }) {
     : free > 0 ? <Badge tone="soft">{free} libre{free > 1 ? 's' : ''}</Badge>
     : <Badge tone="active">Complet</Badge>
   return (
-    <div className={cx('flex flex-col gap-3 rounded-card bg-white p-4', offer.status === 'closed' && 'opacity-70')}>
+    <div className={cx('flex flex-col gap-3 rounded-card bg-surface p-4', offer.status === 'closed' && 'opacity-70')}>
       <button type="button" onClick={manage} className="flex items-center gap-3 text-left">
         <ServiceLogo service={svc} />
         <span className="flex flex-1 flex-col gap-0.5">
@@ -596,7 +596,7 @@ function IssueSheet({ sub, open, onClose }: { sub: UserSub; open: boolean; onClo
           <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Un souci avec {svc.name} ?</h2>
           <p className="text-sm font-semibold text-muted">{sub.hostName ?? 'Ton hôte'} est prévenu·e et ses gains pour toi sont mis en pause le temps que ce soit réglé.</p>
         </div>
-        <div role="radiogroup" aria-label="Quel souci ?" className="overflow-hidden rounded-card bg-white">
+        <div role="radiogroup" aria-label="Quel souci ?" className="overflow-hidden rounded-card bg-surface">
           {ISSUES.map((i) => (
             <button
               key={i.id}
@@ -619,7 +619,7 @@ function IssueSheet({ sub, open, onClose }: { sub: UserSub; open: boolean; onClo
           onChange={(e) => setMessage(e.target.value.slice(0, 500))}
           rows={3}
           placeholder="Détails (facultatif)"
-          className="rounded-btn border-[1.5px] border-line bg-white p-3.5 text-[15px] font-medium outline-none focus:border-2 focus:border-ink"
+          className="rounded-btn border-[1.5px] border-line bg-surface p-3.5 text-[15px] font-medium outline-none focus:border-2 focus:border-ink"
         />
         <Button
           loading={loading}
@@ -676,7 +676,7 @@ function FamilyInvite({ sub, serviceName }: { sub: UserSub; serviceName: string 
 
   if (invite.joinedAt) {
     return (
-      <div className="flex items-center gap-3 rounded-card bg-ink p-5 text-sand">
+      <div className="flex items-center gap-3 scheme-card rounded-card bg-ink p-5 text-sand">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ok text-white">
           <IconCheck size={20} />
         </span>
@@ -701,7 +701,7 @@ function FamilyInvite({ sub, serviceName }: { sub: UserSub; serviceName: string 
           'Reviens ici toucher « J’ai rejoint »',
         ]
   return (
-    <div className="flex flex-col gap-4 rounded-card bg-ink p-5 text-sand">
+    <div className="flex flex-col gap-4 scheme-card rounded-card bg-ink p-5 text-sand">
       <div className="flex flex-col gap-1">
         <span className="text-xs font-semibold text-ink-muted">Invitation famille</span>
         <span className="text-[15px] leading-snug font-bold">
@@ -716,14 +716,14 @@ function FamilyInvite({ sub, serviceName }: { sub: UserSub; serviceName: string 
         <ol className="flex flex-col gap-2.5">
           {steps.map((t, i) => (
             <li key={i} className="flex items-start gap-3 text-sm leading-snug font-semibold">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-extrabold text-ink">{i + 1}</span>
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-extrabold text-on-accent">{i + 1}</span>
               <span>{t}</span>
             </li>
           ))}
         </ol>
       )}
       {invite.type === 'link' && invite.link && !invite.problemAt && (
-        <a href={invite.link} target="_blank" rel="noopener noreferrer" className="pressable flex h-12 items-center justify-center rounded-btn bg-brand text-[15px] font-bold text-ink">
+        <a href={invite.link} target="_blank" rel="noopener noreferrer" className="pressable flex h-12 items-center justify-center rounded-btn bg-brand text-[15px] font-bold text-on-accent">
           Rejoindre la famille {brand}
         </a>
       )}
@@ -797,7 +797,7 @@ export function SubDetail() {
         </div>
 
         {status === 'pending' ? (
-          <div className="flex flex-col gap-3 rounded-card bg-ink p-5 text-sand">
+          <div className="flex flex-col gap-3 scheme-card rounded-card bg-ink p-5 text-sand">
             <span className="flex items-center gap-2.5 text-[15px] font-bold">
               <span className="size-4 rounded-full border-[2.5px] border-ink-3 border-t-brand animate-spin-fast" />
               On prépare tes accès
@@ -813,7 +813,7 @@ export function SubDetail() {
         ) : sub.invite ? (
           <FamilyInvite sub={sub} serviceName={svc.name} />
         ) : (
-          <div className="rounded-card bg-ink px-[18px] py-1.5 text-sand">
+          <div className="scheme-card rounded-card bg-ink px-[18px] py-1.5 text-sand">
             <div className="flex items-center gap-2.5 border-b border-ink-line py-3.5">
               <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
                 <span className="text-xs font-semibold text-ink-muted">Email</span>
@@ -875,7 +875,7 @@ export function SubDetail() {
             </button>
           </div>
         ) : sub.invite ? null : (
-          <div className="flex gap-2.5 rounded-[14px] bg-warn-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-[#6B3F00]">
+          <div className="flex gap-2.5 rounded-[14px] bg-warn-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-warn-deep">
             <span className="font-extrabold">!</span>
             Ne modifie pas le mot de passe ni les autres profils.
           </div>
@@ -961,8 +961,8 @@ export function ConfirmModal({ title, text, confirm, onCancel, onConfirm }: { ti
   }, [onCancel])
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-6" role="presentation">
-      <div className="absolute inset-0 animate-fade-in bg-ink/55" onClick={onCancel} aria-hidden />
-      <div role="alertdialog" aria-modal="true" aria-labelledby="cm-title" className="relative flex w-full max-w-[360px] animate-fade-in flex-col gap-3 rounded-sheet bg-white p-6">
+      <div className="absolute inset-0 animate-fade-in bg-scrim/55" onClick={onCancel} aria-hidden />
+      <div role="alertdialog" aria-modal="true" aria-labelledby="cm-title" className="relative flex w-full max-w-[360px] animate-fade-in flex-col gap-3 rounded-sheet bg-surface p-6">
         <h2 id="cm-title" className="font-display text-[22px] leading-[1.15] font-bold">{title}</h2>
         <p className="text-[15px] leading-normal font-medium text-muted">{text}</p>
         <div className="mt-2 grid grid-cols-2 gap-2">

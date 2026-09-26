@@ -69,7 +69,7 @@ export function SwipeToArchive({ onArchive, children, className }: { onArchive: 
   }
 
   return (
-    <div ref={box} className={cx('relative overflow-hidden rounded-card transition-opacity duration-200', dx < 0 || gone ? 'bg-err' : 'bg-white', gone && 'opacity-0', className)}>
+    <div ref={box} className={cx('relative overflow-hidden rounded-card transition-opacity duration-200', dx < 0 || gone ? 'bg-err' : 'bg-surface', gone && 'opacity-0', className)}>
       <button
         type="button"
         onClick={() => {
@@ -83,7 +83,7 @@ export function SwipeToArchive({ onArchive, children, className }: { onArchive: 
         Archiver
       </button>
       <div
-        className="relative touch-pan-y bg-white"
+        className="relative touch-pan-y bg-surface"
         style={{ transform: `translateX(${dx}px)`, transition: start.current ? 'none' : 'transform 200ms cubic-bezier(.2,.8,.2,1)', borderRadius: 20 }}
         onPointerDown={(e) => {
           if (e.pointerType === 'mouse' && e.button !== 0) return

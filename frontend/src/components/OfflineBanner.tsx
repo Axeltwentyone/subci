@@ -20,7 +20,7 @@ export function OfflineBanner() {
   if (online) return null
   return (
     <div className="sticky top-0 z-30 px-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-2">
-      <div role="status" className="mx-auto flex h-11 max-w-[720px] items-center gap-2.5 rounded-tile bg-ink px-3.5 text-sm font-bold text-sand">
+      <div role="status" className="mx-auto flex h-11 max-w-[720px] items-center gap-2.5 scheme-card rounded-tile bg-ink px-3.5 text-sm font-bold text-sand">
         <span className="size-2 rounded-full bg-warn" />
         Hors ligne{state.lastSync ? ` · synchro à ${clock(state.lastSync)}` : ''}
       </div>

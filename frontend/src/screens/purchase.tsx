@@ -130,7 +130,7 @@ export function Checkout() {
               aria-label="E-mail de ton identifiant Apple"
               value={appleId}
               onChange={(e) => setAppleId(e.target.value)}
-              className="h-14 rounded-btn border-[1.5px] border-line bg-white px-4 text-base font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
+              className="h-14 rounded-btn border-[1.5px] border-line bg-surface px-4 text-base font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-2 focus:border-ink"
             />
             <p className="px-1 text-[13px] leading-normal font-medium text-muted">
               L’e-mail de ton compte Apple (Réglages → ton nom). Ton hôte s’en sert pour t’inviter dans son Partage familial : il ne le voit qu’après t’avoir accepté.
@@ -149,12 +149,12 @@ export function Checkout() {
                   role="radio"
                   aria-checked={on}
                   onClick={() => setMonths(d.months)}
-                  className={cx('pressable relative flex flex-col gap-1 rounded-btn bg-white p-3 text-left', on ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
+                  className={cx('pressable relative flex flex-col gap-1 rounded-btn bg-surface p-3 text-left', on ? 'border-2 border-ink' : 'border-[1.5px] border-line')}
                 >
                   <span className="text-sm font-bold">{d.months} mois</span>
                   <span className="font-display text-base font-extrabold">{monthly ? fcfa(durationPrice(monthly, d.months)) : '—'}</span>
                   {d.discount > 0 && (
-                    <span className={cx('absolute -top-2.5 right-2 rounded-md px-[7px] py-0.5 text-[11px] font-extrabold', on ? 'bg-brand text-ink' : 'bg-brand-soft text-brand-ink')}>
+                    <span className={cx('absolute -top-2.5 right-2 rounded-md px-[7px] py-0.5 text-[11px] font-extrabold', on ? 'bg-brand text-on-accent' : 'bg-brand-soft text-brand-ink')}>
                       -{d.discount * 100} %
                     </span>
                   )}
@@ -316,7 +316,7 @@ export function Paying() {
             const n = i + 1
             return (
               <div key={t} className="flex items-center gap-3.5 border-b border-line-soft py-3 last:border-b-0">
-                <span className={cx('grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-extrabold transition-colors duration-300', n <= 2 ? 'bg-ink text-white' : 'bg-line')}>
+                <span className={cx('grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-extrabold transition-colors duration-300', n <= 2 ? 'bg-ink text-sand' : 'bg-line')}>
                   {n < step ? <IconCheck size={14} /> : n}
                 </span>
                 <span className={cx('text-[15px] font-semibold', n > 2 && 'text-muted')}>{t}</span>
@@ -362,7 +362,7 @@ export function Paying() {
                 <span className="text-[13px] font-semibold text-muted">Ou compose le code</span>
                 <span className="font-display text-2xl font-extrabold">{m.ussd}</span>
               </span>
-              <a href={`tel:${encodeURIComponent(m.ussd)}`} className="pressable flex h-11 items-center rounded-[14px] bg-ink px-4 text-sm font-bold text-white">
+              <a href={`tel:${encodeURIComponent(m.ussd)}`} className="pressable flex h-11 items-center rounded-[14px] bg-ink px-4 text-sm font-bold text-sand">
                 Appeler
               </a>
             </div>

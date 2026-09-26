@@ -71,7 +71,7 @@ export function InstallSheet({ open, onClose }: { open: boolean; onClose: () => 
         </ul>
         {install.ios ? (
           <div className="flex items-center gap-3 rounded-btn bg-sand p-3.5 text-[15px] leading-[1.4] font-semibold">
-            <span className="grid size-10 shrink-0 place-items-center rounded-tile bg-white">
+            <span className="grid size-10 shrink-0 place-items-center rounded-tile bg-surface">
               <IconShare size={18} />
             </span>
             <span>
@@ -136,7 +136,7 @@ function InstallScreen() {
   const later = () => actions.installDismissed()
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-ink text-sand" role="dialog" aria-modal="true" aria-label="Installer Sub.ci">
+    <div className="scheme-dark fixed inset-0 z-[60] overflow-y-auto bg-ink text-sand" role="dialog" aria-modal="true" aria-label="Installer Sub.ci">
       <div className="pt-safe mx-auto flex min-h-dvh w-full max-w-[440px] flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+28px)]">
         <div className="flex flex-1 flex-col justify-center gap-7 py-10">
           <div className="flex flex-col items-center gap-4 text-center">
@@ -196,7 +196,7 @@ function Steps({ steps }: { steps: ReactNode[] }) {
     <ol className="flex flex-col gap-3 rounded-[20px] bg-ink-2 p-4">
       {steps.map((s, i) => (
         <li key={i} className="flex items-start gap-3 text-[15px] leading-[1.4] font-semibold">
-          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-extrabold text-ink">{i + 1}</span>
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[12px] font-extrabold text-on-accent">{i + 1}</span>
           <span>{s}</span>
         </li>
       ))}
@@ -210,13 +210,13 @@ export function InstallBanner({ onOpen }: { onOpen: () => void }) {
   const install = useInstall()
   if (install.installed || !isMobileDevice() || Date.now() - state.installDismissedAt < 3 * 24 * 3600e3) return null
   return (
-    <div className="flex items-center gap-3 rounded-card bg-ink p-3.5 pr-2 text-sand">
+    <div className="flex items-center gap-3 scheme-card rounded-card bg-ink p-3.5 pr-2 text-sand">
       <LogoMark size={40} tone="brand" />
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 flex-col text-left">
         <span className="text-[15px] font-bold">Installe l’app Sub.ci</span>
         <span className="text-[13px] font-semibold text-ink-muted">Plus rapide, et tes accès même hors ligne</span>
       </button>
-      <button type="button" onClick={onOpen} className="pressable h-10 rounded-[12px] bg-brand px-4 text-sm font-bold text-ink">
+      <button type="button" onClick={onOpen} className="pressable h-10 rounded-[12px] bg-brand px-4 text-sm font-bold text-on-accent">
         Installer
       </button>
       <button type="button" aria-label="Plus tard" onClick={() => actions.installDismissed()} className="grid size-9 place-items-center rounded-full text-ink-muted">
