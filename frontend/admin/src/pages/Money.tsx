@@ -314,7 +314,7 @@ function PaymentDrawer({ payment: p, onClose, onChanged }: { payment: PaymentRow
               Voir la fiche de {p.user.name} →
             </Link>
           )}
-          {p.type === 'subscription' && p.status === 'pending' && (
+          {p.type === 'subscription' && p.status !== 'succeeded' && (
             <Button
               variant="ink"
               loading={busy}
