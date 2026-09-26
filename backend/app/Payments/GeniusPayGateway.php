@@ -72,15 +72,25 @@ class GeniusPayGateway implements PaymentGateway
             return PaymentStatus::Pending;
         }
 
-        // Montant ou devise différents de la demande : on ne confirme pas.
-        $currency = $response->json('data.currency');
-        if ((int) $response->json('data.amount') !== $payment->amount || ($currency !== null && strtoupper((string) $currency) !== 'XOF')) {
-            Log::warning('GeniusPay : montant incohérent', ['payment' => $payment->reference, 'amount' => $response->json('data.amount')]);
-
-            return PaymentStatus::Failed;
+        $status = self::map((string) $response->json('data.status'));
+        $context = [
+            'payment' => $payment->reference, 'gp' => $reference, 'status' => $response->json('data.status'),
+            'amount' => $response->json('data.amount'), 'fees' => $response->json('data.fees'), 'net' => $response->json('data.net_amount'),
+            'method' => $response->json('data.payment_method'), 'provider' => $response->json('data.provider'),
+        ];
+        if ($status !== PaymentStatus::Pending) {
+            Log::info('GeniusPay : statut lu', $context);
         }
 
-        return self::map((string) $response->json('data.status'));
+        // Moins que demandé ou autre devise : on ne confirme pas. Plus (frais ajoutés au client) : accepté.
+        $currency = $response->json('data.currency');
+        if ((int) round((float) $response->json('data.amount')) < $payment->amount || ($currency !== null && strtoupper((string) $currency) !== 'XOF')) {
+            Log::warning('GeniusPay : montant incohérent', $context);
+
+            return $status === PaymentStatus::Succeeded ? PaymentStatus::Failed : $status;
+        }
+
+        return $status;
     }
 
     public static function map(string $status): PaymentStatus

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Contracts\PaymentGateway;
+use App\Models\Admin;
 use App\Models\HostOffer;
 use App\Models\Payment;
 use App\Models\Service;
@@ -159,5 +160,33 @@ class GeniusPayTest extends TestCase
 
         $this->artisan('payments:reconcile')->assertSuccessful();
         $this->assertSame('succeeded', Payment::sole()->status->value);
+    }
+
+    public function test_fees_added_on_top_by_geniuspay_still_confirm(): void
+    {
+        Http::fakeSequence('geniuspay.test/*')
+            ->push(['success' => true, 'data' => ['reference' => 'GP_FEES', 'checkout_url' => 'https://x']])
+            ->push(['success' => true, 'data' => ['status' => 'completed', 'amount' => '2575.00', 'fees' => 75, 'provider' => 'wave']]);
+
+        $ref = $this->checkout('om')['ref'];
+        $this->getJson("/api/v1/payments/{$ref}")->assertJsonPath('data.status', 'succeeded');
+    }
+
+    public function test_admin_reread_recovers_a_payment_wrongly_marked_failed(): void
+    {
+        Http::fakeSequence('geniuspay.test/*')
+            ->push(['success' => true, 'data' => ['reference' => 'GP_LATE', 'checkout_url' => 'https://x']])
+            ->push(['success' => true, 'data' => ['status' => 'failed', 'amount' => 2500]])
+            ->push(['success' => true, 'data' => ['status' => 'completed', 'amount' => 2500]]);
+
+        $ref = $this->checkout()['ref'];
+        $this->getJson("/api/v1/payments/{$ref}")->assertJsonPath('data.status', 'failed');
+
+        $this->app['auth']->forgetGuards();
+        config(['services.admin.require_2fa' => false]);
+        Admin::create(['name' => 'Test', 'email' => 'relire@sub.ci', 'password' => 'un-mot-de-passe-long']);
+        $token = $this->postJson('/api/v1/admin/auth/login', ['email' => 'relire@sub.ci', 'password' => 'un-mot-de-passe-long'])->json('token');
+        $this->withToken($token)->postJson('/api/v1/admin/payments/'.Payment::sole()->id.'/reconcile')->assertOk()
+            ->assertJsonPath('data.status', 'succeeded');
     }
 }

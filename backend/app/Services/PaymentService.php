@@ -148,7 +148,10 @@ class PaymentService
             return $payment;
         }
         $this->ensureReference($payment);
-        foreach ($payment->references()->where('status', 'pending')->get() as $ref) {
+        // Relecture forcée (admin) : on redemande aussi les demandes marquées échouées ou expirées,
+        // au cas où la passerelle les aurait finalement encaissées.
+        $refs = $payment->references()->when(! $force, fn ($q) => $q->where('status', 'pending'), fn ($q) => $q->where('status', '!=', 'completed'))->get();
+        foreach ($refs as $ref) {
             $this->check($ref->setRelation('payment', $payment));
             $payment->refresh();
             if ($payment->status === PaymentStatus::Succeeded) {
