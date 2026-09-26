@@ -90,7 +90,7 @@ function MoneyInput({ value, onSave }: { value: number; onSave: (v: number) => v
         if (e.key === 'Enter') e.currentTarget.blur()
         if (e.key === 'Escape') (setDraft(null), e.currentTarget.blur())
       }}
-      className="tabular h-9 w-24 rounded-[10px] border-[1.5px] border-transparent bg-sand px-2.5 font-bold outline-none hover:border-line focus:border-ink focus:bg-white"
+      className="tabular h-9 w-24 rounded-[10px] border-[1.5px] border-transparent bg-sand px-2.5 font-bold outline-none hover:border-line focus:border-ink focus:bg-surface"
     />
   )
 }

@@ -19,7 +19,7 @@ export function Overview() {
         title="Vue d’ensemble"
         subtitle="Ce mois-ci, comparé au mois dernier à la même date."
         actions={
-          <button type="button" onClick={reload} className="rounded-[10px] px-3 py-2 text-sm font-bold text-muted hover:bg-white">
+          <button type="button" onClick={reload} className="rounded-[10px] px-3 py-2 text-sm font-bold text-muted hover:bg-surface">
             ↻ Actualiser
           </button>
         }
@@ -203,7 +203,7 @@ function GmvChart({ series }: { series: Data['series'] }) {
       </svg>
       {d && hover !== null && (
         <div
-          className="pointer-events-none absolute top-0 z-10 flex -translate-x-1/2 flex-col gap-0.5 rounded-tile bg-ink px-3 py-2 text-[12px] font-semibold text-sand shadow-lg"
+          className="pointer-events-none absolute top-0 z-10 flex -translate-x-1/2 flex-col gap-0.5 scheme-card rounded-tile bg-ink px-3 py-2 text-[12px] font-semibold text-sand shadow-lg"
           style={{ left: `clamp(90px, ${((hover + 0.5) / series.length) * 100}%, calc(100% - 90px))` }}
         >
           <span className="text-ink-muted">{new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(d.date))}</span>

@@ -238,7 +238,7 @@ export function OfferDrawer({ id, onClose, onChanged }: { id: number | null; onC
       )}
 
       {zoom && proof && (
-        <div className="fixed inset-0 z-50 grid cursor-zoom-out place-items-center bg-ink/80 p-8" onClick={() => setZoom(false)}>
+        <div className="fixed inset-0 z-50 grid cursor-zoom-out place-items-center bg-scrim/80 p-8" onClick={() => setZoom(false)}>
           <img src={proof} alt="Preuve agrandie" className="max-h-full max-w-full rounded-tile" />
         </div>
       )}

@@ -29,14 +29,14 @@ export function Payouts() {
         data && (
           <>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <div className="flex flex-col gap-1 rounded-card bg-ink p-5 text-sand">
+              <div className="flex flex-col gap-1 scheme-card rounded-card bg-ink p-5 text-sand">
                 <span className="text-[13px] font-semibold text-ink-muted">À envoyer</span>
                 <span className="tabular font-display text-[30px] leading-none font-extrabold">
                   {fcfa(data.total)} <span className="font-sans text-sm font-bold text-ink-muted">FCFA</span>
                 </span>
                 <span className="text-[12px] font-semibold text-ink-muted">{data.pending.length} versement(s)</span>
               </div>
-              <div className="flex items-center lg:col-span-2 rounded-card bg-white p-5 text-[13px] leading-relaxed font-semibold text-muted">
+              <div className="flex items-center lg:col-span-2 rounded-card bg-surface p-5 text-[13px] leading-relaxed font-semibold text-muted">
                 Les remboursements concernent des demandes refusées, expirées ou annulées : le membre a payé et n’a pas eu de place. Les retraits sont les gains que les hôtes
                 demandent. Délai annoncé dans l’app : 48 h.
               </div>
@@ -305,12 +305,12 @@ function PaymentDrawer({ payment: p, onClose, onChanged }: { payment: PaymentRow
           </Panel>
           {p.type === 'subscription' && p.status === 'succeeded' && <Split id={p.id} amount={p.amount} />}
           {p.source && (
-            <Link to={`/payments?type=&q=${encodeURIComponent(p.source.ref)}`} onClick={onClose} className="rounded-card bg-white px-5 py-4 text-sm font-bold hover:bg-line">
+            <Link to={`/payments?type=&q=${encodeURIComponent(p.source.ref)}`} onClick={onClose} className="rounded-card bg-surface px-5 py-4 text-sm font-bold hover:bg-line">
               Issu du paiement {p.source.ref} de {p.source.user} →
             </Link>
           )}
           {p.user && (
-            <Link to={`/users/${p.user.id}`} className="rounded-card bg-white px-5 py-4 text-sm font-bold hover:bg-line">
+            <Link to={`/users/${p.user.id}`} className="rounded-card bg-surface px-5 py-4 text-sm font-bold hover:bg-line">
               Voir la fiche de {p.user.name} →
             </Link>
           )}

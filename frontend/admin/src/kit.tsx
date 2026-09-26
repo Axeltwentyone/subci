@@ -66,7 +66,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
 
 export function Panel({ title, action, children, className, pad = true }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; pad?: boolean }) {
   return (
-    <section className={cx('flex flex-col rounded-card bg-white', className)}>
+    <section className={cx('flex flex-col rounded-card bg-surface', className)}>
       {title && (
         <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
           <h2 className="text-[15px] font-bold">{title}</h2>
@@ -82,7 +82,7 @@ export function Panel({ title, action, children, className, pad = true }: { titl
 export function Stat({ label, value, unit, previous, current, hint, tone = 'default' }: { label: string; value: string; unit?: string; previous?: number; current?: number; hint?: ReactNode; tone?: 'default' | 'ink' }) {
   const delta = previous !== undefined && current !== undefined ? (previous === 0 ? (current > 0 ? 100 : 0) : Math.round(((current - previous) / previous) * 100)) : null
   return (
-    <div className={cx('flex min-w-0 flex-col gap-2 rounded-card p-4 lg:p-5', tone === 'ink' ? 'bg-ink text-sand' : 'bg-white')}>
+    <div className={cx('flex min-w-0 flex-col gap-2 rounded-card p-4 lg:p-5', tone === 'ink' ? 'scheme-card bg-ink text-sand' : 'bg-surface')}>
       <span className={cx('text-[13px] font-semibold', tone === 'ink' ? 'text-ink-muted' : 'text-muted')}>{label}</span>
       <span className="tabular font-display text-[24px] leading-none font-extrabold tracking-[-0.02em] lg:text-[30px]">
         {value}
@@ -237,7 +237,7 @@ export const Brandmark = ({ s, size = 32 }: { s: Brand; size?: number }) => <Ser
 
 export function Avatar({ name, size = 32, color = '#FFE6DA' }: { name: string; size?: number; color?: string }) {
   return (
-    <span className="grid shrink-0 place-items-center rounded-full font-display font-extrabold" style={{ width: size, height: size, background: color, fontSize: size * 0.42 }}>
+    <span className="grid shrink-0 place-items-center rounded-full font-display font-extrabold text-on-accent" style={{ width: size, height: size, background: color, fontSize: size * 0.42 }}>
       {name.charAt(0).toUpperCase()}
     </span>
   )
@@ -268,7 +268,7 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
 
 export function Segments<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string; count?: number }[]; onChange: (v: T) => void }) {
   return (
-    <div role="tablist" className="flex gap-1 overflow-x-auto rounded-[14px] bg-white p-1 [scrollbar-width:none] max-lg:max-w-full lg:flex-wrap">
+    <div role="tablist" className="flex gap-1 overflow-x-auto rounded-[14px] bg-surface p-1 [scrollbar-width:none] max-lg:max-w-full lg:flex-wrap">
       {options.map((o) => (
         <button
           key={o.value}
@@ -276,11 +276,11 @@ export function Segments<T extends string>({ value, options, onChange }: { value
           type="button"
           aria-selected={o.value === value}
           onClick={() => onChange(o.value)}
-          className={cx('flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-bold whitespace-nowrap transition-colors', o.value === value ? 'bg-ink text-white' : 'text-muted hover:bg-sand')}
+          className={cx('flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-bold whitespace-nowrap transition-colors', o.value === value ? 'bg-ink text-sand' : 'text-muted hover:bg-sand')}
         >
           {o.label}
           {o.count !== undefined && (
-            <span className={cx('tabular rounded-full px-1.5 text-[11px] font-extrabold', o.value === value ? 'bg-white/15' : 'bg-sand')}>{o.count}</span>
+            <span className={cx('tabular rounded-full px-1.5 text-[11px] font-extrabold', o.value === value ? 'bg-sand/20' : 'bg-sand')}>{o.count}</span>
           )}
         </button>
       ))}
@@ -295,7 +295,7 @@ export function SearchInput({ value, onChange, placeholder }: { value: string; o
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="h-10 w-full rounded-[12px] lg:w-72 border-[1.5px] border-line bg-white px-3.5 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-ink"
+      className="h-10 w-full rounded-[12px] lg:w-72 border-[1.5px] border-line bg-surface px-3.5 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-ink"
     />
   )
 }
@@ -321,9 +321,9 @@ export function Drawer({ open, onClose, children, title }: { open: boolean; onCl
   if (!open) return null
   return createPortal(
     <div className="fixed inset-0 z-40">
-      <div className="absolute inset-0 animate-fade-in bg-ink/40" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 animate-fade-in bg-scrim/40" onClick={onClose} aria-hidden />
       <aside role="dialog" aria-modal="true" className="absolute inset-y-0 right-0 flex w-full animate-panel-in flex-col bg-sand shadow-2xl lg:w-[560px]">
-        <div className="flex items-center justify-between gap-3 border-b border-line bg-white px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] lg:px-6">
+        <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] lg:px-6">
           <div className="min-w-0 flex-1">{title}</div>
           <button type="button" onClick={onClose} aria-label="Fermer" className="grid size-9 place-items-center rounded-full bg-sand text-lg font-bold hover:bg-line">
             ×
@@ -361,11 +361,11 @@ export function Confirm({
 
   return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center p-4 max-lg:items-end lg:p-6">
-      <div className="absolute inset-0 animate-fade-in bg-ink/50" onClick={onCancel} aria-hidden />
+      <div className="absolute inset-0 animate-fade-in bg-scrim/50" onClick={onCancel} aria-hidden />
       <form
         role="alertdialog"
         aria-modal="true"
-        className="relative flex w-full max-w-[440px] animate-fade-in flex-col gap-3 rounded-sheet bg-white p-6"
+        className="relative flex w-full max-w-[440px] animate-fade-in flex-col gap-3 rounded-sheet bg-surface p-6"
         onSubmit={async (e) => {
           e.preventDefault()
           if (blocked) return

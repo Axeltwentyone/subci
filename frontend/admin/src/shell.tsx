@@ -103,9 +103,9 @@ function AuthCard({ children, onSubmit, footer }: { children: ReactNode; onSubmi
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   return (
-    <div className="grid min-h-dvh place-items-center bg-ink p-4 lg:p-6">
+    <div className="scheme-dark grid min-h-dvh place-items-center bg-ink p-4 lg:p-6">
       <form
-        className="flex w-full max-w-[400px] flex-col gap-5 rounded-sheet bg-sand p-6 lg:p-8"
+        className="flex w-full max-w-[400px] flex-col gap-5 rounded-sheet bg-sand p-6 text-ink lg:p-8"
         onSubmit={async (e) => {
           e.preventDefault()
           setBusy(true)
@@ -151,7 +151,7 @@ function SubmitSlot({ busy }: { busy: boolean }) {
   )
 }
 
-const field = 'h-12 rounded-tile border-[1.5px] border-line bg-white px-3.5 font-semibold outline-none focus:border-ink'
+const field = 'h-12 rounded-tile border-[1.5px] border-line bg-surface px-3.5 font-semibold outline-none focus:border-ink'
 
 function CodeField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
@@ -295,7 +295,7 @@ const NAV: Nav[] = [
 
 function Badge({ n, urgent }: { n: number; urgent?: boolean }) {
   if (n <= 0) return null
-  return <span className={cx('tabular min-w-5 rounded-full px-1.5 text-center text-[11px] leading-5 font-extrabold', urgent ? 'bg-brand text-ink' : 'bg-white/15')}>{n}</span>
+  return <span className={cx('tabular min-w-5 rounded-full px-1.5 text-center text-[11px] leading-5 font-extrabold', urgent ? 'bg-brand text-on-accent' : 'bg-white/15')}>{n}</span>
 }
 
 export function Shell() {
@@ -325,7 +325,7 @@ export function Shell() {
     <CountsCtx.Provider value={{ counts, refresh }}>
       <div className="min-h-dvh bg-canvas lg:grid lg:grid-cols-[248px_1fr]">
         {/* Barre latérale (ordinateur) */}
-        <nav className="sticky top-0 flex h-dvh flex-col gap-1 bg-ink px-3 py-5 text-sand max-lg:hidden" aria-label="Administration">
+        <nav className="scheme-dark sticky top-0 flex h-dvh flex-col gap-1 bg-ink px-3 py-5 text-sand max-lg:hidden" aria-label="Administration">
           <div className="flex items-center gap-2.5 px-3 pb-6">
             <LogoMark size={34} tone="sand" />
             <span className="flex flex-col">
@@ -381,7 +381,7 @@ export function Shell() {
         </div>
 
         {/* Barre d'onglets (mobile) */}
-        <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 bg-ink px-1 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-sand lg:hidden" aria-label="Administration">
+        <nav className="scheme-dark fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 bg-ink px-1 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-sand lg:hidden" aria-label="Administration">
           {NAV.filter((n) => n.tab).map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cx('flex flex-col items-center gap-0.5 rounded-[12px] py-1.5', isActive ? 'text-white' : 'text-ink-soft')}>
               {({ isActive }) => (
@@ -410,19 +410,19 @@ export function Shell() {
 
         {more && (
           <div className="fixed inset-0 z-40 lg:hidden">
-            <div className="absolute inset-0 animate-fade-in bg-ink/50" onClick={() => setMore(false)} aria-hidden />
+            <div className="absolute inset-0 animate-fade-in bg-scrim/50" onClick={() => setMore(false)} aria-hidden />
             <div role="dialog" aria-modal="true" aria-label="Plus" className="absolute inset-x-0 bottom-0 flex animate-sheet-in flex-col gap-1 rounded-t-sheet bg-sand px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <span className="mx-auto mb-2 h-1 w-10 rounded-full bg-line" aria-hidden />
               {NAV.filter((n) => !n.tab).map((n) => (
-                <NavLink key={n.to} to={n.to} className={({ isActive }) => cx('flex h-13 items-center gap-3 rounded-[14px] px-4 text-[15px] font-bold', isActive ? 'bg-white' : 'active:bg-white/60')}>
+                <NavLink key={n.to} to={n.to} className={({ isActive }) => cx('flex h-13 items-center gap-3 rounded-[14px] px-4 text-[15px] font-bold', isActive ? 'bg-surface' : 'active:bg-surface/60')}>
                   <span className="grid w-6 place-items-center text-lg text-muted" aria-hidden>
                     {n.icon}
                   </span>
                   <span className="flex-1">{n.label}</span>
-                  {count(n) > 0 && <span className="tabular rounded-full bg-ink px-2 text-[12px] leading-6 font-extrabold text-white">{count(n)}</span>}
+                  {count(n) > 0 && <span className="tabular rounded-full bg-ink px-2 text-[12px] leading-6 font-extrabold text-sand">{count(n)}</span>}
                 </NavLink>
               ))}
-              <div className="mt-2 flex items-center gap-3 rounded-[14px] bg-white px-4 py-3">
+              <div className="mt-2 flex items-center gap-3 rounded-[14px] bg-surface px-4 py-3">
                 <span className="grid size-9 place-items-center rounded-full bg-brand font-display font-extrabold text-ink">{admin?.name.charAt(0).toUpperCase()}</span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-[14px] font-bold">{admin?.name}</span>
@@ -488,10 +488,10 @@ function GlobalSearch() {
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder="Nom, numéro, référence…"
-        className="h-10 w-full rounded-[12px] border-[1.5px] border-line bg-white px-3.5 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-ink"
+        className="h-10 w-full rounded-[12px] border-[1.5px] border-line bg-surface px-3.5 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-ink"
       />
       {open && res && (
-        <div className="absolute top-12 z-40 flex max-h-[min(420px,70dvh)] max-lg:fixed max-lg:inset-x-3 max-lg:top-[calc(env(safe-area-inset-top)+3.75rem)] lg:inset-x-0 flex-col overflow-y-auto rounded-card border border-line bg-white p-2 shadow-xl">
+        <div className="absolute top-12 z-40 flex max-h-[min(420px,70dvh)] max-lg:fixed max-lg:inset-x-3 max-lg:top-[calc(env(safe-area-inset-top)+3.75rem)] lg:inset-x-0 flex-col overflow-y-auto rounded-card border border-line bg-surface p-2 shadow-xl">
           {res.users.length === 0 && res.payments.length === 0 && <p className="px-3 py-4 text-sm font-medium text-muted">Aucun résultat.</p>}
           {res.users.length > 0 && <span className="px-3 pt-2 pb-1 text-[11px] font-extrabold tracking-wider text-muted uppercase">Utilisateurs</span>}
           {res.users.map((u) => (
