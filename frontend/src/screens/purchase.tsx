@@ -467,7 +467,7 @@ export function Success() {
         </div>
         <p className="flex items-center gap-3 text-[15px] leading-[1.4] font-semibold text-ink-soft">
           <span className="size-2.5 shrink-0 rounded-full bg-ok-glow" />
-          {pendingInvite ? 'Ton hôte t’envoie l’invitation famille. On te prévient dès que c’est actif.' : 'Tes accès sont prêts. Reçu envoyé par SMS.'}
+          {pendingInvite ? 'Ton hôte t’envoie l’invitation famille. On te prévient dès que c’est actif.' : 'Tes accès sont prêts. Ton reçu est dans Historique des paiements.'}
         </p>
       </div>
       <div className="mt-auto flex flex-col gap-1.5 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+40px)]">

@@ -9,6 +9,8 @@ import { OtpInput, PayMethodPicker } from '../components/inputs'
 import { Avatars, Badge, Button, Card, Chip, ListLink, MethodLogo, Progress, Radio, RoundIconButton, Screen, SectionLabel, Segmented, ServiceLogo, StatusBadge, StickyAction, Toggle, TopBar, cx } from '../components/ui'
 import type { IssueReason } from '../lib/api'
 import { getMethod, getService, type PayMethodId } from '../lib/data'
+import { shareOffer } from '../lib/share'
+import { supportWhatsApp } from '../lib/support'
 import { daysLeft, fcfa, haptic, maskPhone, shortDate, timeLeft } from '../lib/format'
 import { usePushState } from '../lib/push'
 import { byUrgency, errorMessage, hostNet, subStatus, useSavings, useStore, type HostOffer, type JoinRequest, type UserSub } from '../lib/store'
@@ -371,6 +373,12 @@ function HostDashboard() {
 
 function OfferCard({ offer }: { offer: HostOffer }) {
   const navigate = useNavigate()
+  const { state } = useStore()
+  const toast = useToast()
+  const share = async () => {
+    const r = await shareOffer(offer, state.referral?.code)
+    if (r === 'copied') toast({ tone: 'ink', text: 'Lien copié : colle-le dans WhatsApp' })
+  }
   const svc = getService(offer.serviceId)!
   const free = offer.seats - offer.members.length
   const { net } = hostNet(offer.price, offer.members.length)
@@ -398,6 +406,11 @@ function OfferCard({ offer }: { offer: HostOffer }) {
       </button>
       <div className="flex items-center justify-between">
         <Avatars members={offer.members} />
+        {offer.status === 'live' && free > 0 && (
+          <button type="button" className="pressable ml-auto px-2 py-2 text-sm font-bold text-brand-ink" onClick={share}>
+            Partager
+          </button>
+        )}
         <button type="button" className="pressable -mr-1 px-1 py-2 text-sm font-bold" onClick={manage}>
           Gérer ›
         </button>
@@ -626,14 +639,11 @@ function IssueSheet({ sub, open, onClose }: { sub: UserSub; open: boolean; onClo
         >
           Signaler le souci
         </Button>
-        <a
-          href={`https://wa.me/2250700000000?text=${encodeURIComponent(`Bonjour, j’ai un souci avec ${svc.name}`)}`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-center text-sm font-bold text-muted"
-        >
-          Ou écris-nous sur WhatsApp
-        </a>
+        {supportWhatsApp() && (
+          <a href={supportWhatsApp(`Bonjour, j’ai un souci avec ${svc.name}`)!} target="_blank" rel="noreferrer" className="text-center text-sm font-bold text-muted">
+            Ou écris-nous sur WhatsApp
+          </a>
+        )}
       </div>
     </Sheet>
   )

@@ -10,6 +10,7 @@ use App\Http\Resources\ServiceResource;
 use App\Http\Resources\SubscriptionResource;
 use App\Http\Resources\UserResource;
 use App\Models\Service;
+use App\Models\Waitlist;
 use App\Services\Availability;
 use App\Services\JoinService;
 use App\Services\SubscriptionSweeper;
@@ -37,6 +38,8 @@ class BootstrapController extends Controller
             'requests' => JoinRequestResource::collection($user->joinRequests()->pending()->with('payment', 'offer.service', 'offer.user', 'user')->latest()->get()),
             // Frais de service Sub.ci ajoutés à chaque paiement (affichés au checkout).
             'config' => ['serviceFee' => (int) config('services.payments.service_fee')],
+            // Services sur lesquels le membre attend une place.
+            'waitlist' => Waitlist::where('user_id', $user->id)->whereNull('notified_at')->with('service:id,slug')->get()->pluck('service.slug')->values(),
         ]);
     }
 }

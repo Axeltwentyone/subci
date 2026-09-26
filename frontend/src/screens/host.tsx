@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast'
 import { BackButton, Badge, Button, DeviceChip, Radio, RoundIconButton, Screen, SectionLabel, Skeleton, ServiceLogo, StepBar, StickyAction, Steps, TopBar, cx } from '../components/ui'
 import { DEVICES, HOST_FEE, HOST_PLANS, SERVICES, getService, type Device, type HostPlan } from '../lib/data'
 import { api } from '../lib/api'
+import { shareOffer } from '../lib/share'
 import { fcfa, haptic, shortDate, since, timeLeft } from '../lib/format'
 import { errorMessage, hostNet, useStore, type HostOffer, type HostRequest, type Member } from '../lib/store'
 import { NotFound } from './discover'
@@ -714,6 +715,24 @@ export function ManageOffer() {
             <span className="font-extrabold">i</span>
             On vérifie ta preuve d’abonnement. Tes places apparaîtront dans le catalogue dès qu’elle est validée.
           </div>
+        )}
+
+        {offer.status === 'live' && offer.seats - offer.members.length > 0 && (
+          <section className="flex flex-col gap-2.5 rounded-card bg-brand-tint p-4">
+            <span className="text-base font-bold">Trouve tes membres toi-même</span>
+            <span className="text-[13px] leading-snug font-semibold text-muted">
+              Partage le lien de ton offre à tes proches sur WhatsApp. Nouveaux sur Sub.ci, ils ne paient pas les frais de service, et tu gagnes {fcfa(state.referral?.reward ?? 500)} F de crédit pour chacun.
+            </span>
+            <Button
+              size="md"
+              onClick={async () => {
+                const r = await shareOffer(offer, state.referral?.code)
+                if (r === 'copied') toast({ tone: 'ink', text: 'Lien copié : colle-le dans WhatsApp' })
+              }}
+            >
+              Partager mon offre
+            </Button>
+          </section>
         )}
 
         {!closed && (

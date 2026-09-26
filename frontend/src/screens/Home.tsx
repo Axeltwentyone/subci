@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { PullToRefresh } from '../components/gestures'
-import { IconArrowRight, IconBell, IconSearch } from '../components/icons'
+import { IconBell, IconSearch } from '../components/icons'
 import { InstallBanner, InstallSheet, NotifSheet, canAskNotifications, shouldOfferInstall } from '../components/pwa'
 import { Badge, Card, Progress, ServiceLogo, Skeleton, StatusBadge, cx } from '../components/ui'
 import { CATEGORIES, availLabel, getService, popularServices } from '../lib/data'
@@ -75,7 +75,6 @@ export function Home() {
 
           <div className="grid gap-[22px] md:grid-cols-[1.3fr_1fr] md:gap-4 desk:grid-cols-1">
             <FocusCard sub={focus} onGo={navigate} />
-            <DealCard className="hidden md:flex desk:hidden" />
           </div>
 
           {state.offers.length === 0 && (
@@ -127,7 +126,6 @@ export function Home() {
             </div>
           </section>
 
-          <DealCard className="flex md:hidden desk:flex" />
           <div className="h-2" />
         </div>
 
@@ -140,7 +138,7 @@ export function Home() {
           <div className="mt-auto flex flex-col gap-2.5 rounded-card bg-sand p-[18px]">
             <span className="text-base font-bold">Sub.ci sur ton téléphone</span>
             <span className="text-[13px] leading-normal font-medium text-muted">Scanne pour installer l’app et recevoir tes rappels.</span>
-            <span className="size-[88px] rounded-tile" style={{ background: 'repeating-conic-gradient(#16130F 0 25%,#fff 0 50%) 0 0/16px 16px' }} aria-hidden />
+            <InstallQr />
           </div>
         </aside>
       </div>
@@ -230,23 +228,6 @@ function FocusCard({ sub, onGo }: { sub?: UserSub; onGo: (to: string, o?: { view
   )
 }
 
-function DealCard({ className }: { className?: string }) {
-  return (
-    <Link
-      to="/service/spotify"
-      viewTransition
-      className={cx('pressable items-center justify-between gap-3 rounded-card bg-brand px-[18px] py-4 md:flex-col md:items-start md:rounded-[24px] md:p-[22px] desk:flex-row desk:items-center desk:rounded-card desk:px-[18px] desk:py-4', className)}
-    >
-      <span className="flex flex-col gap-0.5 md:h-full md:justify-between desk:h-auto">
-        <span className="t-over">Bon plan</span>
-        <span className="font-display text-[17px] font-bold md:text-[22px] md:leading-[1.15] desk:text-[17px]">-20 % ton 1er mois Spotify</span>
-      </span>
-      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink text-brand md:hidden desk:grid">
-        <IconArrowRight size={18} />
-      </span>
-    </Link>
-  )
-}
 
 function DueRow({ sub }: { sub: UserSub }) {
   const svc = getService(sub.serviceId)!
@@ -284,4 +265,16 @@ function HomeSkeleton() {
       </div>
     </div>
   )
+}
+
+/** QR code vers l'app (écran d'ordinateur → téléphone). */
+function InstallQr() {
+  const [src, setSrc] = useState<string | null>(null)
+  useEffect(() => {
+    import('qrcode')
+      .then((QR) => QR.toDataURL(window.location.origin, { margin: 1, width: 176, color: { dark: '#16130F', light: '#FFFFFF' } }))
+      .then(setSrc)
+      .catch(() => setSrc(null))
+  }, [])
+  return src ? <img src={src} alt="QR code pour ouvrir Sub.ci sur ton téléphone" width={88} height={88} className="rounded-tile" /> : null
 }

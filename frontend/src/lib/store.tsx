@@ -140,6 +140,8 @@ export type State = {
   /** Frais de service Sub.ci ajoutés à chaque paiement */
   serviceFee: number
   referral: Referral | null
+  /** Services sur lesquels on attend une place (prévenu dès qu'elle se libère) */
+  waitlist: string[]
   payout: { method: PayMethodId; phone: string }
   offers: HostOffer[]
   requests: JoinRequest[]
@@ -158,6 +160,24 @@ export type State = {
 const KEY = 'subci:v2'
 /** Code de parrainage reçu par lien (?ref=), appliqué après l'inscription. */
 export const REF_KEY = 'subci:ref'
+/** Page demandée avant la connexion (ex. offre partagée par un hôte) : on y revient ensuite. */
+const NEXT_KEY = 'subci:next'
+export function rememberNext(path: string) {
+  try {
+    if (path && !['/', '/home', '/welcome', '/login', '/bienvenue'].includes(path.split('?')[0])) sessionStorage.setItem(NEXT_KEY, path)
+  } catch {
+    /* stockage indisponible */
+  }
+}
+export function takeNext(fallback = '/home'): string {
+  try {
+    const next = sessionStorage.getItem(NEXT_KEY)
+    sessionStorage.removeItem(NEXT_KEY)
+    return next && next.startsWith('/') && !next.startsWith('//') ? next : fallback
+  } catch {
+    return fallback
+  }
+}
 
 const DEFAULT_SETTINGS: Settings = { notifDue: true, notifSeats: true, notifPromo: false, biometric: true, hideAccess: 'always', dataSaver: 'auto' }
 
@@ -178,6 +198,7 @@ function empty(): State {
     holdHours: 48,
     serviceFee: 200,
     referral: null,
+    waitlist: [],
     payout: { method: 'wave', phone: '' },
     offers: [],
     requests: [],
@@ -267,6 +288,7 @@ function reducer(s: State, a: Action): State {
         notifs: d.notifications.map(toNotif),
         requests: (d.requests ?? []).map(toJoinRequest),
         serviceFee: d.config?.serviceFee ?? s.serviceFee,
+        waitlist: d.waitlist ?? [],
         lastSync: Date.now(),
         syncing: false,
       }
@@ -434,6 +456,14 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
       const { data } = await api.updatePayout({ method, phone, code })
       dispatch({ type: 'patch', patch: userPart(data) })
       await sync().catch(() => {})
+    },
+    async joinWaitlist(serviceId: string) {
+      await api.joinWaitlist(serviceId)
+      dispatch({ type: 'patch', patch: { waitlist: [...new Set([...get().waitlist, serviceId])] } })
+    },
+    async leaveWaitlist(serviceId: string) {
+      await api.leaveWaitlist(serviceId)
+      dispatch({ type: 'patch', patch: { waitlist: get().waitlist.filter((x) => x !== serviceId) } })
     },
     /** Code d'un ami : frais de service offerts jusqu'à la 1re acceptation. */
     async applyReferral(code: string) {

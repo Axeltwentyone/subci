@@ -8,7 +8,7 @@ import { CATEGORIES, DEVICES, SERVICES, availLabel, getService, savingPct, type 
 import { api } from '../lib/api'
 import { fcfa, since, timeLeft } from '../lib/format'
 import { SAND, tintOf, useOnline, useTopColor } from '../lib/hooks'
-import { useStore } from '../lib/store'
+import { errorMessage, useStore } from '../lib/store'
 import { OfflineScreen } from './system'
 import { useBack } from '../lib/nav'
 
@@ -274,7 +274,10 @@ export function ServicePage() {
   const s = getService(id)
   const [offers, setOffers] = useState<PublicOffer[] | null>(null)
   const [device, setDevice] = useState<Device | null>(null)
-  const [selected, setSelected] = useState<string | null>(null)
+  // Lien partagé par un hôte (/service/netflix?offer=81) : son offre est présélectionnée.
+  const [params] = useSearchParams()
+  const sharedId = params.get('offer')
+  const [selected, setSelected] = useState<string | null>(sharedId)
   // Haut de l'écran (heure, batterie) dans la teinte du service.
   useTopColor(s ? tintOf(s.color) : SAND)
 
@@ -395,11 +398,21 @@ export function ServicePage() {
                 <Card className="flex flex-col items-center gap-2 p-6 text-center">
                   <span className="text-[15px] font-bold">{offers.length ? 'Aucune offre pour cet appareil' : 'Aucune place libre pour l’instant'}</span>
                   <span className="text-[13px] font-medium text-muted">
-                    {offers.length ? 'Essaie un autre appareil.' : 'On te prévient dès qu’un hôte publie une offre.'}
+                    {offers.length ? 'Essaie un autre appareil.' : 'Inscris-toi sur la liste d’attente : on te prévient dès qu’une place se libère.'}
                   </span>
                 </Card>
               ) : (
                 <div role="radiogroup" aria-label="Offres" className="flex flex-col gap-2.5">
+                  {sharedId && offers.some((o) => o.id === sharedId) && (
+                    <p className="rounded-tile bg-brand-tint px-3.5 py-2.5 text-[13px] font-semibold text-brand-ink">
+                      Offre partagée par {offers.find((o) => o.id === sharedId)!.host.name} : elle est sélectionnée ci-dessous.
+                    </p>
+                  )}
+                  {sharedId && offers.length > 0 && !offers.some((o) => o.id === sharedId) && (
+                    <p className="rounded-tile bg-warn-soft px-3.5 py-2.5 text-[13px] font-semibold text-[#6B3F00]">
+                      L’offre qu’on t’a partagée est complète ou n’est plus en ligne. Voici les autres places disponibles.
+                    </p>
+                  )}
                   {visible.map((o) => (
                     <OfferOption key={o.id} offer={o} selected={o.id === selected} onSelect={() => setSelected(o.id)} />
                   ))}
@@ -426,9 +439,7 @@ export function ServicePage() {
             s.free > 0 ? (
               <Button onClick={() => navigate(`/checkout/${s.id}`, { viewTransition: true })}>Rejoindre pour {fcfa(s.price)} FCFA</Button>
             ) : (
-              <Button variant="ink" onClick={() => toast({ tone: 'success', text: 'Tu es sur la liste d’attente. On te prévient dès qu’une place se libère.' })}>
-                Me prévenir
-              </Button>
+              <WaitlistButton serviceId={s.id} />
             )
           ) : chosen ? (
             <Button onClick={() => navigate(`/checkout/${s.id}?offer=${chosen.id}`, { state: { offer: chosen }, viewTransition: true })}>
@@ -437,9 +448,7 @@ export function ServicePage() {
           ) : offers?.length ? (
             <Button disabled>Choisis une offre</Button>
           ) : (
-            <Button variant="ink" onClick={() => toast({ tone: 'success', text: 'Tu es sur la liste d’attente. On te prévient dès qu’une place se libère.' })}>
-              Me prévenir
-            </Button>
+            <WaitlistButton serviceId={s.id} />
           )}
         </StickyAction>
       </div>
@@ -510,5 +519,38 @@ export function NotFound() {
         </Button>
       </div>
     </div>
+  )
+}
+
+/** Liste d'attente réelle : notification dès qu'une place se libère sur ce service. */
+function WaitlistButton({ serviceId }: { serviceId: string }) {
+  const { state, actions } = useStore()
+  const toast = useToast()
+  const [busy, setBusy] = useState(false)
+  const waiting = state.waitlist.includes(serviceId)
+  const run = async () => {
+    setBusy(true)
+    try {
+      if (waiting) {
+        await actions.leaveWaitlist(serviceId)
+        toast({ text: 'Tu n’es plus sur la liste d’attente' })
+      } else {
+        await actions.joinWaitlist(serviceId)
+        toast({ tone: 'success', text: 'C’est noté : on te prévient dès qu’une place se libère' })
+      }
+    } catch (e) {
+      toast({ tone: 'error', text: errorMessage(e) })
+    } finally {
+      setBusy(false)
+    }
+  }
+  return waiting ? (
+    <Button variant="outline" loading={busy} onClick={run}>
+      Sur la liste d’attente · me retirer
+    </Button>
+  ) : (
+    <Button variant="ink" loading={busy} onClick={run}>
+      Me prévenir d’une place libre
+    </Button>
   )
 }

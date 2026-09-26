@@ -8,6 +8,7 @@ import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { BackButton, Card, Chip, ListLink, MethodLogo, RoundIconButton, Screen, SectionLabel, Toggle, cx } from '../components/ui'
 import { getMethod } from '../lib/data'
+import { supportWhatsApp } from '../lib/support'
 import { DAY, clock, fcfa, formatPhone, shortDate } from '../lib/format'
 import { isStandalone } from '../lib/hooks'
 import { subscribePush } from '../lib/push'
@@ -245,7 +246,7 @@ export function Profile() {
           <ListLink label="Partager & gagner" hint={state.offers.length ? `${fcfa(state.balance)} FCFA` : undefined} onClick={() => navigate(state.offers.length ? '/subs?mode=host' : '/host', { viewTransition: true })} />
           <ListLink label="Moyens de paiement" hint={getMethod(state.lastMethod).name} onClick={() => navigate('/settings', { viewTransition: true })} />
           <ListLink label="Historique des paiements" onClick={() => navigate('/activity?tab=payments')} />
-          <ListLink label="Aide & WhatsApp" onClick={() => window.open('https://wa.me/2250700000000', '_blank', 'noopener')} />
+          {supportWhatsApp() && <ListLink label="Aide & WhatsApp" onClick={() => window.open(supportWhatsApp('Bonjour, j’ai besoin d’aide sur Sub.ci')!, '_blank', 'noopener')} />}
           <ListLink label="Paramètres" onClick={() => navigate('/settings', { viewTransition: true })} />
         </Card>
         <div className="h-2" />
@@ -279,8 +280,6 @@ export function SettingsScreen() {
     else if (v) subscribePush().catch(() => {})
   }
 
-  const cycleData = () => set('dataSaver', s.dataSaver === 'auto' ? 'on' : s.dataSaver === 'on' ? 'off' : 'auto')
-  const dataLabel = { auto: 'Auto', on: 'Activée', off: 'Désactivée' }[s.dataSaver]
 
   return (
     <Screen>
@@ -304,9 +303,6 @@ export function SettingsScreen() {
 
         <SectionLabel className="px-1 pt-3.5">Sécurité</SectionLabel>
         <Card className="px-[18px]">
-          <SettingRow label="Déverrouillage biométrique">
-            <Toggle label="Déverrouillage biométrique" checked={s.biometric} onChange={(v) => set('biometric', v)} />
-          </SettingRow>
           <ListLink
             label="Masquer les accès"
             hint={s.hideAccess === 'always' ? 'Toujours' : 'Jamais'}
@@ -317,8 +313,7 @@ export function SettingsScreen() {
 
         <SectionLabel className="px-1 pt-3.5">App</SectionLabel>
         <Card className="px-[18px]">
-          <ListLink label="Langue" hint="Français" onClick={() => toast({ text: 'English & Nouchi : bientôt' })} />
-          <ListLink label="Économie de données" hint={dataLabel} onClick={cycleData} />
+          <ListLink label="Conditions d’utilisation" onClick={() => navigate('/conditions', { viewTransition: true })} />
           {!isStandalone() && <ListLink label="Installer l’app" hint="< 1 Mo" onClick={() => setInstall(true)} />}
           <div className="flex min-h-14 items-center justify-between text-[15px] font-bold">
             <span>Version</span>

@@ -247,6 +247,8 @@ export type Bootstrap = {
   host: ApiHost
   requests: ApiRequest[]
   config?: { serviceFee: number }
+  /** Services sur lesquels le membre attend une place */
+  waitlist?: string[]
 }
 
 type Data<T> = { data: T }
@@ -295,6 +297,8 @@ export const api = {
     request<Data<ApiOffer>>('POST', `/host/offers/${offerId}/members/${memberId}/invite`, link ? { link } : {}),
   payoutCode: () => request<{ sent: boolean; ttl: number; debugCode: string | null }>('POST', '/me/payout/code'),
   updatePayout: (payout: { method: PayMethodId; phone: string; code: string }) => request<Data<ApiUser>>('PATCH', '/me', { payout }),
+  joinWaitlist: (serviceId: string) => request<{ waiting: boolean }>('POST', `/services/${serviceId}/waitlist`),
+  leaveWaitlist: (serviceId: string) => request<{ waiting: boolean }>('DELETE', `/services/${serviceId}/waitlist`),
   applyReferral: (code: string) => request<Data<ApiUser>>('POST', '/me/referral', { code }),
   logoutOthers: () => request<{ ok: boolean; revoked: number }>('POST', '/auth/logout-others'),
   reportIssue: (subId: string, reason: IssueReason, message?: string) => request<Data<ApiSub>>('POST', `/subscriptions/${subId}/dispute`, { reason, message }),

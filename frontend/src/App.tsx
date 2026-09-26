@@ -1,8 +1,8 @@
-import { Navigate, Outlet, RouterProvider, ScrollRestoration, createBrowserRouter } from 'react-router'
+import { Navigate, Outlet, RouterProvider, ScrollRestoration, createBrowserRouter, useLocation } from 'react-router'
 import { AppShell } from './components/AppShell'
 import { InstallGate, UpdateToast } from './components/pwa'
 import { ToastProvider } from './components/Toast'
-import { REF_KEY, StoreProvider, useStore } from './lib/store'
+import { REF_KEY, StoreProvider, rememberNext, useStore } from './lib/store'
 import { Splash } from './screens/Splash'
 import { Home } from './screens/Home'
 
@@ -40,6 +40,9 @@ function Root() {
 /** Écrans qui demandent une session : sinon, retour au login. */
 function RequireAuth() {
   const { state } = useStore()
+  const location = useLocation()
+  const incomplete = !state.user || !state.user.firstName || !state.user.lastName
+  if (incomplete) rememberNext(location.pathname + location.search)
   if (!state.user) return <Navigate to={state.onboarded ? '/login' : '/welcome'} replace />
   // Compte créé mais prénom / nom pas encore renseignés.
   if (!state.user.firstName || !state.user.lastName) return <Navigate to="/bienvenue" replace />
@@ -58,6 +61,8 @@ const router = createBrowserRouter([
       { path: '/', element: <Splash /> },
       { path: '/welcome', lazy: () => entry().then((m) => ({ Component: m.Onboarding })) },
       { path: '/login', lazy: () => entry().then((m) => ({ Component: m.Login })) },
+      // Public (lien depuis l'écran de connexion).
+      { path: '/conditions', lazy: () => import('./screens/legal').then((m) => ({ Component: m.Conditions })) },
       {
         element: <RequireSession />,
         children: [{ path: '/bienvenue', lazy: () => entry().then((m) => ({ Component: m.NameSetup })) }],

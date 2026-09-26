@@ -13,6 +13,7 @@ use App\Services\InviteReminder;
 use App\Services\JoinService;
 use App\Services\PaymentService;
 use App\Services\SubscriptionSweeper;
+use App\Services\WaitlistService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -42,6 +43,8 @@ Schedule::call(function () {
     // Relance de l'hôte à 6 h de la fin, puis remboursement après 24 h.
     app(JoinService::class)->remindHosts();
     app(JoinService::class)->expireOverdue();
+    // Places libres : on prévient la liste d'attente.
+    app(WaitlistService::class)->notifyAvailable();
     // Paiements en attente : on relit la passerelle (membre jamais revenu, webhook manqué).
     app(PaymentService::class)->reconcile();
     // Séquestre : gains d'hôte arrivés à échéance → solde retirable.

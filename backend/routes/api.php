@@ -83,6 +83,9 @@ Route::prefix('v1')->group(function () {
         Route::get('bootstrap', BootstrapController::class);
         // Offres d'un service (prénoms des hôtes et des membres) : réservé aux membres connectés.
         Route::get('services/{service}/offers', [OfferController::class, 'index']);
+        // Liste d'attente : prévenu dès qu'une place se libère.
+        Route::post('services/{service}/waitlist', [ServiceController::class, 'joinWaitlist'])->middleware('throttle:20,1');
+        Route::delete('services/{service}/waitlist', [ServiceController::class, 'leaveWaitlist']);
 
         Route::post('push/subscriptions', [PushController::class, 'store']);
         Route::delete('push/subscriptions', [PushController::class, 'destroy']);

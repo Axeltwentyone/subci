@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router'
+import { Link, Navigate, useNavigate } from 'react-router'
 import { OtpInput, PhoneInput } from '../components/inputs'
 import { NameForm } from '../components/NameForm'
 import { useToast } from '../components/Toast'
 import { Button, Screen, Wordmark, cx } from '../components/ui'
 import { useCountdown, mmss } from '../lib/hooks'
-import { REF_KEY, errorMessage, useStore } from '../lib/store'
+import { REF_KEY, errorMessage, takeNext, useStore } from '../lib/store'
 
 /* ---------- 02 · Onboarding ---------- */
 
@@ -186,7 +186,7 @@ export function Login() {
     setCodeError(undefined)
     try {
       await actions.verifyOtp(phone, c)
-      navigate('/home', { replace: true })
+      navigate(takeNext(), { replace: true })
     } catch (e) {
       setCodeError(errorMessage(e))
       setCode('')
@@ -230,18 +230,9 @@ export function Login() {
           <Button type="submit" loading={loading} disabled={sent && code.length < 6}>
             Continuer
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="md"
-            onClick={() => toast({ text: 'Connexion Google bientôt disponible. Utilise ton numéro.' })}
-          >
-            <span className="size-5 rounded-full" style={{ background: 'conic-gradient(#EA4335 0 25%,#FBBC05 0 50%,#34A853 0 75%,#4285F4 0)' }} aria-hidden />
-            Continuer avec Google
-          </Button>
           <p className="text-center text-xs leading-normal font-medium text-muted">
             En continuant, tu acceptes les{' '}
-            <a href="#" className="underline decoration-brand hover:text-brand-ink">conditions</a> de Sub.ci.
+            <Link to="/conditions" className="underline decoration-brand hover:text-brand-ink">conditions</Link> de Sub.ci.
           </p>
         </div>
       </form>
@@ -275,7 +266,7 @@ export function NameSetup() {
         toast({ tone: 'error', text: `Code de parrainage : ${errorMessage(e)}` })
       }
     }
-    navigate('/home', { replace: true })
+    navigate(takeNext(), { replace: true })
   }
 
   return (
