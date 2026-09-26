@@ -366,7 +366,7 @@ export function Shell() {
         </nav>
 
         <div className="min-w-0">
-          <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-canvas px-4 pt-[env(safe-area-inset-top)] lg:gap-4 lg:px-8">
+          <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-canvas px-4 pt-[var(--safe-top)] lg:gap-4 lg:px-8">
             <div className="flex h-14 w-full items-center gap-3 lg:h-16 lg:gap-4">
               <Link to="/" className="lg:hidden" aria-label="Accueil">
                 <LogoMark size={32} tone="brand" />
@@ -491,7 +491,7 @@ function GlobalSearch() {
         className="h-10 w-full rounded-[12px] border-[1.5px] border-line bg-surface px-3.5 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-subtle focus:border-ink"
       />
       {open && res && (
-        <div className="absolute top-12 z-40 flex max-h-[min(420px,70dvh)] max-lg:fixed max-lg:inset-x-3 max-lg:top-[calc(env(safe-area-inset-top)+3.75rem)] lg:inset-x-0 flex-col overflow-y-auto rounded-card border border-line bg-surface p-2 shadow-xl">
+        <div className="absolute top-12 z-40 flex max-h-[min(420px,70dvh)] max-lg:fixed max-lg:inset-x-3 max-lg:top-[calc(var(--safe-top)+3.75rem)] lg:inset-x-0 flex-col overflow-y-auto rounded-card border border-line bg-surface p-2 shadow-xl">
           {res.users.length === 0 && res.payments.length === 0 && <p className="px-3 py-4 text-sm font-medium text-muted">Aucun résultat.</p>}
           {res.users.length > 0 && <span className="px-3 pt-2 pb-1 text-[11px] font-extrabold tracking-wider text-muted uppercase">Utilisateurs</span>}
           {res.users.map((u) => (

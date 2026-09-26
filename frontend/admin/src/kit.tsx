@@ -323,7 +323,7 @@ export function Drawer({ open, onClose, children, title }: { open: boolean; onCl
     <div className="fixed inset-0 z-40">
       <div className="absolute inset-0 animate-fade-in bg-scrim/40" onClick={onClose} aria-hidden />
       <aside role="dialog" aria-modal="true" className="absolute inset-y-0 right-0 flex w-full animate-panel-in flex-col bg-sand shadow-2xl lg:w-[560px]">
-        <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] lg:px-6">
+        <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-4 pt-[max(1rem,var(--safe-top))] lg:px-6">
           <div className="min-w-0 flex-1">{title}</div>
           <button type="button" onClick={onClose} aria-label="Fermer" className="grid size-9 place-items-center rounded-full bg-sand text-lg font-bold hover:bg-line">
             ×

@@ -229,8 +229,18 @@
 @utility pb-safe {
   padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
 }
+/* Haut de l'écran. App installée : iOS floute une bande sous l'heure,
+   on la couvre (App.tsx) et le contenu commence en dessous. */
+:root {
+  --safe-top: env(safe-area-inset-top);
+}
+@media (display-mode: standalone) {
+  :root {
+    --safe-top: calc(env(safe-area-inset-top) + 18px);
+  }
+}
 @utility pt-safe {
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--safe-top);
 }
 @utility no-scrollbar {
   scrollbar-width: none;

@@ -33,7 +33,7 @@ function Root() {
       <UpdateToast />
       <Outlet />
       {/* Bande opaque sous l'heure et la batterie : le contenu qui défile ne passe plus dessous (sinon iOS le floute). */}
-      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)]" style={{ background: 'var(--top-color, transparent)' }} />
+      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[var(--safe-top)]" style={{ background: 'var(--top-color, transparent)' }} />
       <InstallGate />
     </>
   )
