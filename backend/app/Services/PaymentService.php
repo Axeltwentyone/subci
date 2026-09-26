@@ -172,7 +172,11 @@ class PaymentService
         Payment::where('status', PaymentStatus::Pending)->whereNotNull('provider_reference')->doesntHave('references')
             ->limit($limit)->get()->each(fn (Payment $p) => $this->ensureReference($p));
 
-        return PaymentReference::with('payment')->where('status', 'pending')
+        // Une tentative « échouée » peut encore aboutir si le client change de moyen sur la page
+        // GeniusPay (Orange Money → Wave) : on la relit pendant 2 h.
+        return PaymentReference::with('payment')
+            ->where(fn ($q) => $q->where('status', 'pending')
+                ->orWhere(fn ($q) => $q->where('status', 'failed')->where('created_at', '>', now()->subHours(2))))
             ->where('created_at', '>', now()->subDay())
             ->oldest('updated_at')->limit($limit)->get()
             ->each(fn (PaymentReference $ref) => $this->check($ref))
@@ -180,12 +184,17 @@ class PaymentService
     }
 
     /** Webhook : référence connue → relecture immédiate (y compris remboursement après succès). */
-    public function handleWebhook(string $reference): bool
+    public function handleWebhook(string $reference, ?string $subReference = null): bool
     {
         $ref = PaymentReference::with('payment')->where('reference', $reference)->first();
         if (! $ref) {
             $payment = Payment::where('provider_reference', $reference)->first();
             $ref = $payment ? $this->ensureReference($payment) : null;
+        }
+        if (! $ref && $subReference) {
+            // Webhook signé : la référence GeniusPay est rattachée au paiement Sub.ci, puis relue à la source.
+            $payment = Payment::where('reference', $subReference)->where('type', PaymentType::Subscription)->first();
+            $ref = $payment?->references()->firstOrCreate(['reference' => $reference])->setRelation('payment', $payment);
         }
         if (! $ref) {
             return false;

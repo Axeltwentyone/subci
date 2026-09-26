@@ -34,9 +34,14 @@ class GeniusPayWebhookController extends Controller
 
         $event = (string) $request->input('event', $request->header('X-Webhook-Event'));
         $reference = $request->input('data.reference') ?? $request->input('reference');
+        // Référence Sub.ci renvoyée dans les métadonnées : retrouve le paiement même si GeniusPay
+        // envoie une autre référence que celle reçue à la création (nouvelle tentative, autre moyen).
+        $subReference = $request->input('data.metadata.sub_reference');
 
-        if (str_starts_with($event, 'payment.') && $reference && ! $payments->handleWebhook((string) $reference)) {
-            Log::info('GeniusPay : webhook pour un paiement inconnu', ['reference' => $reference, 'event' => $event]);
+        Log::info('GeniusPay : webhook reçu', ['event' => $event, 'reference' => $reference, 'sub_reference' => $subReference]);
+        if (str_starts_with($event, 'payment.') && $reference
+            && ! $payments->handleWebhook((string) $reference, is_string($subReference) ? $subReference : null)) {
+            Log::warning('GeniusPay : webhook pour un paiement inconnu', ['reference' => $reference, 'event' => $event]);
         }
 
         return response()->json(['ok' => true]);

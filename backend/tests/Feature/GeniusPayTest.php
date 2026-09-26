@@ -189,4 +189,35 @@ class GeniusPayTest extends TestCase
         $this->withToken($token)->postJson('/api/v1/admin/payments/'.Payment::sole()->id.'/reconcile')->assertOk()
             ->assertJsonPath('data.status', 'succeeded');
     }
+
+    public function test_webhook_with_another_geniuspay_reference_is_matched_by_sub_reference(): void
+    {
+        Http::fakeSequence('geniuspay.test/*')
+            ->push(['success' => true, 'data' => ['reference' => 'GP_CHECKOUT', 'checkout_url' => 'https://x']])
+            ->push(['success' => true, 'data' => ['status' => 'completed', 'amount' => 2500, 'provider' => 'wave']]);
+        $ref = $this->checkout('om')['ref'];
+        $this->app['auth']->forgetGuards();
+
+        $body = json_encode(['event' => 'payment.success', 'data' => ['reference' => 'MTX-AUTRE', 'status' => 'completed', 'metadata' => ['sub_reference' => $ref]]]);
+        $ts = (string) time();
+        $sig = hash_hmac('sha256', $ts.'.'.$body, 'whsec_test');
+        $headers = ['X-Webhook-Timestamp' => $ts, 'X-Webhook-Event' => 'payment.success', 'X-Webhook-Signature' => $sig, 'Content-Type' => 'application/json', 'Accept' => 'application/json'];
+        $this->call('POST', '/api/v1/webhooks/geniuspay', [], [], [], $this->serverHeaders($headers), $body)->assertOk();
+
+        $this->assertSame('succeeded', Payment::sole()->status->value);
+        Http::assertSent(fn ($r) => $r->method() === 'GET' && str_ends_with($r->url(), '/payments/MTX-AUTRE'));
+    }
+
+    public function test_failed_attempt_is_reread_when_member_switches_method(): void
+    {
+        Http::fakeSequence('geniuspay.test/*')
+            ->push(['success' => true, 'data' => ['reference' => 'GP_SWITCH', 'checkout_url' => 'https://x']])
+            ->push(['success' => true, 'data' => ['status' => 'failed', 'amount' => 2500]])
+            ->push(['success' => true, 'data' => ['status' => 'completed', 'amount' => 2500, 'provider' => 'wave']]);
+        $ref = $this->checkout('om')['ref'];
+        $this->getJson("/api/v1/payments/{$ref}")->assertJsonPath('data.status', 'failed');
+
+        $this->artisan('payments:reconcile')->assertSuccessful();
+        $this->assertSame('succeeded', Payment::sole()->status->value);
+    }
 }
