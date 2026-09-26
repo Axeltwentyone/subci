@@ -113,10 +113,12 @@ export function useTopColor(wanted: string) {
     const html = document.documentElement
     const before = { meta: meta?.getAttribute('content'), html: html.style.backgroundColor, body: document.body.style.backgroundColor }
     meta?.setAttribute('content', color)
+    html.style.setProperty('--top-color', color)
     html.style.backgroundColor = color
     document.body.style.backgroundColor = color
     return () => {
       if (before.meta) meta?.setAttribute('content', before.meta)
+      html.style.setProperty('--top-color', before.meta ?? '')
       html.style.backgroundColor = before.html
       document.body.style.backgroundColor = before.body
     }
