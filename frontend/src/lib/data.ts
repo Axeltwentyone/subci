@@ -130,9 +130,14 @@ const FALLBACK: Service[] = [
     meta: 'Marvel · Pixar · Star Wars', description: 'Disney, Pixar, Marvel, Star Wars et National Geographic en 4K.',
     price: 2000, fullPrice: 6000, seats: 4, free: 3, groupFree: 3, activation: 15, popular: true, offers: 1, chooseOffer: true,
   },
+  {
+    id: 'crunchyroll', mono: 'CR', name: 'Crunchyroll', color: '#F47521', fg: '#fff', category: 'streaming',
+    meta: 'Animés · simulcast', description: 'Tous les animés sans pub, en simulcast avec le Japon, et hors ligne sur mobile.',
+    price: 1000, fullPrice: 4000, seats: 6, free: 0, groupFree: 0, activation: 15, popular: false, offers: 1, chooseOffer: true,
+  },
 ]
 
-const ORDER = ['netflix', 'spotify', 'apple-music', 'youtube', 'canal', 'prime', 'chatgpt', 'disney', 'spotify-duo', 'canal-sport']
+const ORDER = ['netflix', 'spotify', 'apple-music', 'youtube', 'canal', 'prime', 'chatgpt', 'disney', 'crunchyroll', 'spotify-duo', 'canal-sport']
 
 export let SERVICES: Service[] = [...FALLBACK].sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id))
 

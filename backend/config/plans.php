@@ -45,6 +45,10 @@ return [
     'canal-sport' => [
         'sport' => ['label' => 'Sport · 3 écrans', 'max' => 2, 'quality' => 'HD', 'devices' => $all, 'mode' => 'credentials', 'own' => 12000, 'reco' => [3500, 4500]],
     ],
+    'crunchyroll' => [
+        'megafan' => ['label' => 'Mega Fan · 4 écrans', 'max' => 3, 'quality' => 'HD', 'devices' => $all, 'mode' => 'credentials', 'own' => 4000, 'reco' => [1000, 1400]],
+        'ultimate' => ['label' => 'Ultimate Fan · 6 écrans', 'max' => 5, 'quality' => 'HD', 'devices' => $all, 'mode' => 'credentials', 'own' => 6000, 'reco' => [1000, 1400]],
+    ],
     'chatgpt' => [
         'team' => ['label' => 'Team · 2 sièges', 'max' => 1, 'quality' => null, 'devices' => ['phone', 'computer'], 'mode' => 'credentials', 'own' => 13000, 'reco' => [4500, 5500]],
     ],

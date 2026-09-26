@@ -21,6 +21,7 @@ class ServiceSeeder extends Seeder
             ['disney', 'D+', 'Disney+', '#0E2A6B', '#FFFFFF', 'streaming', 'Marvel · Pixar · Star Wars', 'Disney, Pixar, Marvel, Star Wars et National Geographic en 4K.', 2000, 6000, 4, 3, 15, true],
             ['spotify-duo', 'S', 'Spotify Duo', '#1DB954', '#0B0B0B', 'music', '2 comptes Premium', 'Deux comptes Premium sous un même toit. Mix Duo inclus.', 2200, 4400, 2, 0, 30, false],
             ['canal-sport', 'C+', 'Canal+ Sport', '#16130F', '#FFFFFF', 'sport', 'Foot · Ligue 1 · CAN', 'Tout le sport Canal+ : championnats européens, CAN et Ligue 1.', 4000, 12000, 3, 1, 20, false],
+            ['crunchyroll', 'CR', 'Crunchyroll', '#F47521', '#FFFFFF', 'streaming', 'Animés · simulcast', 'Tous les animés sans pub, en simulcast avec le Japon, et hors ligne sur mobile.', 1000, 4000, 6, 0, 15, false],
         ];
 
         foreach ($services as $i => [$slug, $mono, $name, $color, $fg, $cat, $meta, $desc, $price, $full, $seats, $free, $activation, $popular]) {
