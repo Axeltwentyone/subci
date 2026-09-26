@@ -8,3 +8,24 @@
 }
 
 @utility tabular { font-variant-numeric: tabular-nums; }
+
+/* Mode sombre de l'admin : fonds foncés neutres, texte blanc franc. */
+:root[data-theme='dark'] {
+  --color-canvas: #0d0d0d;
+  --color-sand: #161616;
+  --color-surface: #1c1c1c;
+  --color-line: #2c2c2c;
+  --color-line-strong: #3a3a3a;
+  --color-line-soft: #242424;
+  --color-radio: #4a4a4a;
+  --color-ink: #ffffff;
+  --color-ink-2: #f0f0f0;
+  --color-ink-3: #e2e2e2;
+  --color-ink-line: #d0d0d0;
+  --color-ink-muted: #555555;
+  --color-ink-soft: #3a3a3a;
+  --color-body: #e6e6e6;
+  --color-muted: #b8b8b8;
+  --color-subtle: #9c9c9c;
+  --color-disabled: #6a6a6a;
+}
