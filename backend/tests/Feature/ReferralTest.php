@@ -27,7 +27,7 @@ class ReferralTest extends TestCase
     {
         parent::setUp();
         $this->seed(ServiceSeeder::class);
-        config(['services.payments.fake_delay' => 0, 'services.payments.service_fee' => 200]);
+        config(['services.payments.fake_delay' => 0, 'services.payments.service_fee' => 200, 'services.payments.service_fee_long' => 200]);
         $this->host = User::factory()->create(['first_name' => 'Koffi', 'last_name' => 'Yao']);
         $this->offer = $this->host->hostOffers()->create([
             'service_id' => Service::where('slug', 'netflix')->value('id'), 'plan' => 'premium', 'plan_label' => 'Premium · 4 écrans',

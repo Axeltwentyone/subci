@@ -122,7 +122,9 @@ function inAppBrowser() {
 export function InstallGate() {
   const { state } = useStore()
   const install = useInstall()
-  const show = !install.installed && state.installDismissedAt === 0 && isMobileDevice()
+  // Pas sur la page de retour de paiement : elle s'ouvre dans Safari alors que l'app est déjà installée.
+  const returning = window.location.pathname.startsWith('/retour/')
+  const show = !install.installed && state.installDismissedAt === 0 && isMobileDevice() && !returning
   if (!show) return null
   return <InstallScreen />
 }

@@ -64,6 +64,8 @@ const router = createBrowserRouter([
       { path: '/welcome', lazy: () => entry().then((m) => ({ Component: m.Onboarding })) },
       { path: '/login', lazy: () => entry().then((m) => ({ Component: m.Login })) },
       // Public (lien depuis l'écran de connexion).
+      // Retour de la page de paiement : public (sur iPhone il s'ouvre dans Safari, sans session).
+      { path: '/retour/:ref', lazy: () => purchase().then((m) => ({ Component: m.PaymentReturn })) },
       { path: '/conditions', lazy: () => import('./screens/legal').then((m) => ({ Component: m.Conditions })) },
       {
         element: <RequireSession />,

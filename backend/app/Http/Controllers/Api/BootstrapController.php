@@ -37,7 +37,7 @@ class BootstrapController extends Controller
             // Demandes du membre en attente de réponse d'un hôte.
             'requests' => JoinRequestResource::collection($user->joinRequests()->pending()->with('payment', 'offer.service', 'offer.user', 'user')->latest()->get()),
             // Frais de service Sub.ci ajoutés à chaque paiement (affichés au checkout).
-            'config' => ['serviceFee' => (int) config('services.payments.service_fee')],
+            'config' => ['serviceFee' => (int) config('services.payments.service_fee'), 'serviceFeeLong' => (int) config('services.payments.service_fee_long')],
             // Services sur lesquels le membre attend une place.
             'waitlist' => Waitlist::where('user_id', $user->id)->whereNull('notified_at')->with('service:id,slug')->get()->pluck('service.slug')->values(),
         ]);

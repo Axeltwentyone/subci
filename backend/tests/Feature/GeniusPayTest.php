@@ -49,7 +49,7 @@ class GeniusPayTest extends TestCase
 
         Http::assertSent(fn ($r) => $r->url() === 'https://geniuspay.test/api/v1/merchant/payments'
             && $r->hasHeader('X-API-Key', 'pk_test') && $r['amount'] === 2500 && $r['payment_method'] === 'orange_money'
-            && $r['customer']['phone'] === '+2250758421121' && str_ends_with($r['success_url'], '/pay/'.$data['ref']));
+            && $r['customer']['phone'] === '+2250758421121' && str_ends_with($r['success_url'], '/retour/'.$data['ref']));
         $this->assertSame('GP_REF_1', Payment::sole()->provider_reference);
     }
 
@@ -133,11 +133,11 @@ class GeniusPayTest extends TestCase
         $body = ['serviceId' => 'netflix', 'offerId' => $this->offer->id, 'months' => 1, 'method' => 'wave', 'phone' => '0758421121'];
 
         $ref = $this->postJson('/api/v1/payments', $body + ['returnOrigin' => 'http://localhost:4173'])->assertCreated()->json('data.ref');
-        Http::assertSent(fn ($r) => $r['success_url'] === "http://localhost:4173/pay/{$ref}");
+        Http::assertSent(fn ($r) => $r['success_url'] === "http://localhost:4173/retour/{$ref}");
 
         $this->actingAs(User::factory()->create());
         $ref = $this->postJson('/api/v1/payments', $body + ['returnOrigin' => 'https://phishing.example'])->assertCreated()->json('data.ref');
-        Http::assertSent(fn ($r) => $r['success_url'] === "http://localhost:5173/pay/{$ref}");
+        Http::assertSent(fn ($r) => $r['success_url'] === "http://localhost:5173/retour/{$ref}");
     }
 
     public function test_late_return_after_link_expiry_still_confirms_if_paid(): void

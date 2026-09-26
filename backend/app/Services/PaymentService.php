@@ -76,7 +76,7 @@ class PaymentService
 
             // Prix de l'hôte + frais de service Sub.ci (offerts au filleul), moins le crédit parrainage.
             $subtotal = Service::durationPrice($offer->price, $months);
-            $fee = $this->referrals->waivesFee($user) ? 0 : (int) config('services.payments.service_fee');
+            $fee = $this->referrals->waivesFee($user) ? 0 : self::serviceFee($months);
             $credit = $this->referrals->reserveCredit($user, $subtotal + $fee - (int) config('services.referral.min_payable'));
 
             return $user->payments()->create([
@@ -97,7 +97,8 @@ class PaymentService
             ]);
         });
 
-        $payment->return_url = rtrim($returnOrigin ?? config('app.frontend_url'), '/')."/pay/{$payment->reference}";
+        // Page de retour publique : sur iPhone, le retour s'ouvre dans Safari (sans session), pas dans l'app installée.
+        $payment->return_url = rtrim($returnOrigin ?? config('app.frontend_url'), '/')."/retour/{$payment->reference}";
         $this->send($payment);
         $user->update(['last_pay_method' => $method]);
 
@@ -132,6 +133,12 @@ class PaymentService
         $this->send($payment);
 
         return $payment;
+    }
+
+    /** Frais de service Sub.ci : 1 mois ou 3 mois et plus. */
+    public static function serviceFee(int $months): int
+    {
+        return (int) config($months >= 3 ? 'services.payments.service_fee_long' : 'services.payments.service_fee');
     }
 
     /**

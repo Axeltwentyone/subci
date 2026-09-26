@@ -247,7 +247,7 @@ export type Bootstrap = {
   notifications: ApiNotif[]
   host: ApiHost
   requests: ApiRequest[]
-  config?: { serviceFee: number }
+  config?: { serviceFee: number; serviceFeeLong?: number }
   /** Services sur lesquels le membre attend une place */
   waitlist?: string[]
 }

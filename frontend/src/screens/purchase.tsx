@@ -6,9 +6,9 @@ import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { Button, Card, Row, Screen, ServiceLogo, StepBar, StickyAction, TopBar, cx } from '../components/ui'
 import { DURATIONS, durationPrice, getMethod, getService, type PayMethodId, type PublicOffer } from '../lib/data'
-import { api, type PendingPayment } from '../lib/api'
+import { api, getToken, type PendingPayment } from '../lib/api'
 import { fcfa, haptic, maskPhone, shortDate, timeLeft } from '../lib/format'
-import { mmss, useOnline } from '../lib/hooks'
+import { isIOS, isStandalone, mmss, useOnline } from '../lib/hooks'
 import { useBack } from '../lib/nav'
 import { errorMessage, useStore } from '../lib/store'
 import { NotFound, OfferOption } from './discover'
@@ -16,6 +16,14 @@ import { NotFound, OfferOption } from './discover'
 /* ---------- 08 · Checkout ---------- */
 
 /** Un seul écran utile : durée + moyen. Dernier moyen pré-sélectionné, numéro pré-rempli. */
+/**
+ * iPhone, app installée : après un paiement dans Wave / Orange Money, le retour s'ouvre dans Safari
+ * (sans session) au lieu de l'app. On garde donc l'app ouverte et la page de paiement s'ouvre à côté.
+ */
+function keepsAppOpen() {
+  return isIOS() && isStandalone()
+}
+
 export function Checkout() {
   const { id = '' } = useParams()
   const [params] = useSearchParams()
@@ -58,7 +66,9 @@ export function Checkout() {
   const subtotal = monthly ? durationPrice(monthly, months) : 0
   // Frais de service Sub.ci (offerts au filleul), moins le crédit parrainage (le serveur recalcule tout).
   const feeWaived = !!state.referral?.feeWaived
-  const fee = feeWaived ? 0 : state.serviceFee
+  // Frais plus bas à partir de 3 mois (un seul paiement pour plusieurs mois).
+  const baseFee = months >= 3 ? state.serviceFeeLong : state.serviceFee
+  const fee = feeWaived ? 0 : baseFee
   const credit = subtotal ? Math.max(0, Math.min(state.referral?.credit ?? 0, subtotal + fee - 200)) : 0
   const amount = subtotal ? subtotal + fee - credit : 0
   // Apple Music : l'hôte invite l'identifiant Apple du membre dans son Partage familial.
@@ -83,7 +93,8 @@ export function Checkout() {
       const payment = await actions.checkout(s.id, months, method, phone, current ? undefined : offerId ?? undefined, needsAppleId ? appleId.trim() : undefined)
       navigate(`/pay/${payment.ref}`, { state: payment, viewTransition: !payment.checkoutUrl })
       // Passerelle avec page de paiement (GeniusPay) : on y part, retour automatique sur /pay/{ref}.
-      if (payment.checkoutUrl) window.location.assign(payment.checkoutUrl)
+      // App installée sur iPhone : on reste dans l'app, la page s'ouvre à côté (bouton sur l'écran suivant).
+      if (payment.checkoutUrl && !keepsAppOpen()) window.location.assign(payment.checkoutUrl)
     } catch (e) {
       toast({ tone: 'error', text: errorMessage(e) })
       setLoading(false)
@@ -180,11 +191,14 @@ export function Checkout() {
             <span>Abonnement · {months} mois</span>
             <span className="tabular-nums">{fcfa(subtotal)} FCFA</span>
           </div>
-          {state.serviceFee > 0 && (
+          {baseFee > 0 && (
             <div className="flex justify-between">
               <span>Frais de service Sub.ci{feeWaived ? ' · offerts (parrainage)' : ''}</span>
-              <span className="tabular-nums">{feeWaived ? <s>{fcfa(state.serviceFee)} FCFA</s> : `${fcfa(fee)} FCFA`}</span>
+              <span className="tabular-nums">{feeWaived ? <s>{fcfa(baseFee)} FCFA</s> : `${fcfa(fee)} FCFA`}</span>
             </div>
+          )}
+          {!feeWaived && months < 3 && state.serviceFee > state.serviceFeeLong && (
+            <span className="text-[12px] text-ok-ink">Frais réduits à {fcfa(state.serviceFeeLong)} FCFA en payant 3 mois ou plus</span>
           )}
           {credit > 0 && (
             <div className="flex justify-between text-ok-ink">
@@ -251,9 +265,13 @@ export function Paying() {
     }
     tick()
     const t = setInterval(tick, 2000)
+    // Retour dans l'app après avoir payé ailleurs : on relit tout de suite.
+    const onVisible = () => document.visibilityState === 'visible' && tick()
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       alive = false
       clearInterval(t)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [ref, actions, navigate, toast, back])
 
@@ -302,7 +320,8 @@ export function Paying() {
           <p className="text-base leading-normal font-medium text-pretty text-muted">
             {hosted ? (
               <>
-                Paiement de <b className="text-ink">{fcfa(p.amount)} FCFA</b> via {m.name}. Dès qu’il est validé, on continue automatiquement.
+                Paiement de <b className="text-ink">{fcfa(p.amount)} FCFA</b> via {m.name}.{' '}
+                {keepsAppOpen() ? 'Paie sur la page sécurisée, puis reviens ici : la confirmation s’affiche toute seule.' : 'Dès qu’il est validé, on continue automatiquement.'}
               </>
             ) : (
               <>
@@ -331,7 +350,11 @@ export function Paying() {
       </div>
       <div className="mt-auto flex flex-col gap-1.5 px-6 pt-8 pb-[calc(env(safe-area-inset-bottom)+40px)]">
         {hosted ? (
-          <Button onClick={() => window.location.assign(p.checkoutUrl!)}>Reprendre le paiement</Button>
+          keepsAppOpen() ? (
+            <Button onClick={() => window.open(p.checkoutUrl!, '_blank', 'noopener')}>Ouvrir la page de paiement</Button>
+          ) : (
+            <Button onClick={() => window.location.assign(p.checkoutUrl!)}>Reprendre le paiement</Button>
+          )
         ) : (
           <Button variant="outline" size="md" onClick={() => setHelp(true)}>
             Je n’ai rien reçu
@@ -479,3 +502,29 @@ export function Success() {
     </Screen>
   )
 }
+
+/**
+ * Retour de la page de paiement (success_url). Sur iPhone, il s'ouvre souvent dans Safari, sans session :
+ * on n'affiche pas l'écran de connexion, on invite à revenir dans l'app (qui confirme toute seule).
+ */
+export function PaymentReturn() {
+  const { ref = '' } = useParams()
+  if (isStandalone() || getToken()) return <Navigate to={`/pay/${ref}`} replace />
+  return (
+    <Screen>
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
+        <span className="grid size-20 place-items-center rounded-full bg-ok-soft text-ok-ink">
+          <IconCheck size={36} />
+        </span>
+        <div className="flex flex-col gap-2">
+          <h1 className="t-title">Paiement envoyé</h1>
+          <p className="text-base leading-normal font-medium text-pretty text-muted">
+            Retourne sur l’app <b className="text-ink">Sub.ci</b> depuis ton écran d’accueil : la confirmation s’y affiche toute seule.
+          </p>
+        </div>
+        <p className="text-[13px] font-semibold text-muted">Tu peux fermer cette page.</p>
+      </div>
+    </Screen>
+  )
+}
+

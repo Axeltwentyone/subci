@@ -141,6 +141,8 @@ export type State = {
   holdHours: number
   /** Frais de service Sub.ci ajoutés à chaque paiement */
   serviceFee: number
+  /** Frais de service pour 3 mois ou plus. */
+  serviceFeeLong: number
   referral: Referral | null
   /** Services sur lesquels on attend une place (prévenu dès qu'elle se libère) */
   waitlist: string[]
@@ -199,7 +201,8 @@ function empty(): State {
     withdrawal: { min: 2000, feeFixed: 0, feePercent: 1 },
     trusted: false,
     holdHours: 48,
-    serviceFee: 200,
+    serviceFee: 300,
+    serviceFeeLong: 200,
     referral: null,
     waitlist: [],
     payout: { method: 'wave', phone: '' },
@@ -292,6 +295,7 @@ function reducer(s: State, a: Action): State {
         notifs: d.notifications.map(toNotif),
         requests: (d.requests ?? []).map(toJoinRequest),
         serviceFee: d.config?.serviceFee ?? s.serviceFee,
+        serviceFeeLong: d.config?.serviceFeeLong ?? d.config?.serviceFee ?? s.serviceFeeLong,
         waitlist: d.waitlist ?? [],
         lastSync: Date.now(),
         syncing: false,

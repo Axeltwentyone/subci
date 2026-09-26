@@ -108,11 +108,11 @@ class CheckoutTest extends TestCase
 
     public function test_service_fee_is_paid_by_member_kept_by_subci_and_refunded_if_declined(): void
     {
-        config(['services.payments.service_fee' => 200]);
+        config(['services.payments.service_fee' => 300, 'services.payments.service_fee_long' => 200]);
         $offer = $this->offer();
         $member = User::factory()->create();
         $this->actingAs($member);
-        $this->getJson('/api/v1/bootstrap')->assertJsonPath('config.serviceFee', 200);
+        $this->getJson('/api/v1/bootstrap')->assertJsonPath('config.serviceFee', 300)->assertJsonPath('config.serviceFeeLong', 200);
 
         // 3 mois à 2 400 : 6 840 pour le cercle + 200 de frais de service = 7 040 payés.
         $request = $this->payFor($offer, 3);
@@ -130,7 +130,7 @@ class CheckoutTest extends TestCase
         $this->actingAs($other);
         $second = $this->payFor($offer, 1);
         $this->asHost()->postJson("/api/v1/host/requests/{$second->id}/decline")->assertOk();
-        $this->assertSame(2600, $other->payments()->where('type', 'refund')->value('amount'));
+        $this->assertSame(2700, $other->payments()->where('type', 'refund')->value('amount')); // 2 400 + 300 de frais (1 mois)
     }
 
     public function test_decline_refunds_member_and_frees_seat(): void
@@ -364,5 +364,16 @@ class CheckoutTest extends TestCase
         $request = JoinRequest::sole();
         $this->assertSame($cheapest->id, $request->host_offer_id);
         $this->assertSame(0, $member->subscriptions()->count()); // l'hôte doit encore accepter
+    }
+
+    public function test_one_month_payment_has_higher_service_fee_than_three_months(): void
+    {
+        config(['services.payments.service_fee' => 300, 'services.payments.service_fee_long' => 200]);
+        $offer = $this->offer();
+        $this->actingAs(User::factory()->create());
+
+        $payment = $this->payFor($offer, 1)->payment;
+        $this->assertSame(300, $payment->service_fee);
+        $this->assertSame(2400 + 300, $payment->amount);
     }
 }

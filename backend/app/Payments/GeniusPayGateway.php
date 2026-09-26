@@ -31,7 +31,7 @@ class GeniusPayGateway implements PaymentGateway
     public function request(Payment $payment): array
     {
         $payment->loadMissing('user', 'service');
-        $return = $payment->return_url ?? rtrim((string) config('app.frontend_url'), '/')."/pay/{$payment->reference}";
+        $return = $payment->return_url ?? rtrim((string) config('app.frontend_url'), '/')."/retour/{$payment->reference}";
 
         $body = array_filter([
             'amount' => $payment->amount,
