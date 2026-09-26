@@ -262,7 +262,7 @@ export function NameSetup() {
     if (code && state.referral?.canApply !== false) {
       try {
         await actions.applyReferral(code)
-        toast({ tone: 'success', text: 'Code appliqué : tes frais de service sont offerts' })
+        toast({ tone: 'success', text: 'Code appliqué : merci, ton ami sera récompensé' })
       } catch (e) {
         toast({ tone: 'error', text: `Code de parrainage : ${errorMessage(e)}` })
       }
@@ -294,7 +294,7 @@ export function NameSetup() {
                 autoCapitalize="characters"
                 className="h-12 rounded-tile border-[1.5px] border-line bg-surface px-3.5 text-base font-bold tracking-[0.06em] outline-none placeholder:font-medium placeholder:tracking-normal placeholder:text-subtle focus:border-2 focus:border-ink"
               />
-              <span className="text-[12px] font-semibold text-muted">Tes frais de service sont offerts ; ton ami gagne du crédit.</span>
+              <span className="text-[12px] font-semibold text-muted">Ton ami gagne du crédit quand tu renouvelles.</span>
             </label>
           }
           onDone={done}

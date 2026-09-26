@@ -28,7 +28,7 @@ class EarningService
     {
         $host = $offer->user;
         $months = max(1, (int) $payment->months);
-        // L'hôte touche 90 % du prix de son offre ; les frais de service restent à Sub.ci.
+        // L'hôte touche 95 % du prix de son offre ; les frais de service restent à Sub.ci.
         $total = $payment->offerAmount();
         $base = intdiv($total, $months);
         $hold = $host->holdHours();

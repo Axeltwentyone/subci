@@ -59,9 +59,20 @@ class HostController extends Controller
             'trusted' => $user->isTrustedHost(),
             'holdHours' => $user->holdHours(),
             'withdrawLockedUntil' => self::withdrawLockedUntil($user)?->toIso8601String(),
+            'withdrawal' => [
+                'min' => (int) config('services.payments.withdrawal_min'),
+                'feeFixed' => (int) config('services.payments.withdrawal_fee_fixed'),
+                'feePercent' => (float) config('services.payments.withdrawal_fee_percent'),
+            ],
             'monthGain' => (int) $user->payments()->where('type', PaymentType::Earning)->whereIn('status', [PaymentStatus::Succeeded, PaymentStatus::Pending])->where('created_at', '>=', now()->startOfMonth())->sum('amount'),
             'offers' => HostOfferResource::collection($user->hostOffers()->with(self::RELATIONS)->orderByRaw("status = 'closed'")->latest()->get()),
         ];
+    }
+
+    /** Frais d'envoi d'un retrait, à la charge de l'hôte. */
+    public static function withdrawalFee(int $amount): int
+    {
+        return (int) ceil((int) config('services.payments.withdrawal_fee_fixed') + $amount * (float) config('services.payments.withdrawal_fee_percent') / 100);
     }
 
     /** Retraits bloqués quelques heures après un changement de numéro de retrait (vol de session). */
@@ -81,7 +92,7 @@ class HostController extends Controller
             'serviceId' => ['required', Rule::in(array_keys(config('plans')))],
             'plan' => ['required', 'string'],
             'seats' => ['required', 'integer', 'min:1'],
-            'price' => ['required', 'integer', 'between:500,5000'],
+            'price' => ['required', 'integer', 'between:1000,5000'],
             'devices' => ['required', 'array', 'min:1'],
             'devices.*' => [Rule::enum(Device::class)],
             'email' => ['nullable', 'email'],
@@ -142,7 +153,7 @@ class HostController extends Controller
         $plan = $offer->planConfig();
         $members = $offer->members()->count() + $offer->joinRequests()->pending()->count();
         $data = $request->validate([
-            'price' => ['sometimes', 'integer', 'between:500,5000'],
+            'price' => ['sometimes', 'integer', 'between:1000,5000'],
             'seats' => ['sometimes', 'integer', 'min:'.max(1, $members), 'max:'.$plan['max']],
             'devices' => ['sometimes', 'array', 'min:1'],
             'devices.*' => [Rule::in($plan['devices'])],
@@ -324,9 +335,11 @@ class HostController extends Controller
     /** Retrait du solde vers le compte mobile money (frais 0, reçu ~5 min). */
     public function withdraw(Request $request): JsonResponse
     {
-        $data = $request->validate(['amount' => ['required', 'integer', 'min:500']]);
+        $min = (int) config('services.payments.withdrawal_min');
+        $data = $request->validate(['amount' => ['required', 'integer', "min:{$min}"]], ['amount.min' => 'Retrait possible à partir de '.number_format($min, 0, ',', ' ').' FCFA.']);
+        $fee = self::withdrawalFee($data['amount']);
 
-        $payment = DB::transaction(function () use ($request, $data) {
+        $payment = DB::transaction(function () use ($request, $data, $fee) {
             $user = User::whereKey($request->user()->id)->lockForUpdate()->first();
             if ($until = self::withdrawLockedUntil($user)) {
                 throw ValidationException::withMessages(['amount' => 'Numéro de retrait modifié récemment : par sécurité, retrait possible à partir du '.$until->translatedFormat('j M à H\hi').'.']);
@@ -342,12 +355,14 @@ class HostController extends Controller
                 'type' => PaymentType::Withdrawal,
                 'status' => $manual ? PaymentStatus::Pending : PaymentStatus::Succeeded,
                 'label' => 'Retrait des gains',
-                'amount' => $data['amount'],
+                // Montant envoyé à l'hôte (frais d'envoi déduits, gardés dans service_fee).
+                'amount' => $data['amount'] - $fee,
+                'service_fee' => $fee,
                 'method' => $method,
                 'phone' => $user->payout_phone ?? $user->phone,
                 'confirmed_at' => $manual ? null : now(),
             ]);
-            $amount = number_format($data['amount'], 0, ',', ' ').' FCFA';
+            $amount = number_format($data['amount'] - $fee, 0, ',', ' ').' FCFA';
             if ($manual) {
                 AdminAlerts::send('payouts', "Retrait à verser · {$amount}",
                     $user->shortName().' · '.$method->label().' '.$payment->phone, '/payouts', 'payouts');

@@ -224,7 +224,7 @@ function Split({ id, amount }: { id: number; amount: number }) {
           </div>
         )}
         <div className="flex justify-between font-semibold">
-          <span className="text-muted">Commission Sub.ci (10 %)</span>
+          <span className="text-muted">Commission Sub.ci</span>
           <span className="tabular font-bold">{fcfa(data.commission)} FCFA</span>
         </div>
         {data.refunded > 0 && (

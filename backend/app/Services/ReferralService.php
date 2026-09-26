@@ -13,10 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Parrainage.
- * - Le filleul saisit le code d'un ami avant son premier paiement : ses frais de service sont offerts
- *   jusqu'à ce qu'un hôte l'accepte.
- * - À cette acceptation, le parrain reçoit un crédit Sub.ci (plafonné par mois), déduit de ses prochains
- *   paiements, jamais retirable. Crédit repris si le filleul est remboursé dans les 30 jours.
+ * - Le filleul saisit le code d'un ami avant son premier paiement (frais offerts seulement si waive_fee).
+ * - Au 2e paiement abouti du filleul (renouvellement ou 2e abonnement accepté), le parrain reçoit un crédit
+ *   Sub.ci (plafonné par mois), déduit de ses prochains paiements, jamais retirable.
+ *   Crédit repris si le filleul est remboursé dans les 30 jours.
  */
 class ReferralService
 {
@@ -96,7 +96,17 @@ class ReferralService
         $payment->update(['credit_restored_at' => null]);
     }
 
-    /** Le filleul vient d'être accepté par un hôte : récompense du parrain. */
+    /** Récompense le parrain seulement quand le filleul revient payer : 2 paiements aboutis (acceptés, non remboursés). */
+    public function rewardIfLoyal(User $referee): void
+    {
+        $paid = $referee->payments()->where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)
+            ->whereNotNull('subscription_id')->whereNull('refunded_at')->count();
+        if ($paid >= 2) {
+            $this->reward($referee);
+        }
+    }
+
+    /** Récompense du parrain (une seule fois par filleul). */
     public function reward(User $referee): void
     {
         $referral = Referral::with('referrer')->where('referee_id', $referee->id)->where('status', 'pending')->lockForUpdate()->first();

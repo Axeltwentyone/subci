@@ -331,6 +331,8 @@ class PaymentService
                 'reminded_j1_at' => null,
             ]);
             $payment->update(['period_start' => $from, 'period_end' => $sub->ends_at]);
+            // Renouvellement d'un filleul : son parrain est récompensé.
+            $this->referrals->rewardIfLoyal($payment->user);
 
             if ($offer = $payment->hostOffer) {
                 app(EarningService::class)->schedule($offer->loadMissing('service', 'user'), $payment, $payment->user, $from);

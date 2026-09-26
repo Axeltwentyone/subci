@@ -3,8 +3,8 @@ import { fcfa } from './format'
 import type { HostOffer } from './store'
 
 /**
- * Lien vers une offre d'hôte, avec son code parrain : l'ami ne paie pas les frais de service
- * (s'il est nouveau) et l'hôte gagne son crédit quand il l'accepte.
+ * Lien vers une offre d'hôte, avec son code parrain : l'hôte gagne son crédit quand l'ami
+ * (s'il est nouveau) paie une 2e fois.
  */
 export function offerShareLink(offer: HostOffer, referralCode?: string): { url: string; text: string } {
   const svc = getService(offer.serviceId)

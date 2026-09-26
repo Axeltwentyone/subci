@@ -26,7 +26,7 @@ return [
         'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]] + $spotify,
     ],
     'deezer' => [
-        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 4500, 'reco' => [900, 1200]] + $deezer,
+        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 4500, 'reco' => [1000, 1300]] + $deezer,
     ],
     'apple-music' => [
         'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]] + $apple,

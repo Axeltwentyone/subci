@@ -53,6 +53,10 @@ return [
         // Hôte fiable (3 mois d'activité, 3 mois déjà versés, aucun souci fondé depuis 90 jours) : délai réduit.
         'trusted_hold_hours' => (int) env('PAYMENTS_TRUSTED_HOLD_HOURS', 24),
         // Retraits bloqués après un changement de numéro de retrait.
+        // Retraits des hôtes : minimum, et frais d'envoi à la charge de l'hôte (fixe + %).
+        'withdrawal_min' => (int) env('WITHDRAWAL_MIN', 2000),
+        'withdrawal_fee_fixed' => (int) env('WITHDRAWAL_FEE_FIXED', 0),
+        'withdrawal_fee_percent' => (float) env('WITHDRAWAL_FEE_PERCENT', 1),
         'payout_change_lock_hours' => (int) env('PAYOUT_CHANGE_LOCK_HOURS', 24),
         // Délai minimal entre deux lectures du statut chez la passerelle pour un même paiement.
         'poll_interval' => (int) env('PAYMENTS_POLL_INTERVAL', 3),
@@ -80,11 +84,11 @@ return [
     ],
 
     'referral' => [
-        // Crédit Sub.ci du parrain quand son filleul est accepté par un hôte (déduit de ses paiements, non retirable).
-        'reward' => (int) env('REFERRAL_REWARD', 500),
+        // Crédit Sub.ci du parrain au 2e paiement abouti de son filleul (déduit de ses paiements, non retirable).
+        'reward' => (int) env('REFERRAL_REWARD', 300),
         'monthly_cap' => (int) env('REFERRAL_MONTHLY_CAP', 10),
-        // Frais de service offerts au filleul jusqu'à sa première acceptation.
-        'waive_fee' => (bool) env('REFERRAL_WAIVE_FEE', true),
+        // Frais de service offerts au filleul jusqu'à sa première acceptation (coûte plus qu'il ne rapporte : coupé).
+        'waive_fee' => (bool) env('REFERRAL_WAIVE_FEE', false),
         // Montant minimum réellement payé après crédit (la passerelle refuse les paiements à 0).
         'min_payable' => (int) env('REFERRAL_MIN_PAYABLE', 200),
     ],

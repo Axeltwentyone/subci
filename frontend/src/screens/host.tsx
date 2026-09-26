@@ -75,7 +75,7 @@ export function HostPitch() {
           {[
             ['Qui paie ?', 'Chaque membre paie sa place d’avance à Sub.ci en mobile money. L’argent est garanti : tu n’as jamais à relancer personne.'],
             ['Quand suis-je payé ?', 'Mois par mois : chaque mois payé arrive dans ton solde 48 h après son début (24 h quand tu deviens Hôte fiable). Un membre qui paie 3 mois te rapporte 3 versements, un par mois.'],
-            ['Et pour retirer ?', 'Tu retires ton solde quand tu veux vers Wave, Orange Money, MTN ou Moov, à partir de 500 FCFA. Reçu sous 48 h.'],
+            ['Et pour retirer ?', 'Tu retires ton solde quand tu veux vers Wave, Orange Money, MTN ou Moov, à partir de 2 000 FCFA. Frais d’envoi d’environ 1 %, affichés avant de confirmer. Reçu sous 48 h.'],
             ['Pourquoi ce délai ?', 'Pour protéger les membres : si l’accès ne marche pas, ils signalent un souci et sont remboursés du temps pas encore versé. C’est ce qui leur donne confiance… et te ramène des membres.'],
             ['Et si un membre part ?', 'Sa place est remise en ligne automatiquement. Si c’est toi qui le retires, il est remboursé des mois pas encore versés.'],
             ['Mes identifiants ?', 'Chiffrés, visibles uniquement par les membres que tu acceptes.'],
@@ -721,7 +721,7 @@ export function ManageOffer() {
           <section className="flex flex-col gap-2.5 rounded-card bg-brand-tint p-4">
             <span className="text-base font-bold">Trouve tes membres toi-même</span>
             <span className="text-[13px] leading-snug font-semibold text-muted">
-              Partage le lien de ton offre à tes proches sur WhatsApp. Nouveaux sur Sub.ci, ils ne paient pas les frais de service, et tu gagnes {fcfa(state.referral?.reward ?? 500)} F de crédit pour chacun.
+              Partage le lien de ton offre à tes proches sur WhatsApp. Nouveaux sur Sub.ci, chacun qui revient payer une 2e fois te rapporte {fcfa(state.referral?.reward ?? 300)} F de crédit.
             </span>
             <Button
               size="md"
@@ -865,7 +865,7 @@ function SeatStepper({ value, onChange, min, max, hint }: { value: number; onCha
   )
 }
 
-const MIN_PRICE = 500
+const MIN_PRICE = 1000
 const MAX_PRICE = 5000
 
 /** Curseur de prix avec la zone conseillée (repère vert). */

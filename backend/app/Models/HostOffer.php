@@ -21,7 +21,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class HostOffer extends Model
 {
     /** Frais Sub.ci prélevés sur les gains de l'hôte. */
-    public const FEE = 0.10;
+    /** Commission Sub.ci sur le prix de l'offre (l'hôte garde 95 %). */
+    public const FEE = 0.05;
 
     protected function casts(): array
     {
@@ -125,7 +126,7 @@ class HostOffer extends Model
             ->contains(fn (string $d) => $host === $d || str_ends_with($host, '.'.$d));
     }
 
-    /** Gain net mensuel = places occupées × prix − 10 %. */
+    /** Gain net mensuel = places occupées × prix − commission. */
     public function monthlyNet(?int $occupied = null): int
     {
         $occupied ??= $this->members()->count();

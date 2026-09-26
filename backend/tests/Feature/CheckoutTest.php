@@ -93,17 +93,17 @@ class CheckoutTest extends TestCase
         $this->assertSame('active', $sub->status->value);
         $this->assertSame('host-secret', $sub->access_password);
         $this->assertNotSame('host-secret', DB::table('subscriptions')->value('access_password'));
-        // Séquestre : 3 gains de 2 052 (2 280 − 10 %), un par mois, chacun disponible 72 h après le début de son mois.
+        // Séquestre : 3 gains de 2 166 (2 280 − 5 %), un par mois, chacun disponible 72 h après le début de son mois.
         $this->assertSame(0, $this->host->fresh()->balance);
-        $this->assertSame(6156, $this->getJson('/api/v1/host')->json('data.pending'));
+        $this->assertSame(6498, $this->getJson('/api/v1/host')->json('data.pending'));
         $this->postJson("/api/v1/host/requests/{$request->id}/accept")->assertStatus(409);
 
         $this->travel(73)->hours();
         app(EarningService::class)->release();
-        $this->assertSame(2052, $this->host->fresh()->balance);
+        $this->assertSame(2166, $this->host->fresh()->balance);
         $this->travel(1)->months();
         app(EarningService::class)->release();
-        $this->assertSame(4104, $this->host->fresh()->balance);
+        $this->assertSame(4332, $this->host->fresh()->balance);
     }
 
     public function test_service_fee_is_paid_by_member_kept_by_subci_and_refunded_if_declined(): void
@@ -121,9 +121,9 @@ class CheckoutTest extends TestCase
         $this->assertSame(200, $payment->service_fee);
         $this->asHost()->getJson('/api/v1/host')->assertJsonPath('data.offers.0.requests.0.amount', 6840);
 
-        // L'hôte touche 90 % du prix de son offre, sans rien sur les frais.
+        // L'hôte touche 95 % du prix de son offre, sans rien sur les frais.
         $this->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk();
-        $this->assertSame(6156, $this->getJson('/api/v1/host')->json('data.pending'));
+        $this->assertSame(6498, $this->getJson('/api/v1/host')->json('data.pending'));
 
         // Refusé : le membre récupère tout, frais compris.
         $other = User::factory()->create();

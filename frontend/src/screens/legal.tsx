@@ -17,7 +17,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
     title: 'Paiement et frais',
     body: [
       'Le membre paie sa place d’avance, en mobile money ou par carte, via notre prestataire de paiement. Des frais de service Sub.ci sont ajoutés à chaque paiement et affichés avant de payer.',
-      'L’hôte reçoit 90 % du prix de son offre ; Sub.ci garde 10 % et les frais de service.',
+      'L’hôte reçoit 95 % du prix de son offre ; Sub.ci garde 5 % et les frais de service, et paie les frais de la plateforme de paiement.',
     ],
   },
   {
@@ -25,7 +25,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
     body: [
       'Après le paiement, l’hôte a 24 h pour accepter le membre. S’il refuse ou ne répond pas, le membre est remboursé intégralement, frais compris.',
       'L’argent est versé à l’hôte mois par mois, quelques jours après le début de chaque mois payé. Si l’accès ne fonctionne pas, le membre signale un souci depuis l’app : les versements à l’hôte pour ce membre sont suspendus le temps de régler le problème, et le temps non encore versé peut être remboursé.',
-      'Les remboursements et retraits sont envoyés sur le compte mobile money indiqué, sous 48 h.',
+      'Les remboursements et retraits sont envoyés sur le compte mobile money indiqué, sous 48 h. Les retraits des hôtes sont possibles à partir de 2 000 FCFA ; les frais d’envoi (environ 1 %) sont déduits du montant retiré et affichés avant de confirmer.',
     ],
   },
   {

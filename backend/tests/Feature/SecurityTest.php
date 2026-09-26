@@ -65,7 +65,7 @@ class SecurityTest extends TestCase
         $member = $this->joined($offer, 3);
         $this->travel(73)->hours();
         app(EarningService::class)->release();
-        $this->assertSame(2052, $this->host->fresh()->balance);
+        $this->assertSame(2166, $this->host->fresh()->balance);
 
         $this->actingAs($this->host)->deleteJson("/api/v1/host/offers/{$offer->id}/members/".$offer->members()->value('id'))->assertOk();
 
@@ -77,7 +77,7 @@ class SecurityTest extends TestCase
         $this->assertTrue($sub->ends_at->lte(now()->addMonth()));
         $this->travel(2)->months();
         app(EarningService::class)->release();
-        $this->assertSame(2052, $this->host->fresh()->balance);
+        $this->assertSame(2166, $this->host->fresh()->balance);
     }
 
     public function test_dispute_freezes_host_earnings_until_solved_or_refunded(): void
@@ -115,7 +115,7 @@ class SecurityTest extends TestCase
         $this->assertSame(0, $this->host->fresh()->balance);
         $this->travel(24)->hours();
         app(EarningService::class)->release();
-        $this->assertSame(2160, $this->host->fresh()->balance);
+        $this->assertSame(2280, $this->host->fresh()->balance);
 
         // Hôte fiable : en ligne depuis 3 mois, 3 mois déjà versés, aucun souci.
         $trusted = User::factory()->create();
@@ -132,7 +132,7 @@ class SecurityTest extends TestCase
         $this->assertTrue($this->actingAs($trusted)->getJson('/api/v1/host')->json('data.trusted'));
         $this->travel(25)->hours();
         app(EarningService::class)->release();
-        $this->assertSame(2160, $trusted->fresh()->balance);
+        $this->assertSame(2280, $trusted->fresh()->balance);
     }
 
     public function test_host_history_shows_earnings_once_paid_out_and_admin_sees_the_split(): void
@@ -144,13 +144,13 @@ class SecurityTest extends TestCase
         $this->actingAs($this->host)->getJson('/api/v1/payments')->assertJsonCount(0, 'data');
         $this->travel(49)->hours();
         app(EarningService::class)->release();
-        $this->getJson('/api/v1/payments')->assertJsonCount(1, 'data')->assertJsonPath('data.0.amount', 2052);
+        $this->getJson('/api/v1/payments')->assertJsonCount(1, 'data')->assertJsonPath('data.0.amount', 2166);
 
         $admin = Admin::create(['name' => 'A', 'email' => 'a@sub.ci', 'password' => 'un-mot-de-passe-long']);
         $this->app['auth']->forgetGuards();
         $split = $this->withToken($admin->createToken('admin', ['admin'])->plainTextToken)
             ->getJson("/api/v1/admin/payments/{$payment->id}")->assertOk()->json('data.split');
-        $this->assertSame(684, $split['commission']);       // 6 840 − 3 × 2 052
+        $this->assertSame(342, $split['commission']);       // 6 840 − 3 × 2 166
         $this->assertCount(3, $split['installments']);
         $this->assertSame(['succeeded', 'pending', 'pending'], array_column($split['installments'], 'status'));
     }
@@ -164,7 +164,7 @@ class SecurityTest extends TestCase
 
         $this->travel(4)->days();
         app(EarningService::class)->release();
-        $this->assertSame(2160, $this->host->fresh()->balance);
+        $this->assertSame(2280, $this->host->fresh()->balance);
     }
 
     public function test_removed_member_cannot_renew_without_a_host(): void

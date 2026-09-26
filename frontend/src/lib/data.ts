@@ -98,7 +98,7 @@ const FALLBACK: Service[] = [
   {
     id: 'deezer', mono: 'DZ', name: 'Deezer Famille', color: '#A238FF', fg: '#fff', category: 'music',
     meta: 'Sans pub · hors ligne', description: 'Ton compte Deezer Premium perso dans un groupe famille. Sans pub, écoute hors ligne.',
-    price: 900, fullPrice: 4500, seats: 6, free: 0, groupFree: 0, activation: 30, popular: false, offers: 1, chooseOffer: false,
+    price: 1000, fullPrice: 4500, seats: 6, free: 0, groupFree: 0, activation: 30, popular: false, offers: 1, chooseOffer: false,
   },
   {
     id: 'spotify-duo', mono: 'S', name: 'Spotify Duo', color: '#1DB954', fg: '#0B0B0B', category: 'music',
@@ -195,7 +195,7 @@ export function getMethod(id: PayMethodId) {
   return PAY_METHODS.find((m) => m.id === id) ?? PAY_METHODS[0]
 }
 
-export const HOST_FEE = 0.1
+export const HOST_FEE = 0.05
 
 /** Formules partageables côté hôte */
 export const HOST_PLANS: Record<string, { label: string; maxShare: number; own: number; reco: [number, number]; mode: 'credentials' | 'family' }> = {

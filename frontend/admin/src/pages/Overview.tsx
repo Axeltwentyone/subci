@@ -33,7 +33,7 @@ export function Overview() {
           unit="FCFA"
           current={kpis.commission.value}
           previous={kpis.commission.previous}
-          hint={kpis.fees ? `10 % + ${fcfa(kpis.fees.value)} F de frais de service` : '10 % des paiements reversés'}
+          hint={kpis.fees ? `Commission + ${fcfa(kpis.fees.value)} F de frais de service` : 'Commission sur les paiements reversés'}
         />
         <Stat label="Membres actifs" value={fcfa(kpis.members.value)} hint="avec un abonnement en cours" />
         <Stat label="Hôtes actifs" value={fcfa(kpis.hosts.value)} hint="au moins une offre en ligne" />

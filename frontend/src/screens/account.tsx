@@ -190,7 +190,7 @@ export function Profile() {
 
   const share = async () => {
     const url = `${location.origin}/?ref=${encodeURIComponent(code)}`
-    const text = `Rejoins-moi sur Sub.ci : tes abonnements (Netflix, Spotify…) à prix partagé, en mobile money. Avec mon code ${code}, tes frais de service sont offerts.`
+    const text = `Rejoins-moi sur Sub.ci : tes abonnements (Netflix, Spotify…) à prix partagé, en mobile money. Avec mon code ${code}, on est parrainés ensemble.`
     try {
       if (navigator.share) await navigator.share({ title: 'Sub.ci', text, url })
       else {
@@ -399,12 +399,12 @@ function Stat({ value, label, hint, onClick }: { value: string; label: string; h
   )
 }
 
-/** Parrainage : l'ami ne paie pas les frais, le parrain gagne du crédit à son 1er « oui » d'un hôte. */
+/** Parrainage : le parrain gagne du crédit quand son ami paie une 2e fois (renouvellement ou 2e abonnement). */
 function ReferralCard({ code, onShare }: { code: string; onShare: () => void }) {
   const { state, actions } = useStore()
   const toast = useToast()
   const r = state.referral
-  const reward = r?.reward ?? 500
+  const reward = r?.reward ?? 300
   const [friend, setFriend] = useState('')
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -414,7 +414,7 @@ function ReferralCard({ code, onShare }: { code: string; onShare: () => void }) 
       <div className="flex flex-col gap-1">
         <span className="font-display text-xl leading-[1.15] font-bold">Invite un ami, gagne {fcfa(reward)} FCFA</span>
         <span className="text-[13px] leading-snug font-semibold text-ink/75">
-          Ton ami ne paie pas les frais de service. Toi, tu reçois {fcfa(reward)} F de crédit dès qu’un hôte l’accepte, déduits de ton prochain paiement.
+          Quand ton ami paie une 2e fois sur Sub.ci (un renouvellement, par exemple), tu reçois {fcfa(reward)} F de crédit, déduits de ton prochain paiement.
         </span>
       </div>
       <div className="flex gap-2">
@@ -447,7 +447,7 @@ function ReferralCard({ code, onShare }: { code: string; onShare: () => void }) 
               setBusy(true)
               try {
                 await actions.applyReferral(friend)
-                toast({ tone: 'success', text: 'Code appliqué : tes frais de service sont offerts' })
+                toast({ tone: 'success', text: 'Code appliqué : merci, ton ami sera récompensé' })
                 setOpen(false)
               } catch (err) {
                 toast({ tone: 'error', text: errorMessage(err) })

@@ -312,13 +312,16 @@ function HostDashboard() {
             {state.held > 0 && <span className="text-warn">{fcfa(state.held)} FCFA en pause : un membre a signalé un souci.</span>}
           </div>
         )}
+        {state.balance > 0 && state.balance < state.withdrawal.min && (
+          <span className="text-[13px] font-semibold text-ink-muted">Retrait possible dès {fcfa(state.withdrawal.min)} FCFA de solde.</span>
+        )}
         {state.withdrawLockedUntil && state.withdrawLockedUntil > Date.now() && (
           <span className="text-[13px] font-semibold text-warn">Numéro de retrait modifié : retraits possibles à partir du {shortDate(state.withdrawLockedUntil)}.</span>
         )}
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            disabled={state.balance === 0 || (state.withdrawLockedUntil ?? 0) > Date.now()}
+            disabled={state.balance < state.withdrawal.min || (state.withdrawLockedUntil ?? 0) > Date.now()}
             onClick={() => setWithdraw(true)}
             className="pressable h-11 rounded-[14px] bg-brand text-[15px] font-bold text-on-accent disabled:bg-ink-3 disabled:text-ink-muted"
           >
@@ -440,7 +443,9 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
     if (open) setAmount(state.balance)
   }, [open, state.balance])
 
-  const chips = [5000, 10000].filter((v) => v < state.balance)
+  const chips = [5000, 10000].filter((v) => v < state.balance && v >= state.withdrawal.min)
+  const { min, feeFixed, feePercent } = state.withdrawal
+  const fee = Math.ceil(feeFixed + (amount * feePercent) / 100)
   const [change, setChange] = useState(false)
 
   if (change) return <PayoutSheet open={open} onClose={() => (setChange(false), onClose())} onDone={() => setChange(false)} />
@@ -473,20 +478,27 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
             Changer
           </button>
         </div>
-        <div className="flex justify-between text-sm font-semibold text-muted">
-          <span>Frais de retrait : 0 FCFA</span>
-          <span>Reçu sous 48 h</span>
+        <div className="flex flex-col gap-1.5 rounded-btn border border-line p-3.5 text-sm font-semibold">
+          <div className="flex justify-between text-muted">
+            <span>Frais d’envoi ({feePercent} %{feeFixed ? ` + ${fcfa(feeFixed)} F` : ''})</span>
+            <span>−{fcfa(fee)} FCFA</span>
+          </div>
+          <div className="flex justify-between font-bold">
+            <span>Tu reçois</span>
+            <span>{fcfa(Math.max(0, amount - fee))} FCFA</span>
+          </div>
+          <span className="text-[12px] text-muted">Reçu sous 48 h · retrait minimum {fcfa(min)} FCFA</span>
         </div>
         <Button
           loading={loading}
-          disabled={amount <= 0}
+          disabled={amount < min}
           onClick={async () => {
             setLoading(true)
             try {
               const instant = await actions.withdraw(amount)
               onClose()
               haptic(20)
-              toast({ tone: 'ink', text: instant ? `Retrait de ${fcfa(amount)} FCFA envoyé` : `Retrait de ${fcfa(amount)} FCFA demandé · reçu sous 48 h` })
+              toast({ tone: 'ink', text: instant ? `${fcfa(amount - fee)} FCFA envoyés` : `${fcfa(amount - fee)} FCFA demandés · reçus sous 48 h` })
             } catch (e) {
               toast({ tone: 'error', text: errorMessage(e) })
             } finally {

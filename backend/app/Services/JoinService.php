@@ -87,8 +87,8 @@ class JoinService
 
             // Séquestre : versé à l'hôte mois par mois (voir EarningService).
             $this->earnings->schedule($offer, $payment, $member, $from);
-            // Premier « oui » d'un hôte pour un filleul : son parrain est récompensé.
-            $this->referrals->reward($member);
+            // Filleul accepté pour un 2e abonnement payé : son parrain est récompensé.
+            $this->referrals->rewardIfLoyal($member);
 
             $short = Str::before($offer->service->name, ' ');
             $host = $offer->user->shortName();

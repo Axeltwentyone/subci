@@ -19,6 +19,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /** Vue d'ensemble : argent, activité, ce qui attend une action. */
 class OverviewController extends Controller
@@ -32,18 +33,16 @@ class OverviewController extends Controller
         $collected = fn ($from, $to) => (int) Payment::where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)
             ->whereNull('refunded_at')->whereBetween('confirmed_at', [$from, $to])->sum('amount');
         // Gains engagés (versés ou en séquestre), hors gains annulés par un remboursement.
-        $earnings = fn ($from, $to) => (int) Payment::where('type', PaymentType::Earning)->whereIn('status', [PaymentStatus::Succeeded, PaymentStatus::Pending])
-            ->whereBetween('created_at', [$from, $to])->sum('amount');
-        // Commission = part gardée sur les paiements reversés aux hôtes (gain = montant × 90 %).
-        $commission = fn (int $earned) => (int) round($earned / (1 - HostOffer::FEE) * HostOffer::FEE);
+        $earningRows = fn ($from, $to) => Payment::where('type', PaymentType::Earning)->whereIn('status', [PaymentStatus::Succeeded, PaymentStatus::Pending])
+            ->whereBetween('created_at', [$from, $to]);
+        // Commission réellement gardée sur chaque gain (brut − versé à l'hôte), quel que soit le taux du moment.
+        $commissionOf = fn ($from, $to) => (int) $earningRows($from, $to)->sum(DB::raw('COALESCE(gross, amount) - amount'));
         // Frais de service payés par les membres (paiements aboutis, non remboursés).
         $fees = fn ($from, $to) => (int) Payment::where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)
             ->whereNull('refunded_at')->whereBetween('confirmed_at', [$from, $to])->sum('service_fee');
 
         $gmv = $collected($month, $now);
         $gmvPrev = $collected($prev, $prev->endOfMonth());
-        $earned = $earnings($month, $now);
-        $earnedPrev = $earnings($prev, $prev->endOfMonth());
 
         $days = collect(range(29, 0))->map(fn ($d) => $now->subDays($d)->toDateString());
         $gmvByDay = Payment::where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)->whereNull('refunded_at')
@@ -57,8 +56,8 @@ class OverviewController extends Controller
         return response()->json([
             'kpis' => [
                 'gmv' => ['value' => $gmv, 'previous' => $gmvPrev],
-                // Revenu Sub.ci = 10 % des gains des hôtes + frais de service.
-                'commission' => ['value' => $commission($earned) + $fees($month, $now), 'previous' => $commission($earnedPrev) + $fees($prev, $prev->endOfMonth())],
+                // Revenu Sub.ci = commission sur les gains des hôtes + frais de service.
+                'commission' => ['value' => $commissionOf($month, $now) + $fees($month, $now), 'previous' => $commissionOf($prev, $prev->endOfMonth()) + $fees($prev, $prev->endOfMonth())],
                 'fees' => ['value' => $fees($month, $now), 'previous' => $fees($prev, $prev->endOfMonth())],
                 'members' => ['value' => Subscription::where('status', '!=', SubscriptionStatus::Expired)->distinct('user_id')->count('user_id')],
                 'hosts' => ['value' => HostOffer::where('status', OfferStatus::Live)->distinct('user_id')->count('user_id')],
