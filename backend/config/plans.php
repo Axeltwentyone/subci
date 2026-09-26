@@ -18,7 +18,8 @@ $apple = ['invite' => 'email'];
 return [
     'netflix' => [
         'standard' => ['label' => 'Standard · 2 écrans', 'max' => 1, 'quality' => 'HD', 'devices' => $all, 'mode' => 'credentials', 'own' => 5500, 'reco' => [2000, 2800]],
-        'premium' => ['label' => 'Premium · 4 écrans', 'max' => 3, 'quality' => '4K', 'devices' => $all, 'mode' => 'credentials', 'own' => 8000, 'reco' => [2000, 2700]],
+        // 5 profils : l'hôte garde le sien, 4 à partager (4 écrans en même temps).
+        'premium' => ['label' => 'Premium · 4 écrans', 'max' => 4, 'quality' => '4K', 'devices' => $all, 'mode' => 'credentials', 'own' => 8000, 'reco' => [2000, 2700]],
     ],
     'spotify' => [
         'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]] + $spotify,

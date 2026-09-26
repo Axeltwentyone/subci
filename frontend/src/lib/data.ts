@@ -189,7 +189,7 @@ export const HOST_FEE = 0.1
 
 /** Formules partageables côté hôte */
 export const HOST_PLANS: Record<string, { label: string; maxShare: number; own: number; reco: [number, number]; mode: 'credentials' | 'family' }> = {
-  netflix: { label: 'Premium · 4 écrans', maxShare: 3, own: 8000, reco: [2000, 2700], mode: 'credentials' },
+  netflix: { label: 'Premium · 4 écrans', maxShare: 4, own: 8000, reco: [2000, 2700], mode: 'credentials' },
   spotify: { label: 'Famille · 6 comptes', maxShare: 5, own: 5500, reco: [1200, 1600], mode: 'family' },
   youtube: { label: 'Famille · 6 comptes', maxShare: 5, own: 5200, reco: [1400, 1900], mode: 'family' },
   other: { label: 'À préciser', maxShare: 4, own: 6000, reco: [1500, 2500], mode: 'credentials' },
