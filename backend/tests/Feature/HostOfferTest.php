@@ -46,8 +46,8 @@ class HostOfferTest extends TestCase
 
         $this->patchJson($url, ['seats' => 1])->assertStatus(422)
             ->assertJsonPath('errors.seats.0', 'Tu as 2 membres ou demandes : impossible de descendre en dessous.');
-        // Netflix Premium : 5 profils, l'hôte garde le sien → 4 places au plus.
-        $this->patchJson($url, ['seats' => 5])->assertStatus(422);
+        // Netflix Premium : 5 profils → 5 places au plus.
+        $this->patchJson($url, ['seats' => 6])->assertStatus(422);
 
         $this->patchJson($url, ['price' => 2200, 'seats' => 2])->assertOk()
             ->assertJsonPath('data.price', 2200)->assertJsonPath('data.seats', 2);

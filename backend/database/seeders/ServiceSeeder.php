@@ -13,6 +13,7 @@ class ServiceSeeder extends Seeder
         $services = [
             ['netflix', 'N', 'Netflix', '#E50914', '#FFFFFF', 'streaming', 'Standard ou Premium 4K', 'Ton propre profil, sans pub. Choisis l’offre selon tes écrans : téléphone, ordinateur ou TV.', 2500, 8000, 5, 1, 15, false],
             ['spotify', 'S', 'Spotify Famille', '#1DB954', '#0B0B0B', 'music', 'Sans pub · hors ligne', 'Ton compte Spotify Premium perso dans un groupe famille. Sans pub, écoute hors ligne.', 1500, 5500, 6, 2, 30, true],
+            ['deezer', 'DZ', 'Deezer Famille', '#A238FF', '#FFFFFF', 'music', 'Sans pub · hors ligne', 'Ton compte Deezer Premium perso dans un groupe famille. Sans pub, écoute hors ligne.', 900, 4500, 6, 0, 30, false],
             ['apple-music', 'AM', 'Apple Music', '#FA243C', '#FFFFFF', 'music', 'Famille · sans pub', 'Ton compte Apple Music perso dans un groupe famille : tout le catalogue, sans pub, écoute hors ligne.', 1500, 5500, 6, 3, 30, true],
             ['youtube', 'Y', 'YouTube Premium', '#FF0033', '#FFFFFF', 'streaming', 'Sans pub · Music inclus', 'YouTube sans pub, lecture en arrière-plan et YouTube Music inclus.', 1800, 5200, 6, 0, 30, false],
             ['canal', 'C+', 'Canal+ Évasion', '#16130F', '#FFFFFF', 'streaming', 'Chaînes + replay', 'Les chaînes Canal+ Évasion en direct et en replay sur myCANAL.', 3000, 7500, 3, 1, 20, false],

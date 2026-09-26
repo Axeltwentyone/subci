@@ -424,6 +424,7 @@ const OFFER_STATUS: Record<HostOffer['status'], { label: string; tone: 'active' 
 const INVITE_HELP: Record<string, string> = {
   spotify: 'Spotify : spotify.com → ton compte → Premium Famille → Inviter → Copier le lien',
   'spotify-duo': 'Spotify : spotify.com → ton compte → Premium Duo → Inviter → Copier le lien',
+  deezer: 'Deezer : deezer.com → Mon compte → Gérer ma famille → Inviter → Copier le lien',
   youtube: 'YouTube : ta photo → Achats et abonnements → Premium Famille → Modifier → Inviter → Copier le lien',
 }
 

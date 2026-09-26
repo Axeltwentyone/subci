@@ -14,15 +14,19 @@ $all = ['phone', 'tablet', 'computer', 'tv'];
 $spotify = ['invite' => 'link', 'invite_hosts' => ['spotify.com', 'spotify.link']];
 $google = ['invite' => 'link', 'invite_hosts' => ['families.google.com', 'youtube.com', 'google.com', 'g.co']];
 $apple = ['invite' => 'email'];
+$deezer = ['invite' => 'link', 'invite_hosts' => ['deezer.com', 'deezer.page.link', 'link.deezer.com']];
 
 return [
     'netflix' => [
         'standard' => ['label' => 'Standard · 2 écrans', 'max' => 1, 'quality' => 'HD', 'devices' => $all, 'mode' => 'credentials', 'own' => 5500, 'reco' => [2000, 2800]],
-        // 5 profils : l'hôte garde le sien, 4 à partager (4 écrans en même temps).
-        'premium' => ['label' => 'Premium · 4 écrans', 'max' => 4, 'quality' => '4K', 'devices' => $all, 'mode' => 'credentials', 'own' => 8000, 'reco' => [2000, 2700]],
+        // 5 profils, tous partageables (4 écrans en même temps).
+        'premium' => ['label' => 'Premium · 4 écrans', 'max' => 5, 'quality' => '4K', 'devices' => $all, 'mode' => 'credentials', 'own' => 8000, 'reco' => [2000, 2700]],
     ],
     'spotify' => [
         'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]] + $spotify,
+    ],
+    'deezer' => [
+        'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 4500, 'reco' => [900, 1200]] + $deezer,
     ],
     'apple-music' => [
         'famille' => ['label' => 'Famille · 6 comptes', 'max' => 5, 'quality' => null, 'devices' => $all, 'mode' => 'family', 'own' => 5500, 'reco' => [1200, 1600]] + $apple,

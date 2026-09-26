@@ -83,7 +83,7 @@ const FALLBACK: Service[] = [
   {
     id: 'netflix', mono: 'N', name: 'Netflix', color: '#E50914', fg: '#fff', category: 'streaming',
     meta: 'Standard ou Premium 4K', description: 'Ton propre profil, sans pub. Choisis l’offre selon tes écrans : téléphone, ordinateur ou TV.',
-    price: 2500, fullPrice: 8000, seats: 4, free: 1, groupFree: 1, activation: 15, popular: false, offers: 1, chooseOffer: true,
+    price: 2500, fullPrice: 8000, seats: 5, free: 1, groupFree: 1, activation: 15, popular: false, offers: 1, chooseOffer: true,
   },
   {
     id: 'spotify', mono: 'S', name: 'Spotify Famille', color: '#1DB954', fg: '#0B0B0B', category: 'music',
@@ -94,6 +94,11 @@ const FALLBACK: Service[] = [
     id: 'apple-music', mono: 'AM', name: 'Apple Music', color: '#FA243C', fg: '#fff', category: 'music',
     meta: 'Famille · sans pub', description: 'Ton compte Apple Music perso dans un groupe famille : tout le catalogue, sans pub, écoute hors ligne.',
     price: 1500, fullPrice: 5500, seats: 6, free: 3, groupFree: 3, activation: 30, popular: true, offers: 1, chooseOffer: false,
+  },
+  {
+    id: 'deezer', mono: 'DZ', name: 'Deezer Famille', color: '#A238FF', fg: '#fff', category: 'music',
+    meta: 'Sans pub · hors ligne', description: 'Ton compte Deezer Premium perso dans un groupe famille. Sans pub, écoute hors ligne.',
+    price: 900, fullPrice: 4500, seats: 6, free: 0, groupFree: 0, activation: 30, popular: false, offers: 1, chooseOffer: false,
   },
   {
     id: 'spotify-duo', mono: 'S', name: 'Spotify Duo', color: '#1DB954', fg: '#0B0B0B', category: 'music',
@@ -137,7 +142,7 @@ const FALLBACK: Service[] = [
   },
 ]
 
-const ORDER = ['netflix', 'spotify', 'apple-music', 'youtube', 'canal', 'prime', 'chatgpt', 'disney', 'crunchyroll', 'spotify-duo', 'canal-sport']
+const ORDER = ['netflix', 'spotify', 'apple-music', 'youtube', 'canal', 'prime', 'chatgpt', 'disney', 'crunchyroll', 'deezer', 'spotify-duo', 'canal-sport']
 
 export let SERVICES: Service[] = [...FALLBACK].sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id))
 
@@ -194,7 +199,7 @@ export const HOST_FEE = 0.1
 
 /** Formules partageables côté hôte */
 export const HOST_PLANS: Record<string, { label: string; maxShare: number; own: number; reco: [number, number]; mode: 'credentials' | 'family' }> = {
-  netflix: { label: 'Premium · 4 écrans', maxShare: 4, own: 8000, reco: [2000, 2700], mode: 'credentials' },
+  netflix: { label: 'Premium · 4 écrans', maxShare: 5, own: 8000, reco: [2000, 2700], mode: 'credentials' },
   spotify: { label: 'Famille · 6 comptes', maxShare: 5, own: 5500, reco: [1200, 1600], mode: 'family' },
   youtube: { label: 'Famille · 6 comptes', maxShare: 5, own: 5200, reco: [1400, 1900], mode: 'family' },
   other: { label: 'À préciser', maxShare: 4, own: 6000, reco: [1500, 2500], mode: 'credentials' },
