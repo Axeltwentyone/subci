@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react'
 import { DEVICES, type Device, type Service } from '../lib/data'
 import { fcfa } from '../lib/format'
 import { INK, SAND, useTopColor } from '../lib/hooks'
+import { LOGOS, type Logo } from '../lib/logos'
 import { useBack } from '../lib/nav'
 import type { SubStatus } from '../lib/store'
 import { IconChevronLeft, IconLaptop, IconPhone, IconTablet, IconTv } from './icons'
@@ -91,8 +92,28 @@ export function Wordmark({ className, dark }: { className?: string; dark?: boole
 
 /* ---------- Service logo ---------- */
 
-export function ServiceLogo({ service, size = 44, radius, className }: { service: Pick<Service, 'mono' | 'color' | 'fg'>; size?: number; radius?: number; className?: string }) {
+/** Vrai logo quand on l'a (lib/logos), sinon pastille à lettres. */
+function BrandLogo({ logo, size, radius, label }: { logo: Logo; size: number; radius: number; label?: string }) {
+  const light = logo.bg.toUpperCase() === '#FFFFFF'
+  return (
+    <span
+      className="grid shrink-0 place-items-center overflow-hidden"
+      style={{ width: size, height: size, borderRadius: radius, background: logo.bg, boxShadow: light ? 'inset 0 0 0 1px rgba(22,19,15,.1)' : undefined }}
+      aria-hidden={!label}
+      aria-label={label}
+      role={label ? 'img' : undefined}
+    >
+      <svg viewBox="0 0 24 24" width={size * logo.scale} height={size * logo.scale} fill={logo.fg} aria-hidden>
+        <path d={logo.path} />
+      </svg>
+    </span>
+  )
+}
+
+export function ServiceLogo({ service, size = 44, radius, className }: { service: Pick<Service, 'mono' | 'color' | 'fg'> & { id?: string }; size?: number; radius?: number; className?: string }) {
   const r = radius ?? (size >= 64 ? size * 0.28 : size >= 52 ? 14 : 12)
+  const logo = service.id ? LOGOS[service.id] : undefined
+  if (logo) return <span className={cx('shrink-0', className)}><BrandLogo logo={logo} size={size} radius={r} /></span>
   const fs = service.mono.length > 1 ? size * 0.36 : size * 0.45
   return (
     <span
@@ -105,7 +126,9 @@ export function ServiceLogo({ service, size = 44, radius, className }: { service
   )
 }
 
-export function MethodLogo({ method, size = 40 }: { method: { mono: string; color: string; fg: string }; size?: number }) {
+export function MethodLogo({ method, size = 40 }: { method: { mono: string; color: string; fg: string; id?: string }; size?: number }) {
+  const logo = method.id ? LOGOS[method.id] : undefined
+  if (logo) return <BrandLogo logo={logo} size={size} radius={12} />
   return (
     <span
       className="grid shrink-0 place-items-center rounded-tile font-sans font-extrabold"

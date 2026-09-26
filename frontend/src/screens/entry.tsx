@@ -3,7 +3,8 @@ import { Link, Navigate, useNavigate } from 'react-router'
 import { OtpInput, PhoneInput } from '../components/inputs'
 import { NameForm } from '../components/NameForm'
 import { useToast } from '../components/Toast'
-import { Button, Screen, Wordmark, cx } from '../components/ui'
+import { Button, MethodLogo, Screen, ServiceLogo, Wordmark, cx } from '../components/ui'
+import { getService } from '../lib/data'
 import { useCountdown, mmss } from '../lib/hooks'
 import { REF_KEY, errorMessage, takeNext, useStore } from '../lib/store'
 
@@ -21,12 +22,12 @@ function SlideVisual({ i }: { i: number }) {
       {i === 0 && (
         <>
           <div className="absolute top-12 left-[34px] flex w-[150px] -rotate-6 flex-col gap-2.5 rounded-card bg-surface p-3.5">
-            <span className="grid size-10 place-items-center rounded-tile bg-[#E50914] font-display text-xl font-extrabold text-white">N</span>
+            <ServiceLogo service={getService('netflix')!} size={40} />
             <span className="text-sm font-bold">Netflix Premium</span>
             <span className="font-display text-base font-extrabold">2 500 <span className="font-sans text-[11px] font-semibold text-muted">FCFA</span></span>
           </div>
           <div className="absolute top-[120px] right-[30px] flex w-[150px] rotate-[5deg] flex-col gap-2.5 rounded-card bg-brand p-3.5 text-on-accent">
-            <span className="grid size-10 place-items-center rounded-tile bg-[#1DB954] font-display text-xl font-extrabold text-[#0B0B0B]">S</span>
+            <ServiceLogo service={getService('spotify')!} size={40} />
             <span className="text-sm font-bold">Spotify Famille</span>
             <span className="font-display text-base font-extrabold">1 500 <span className="font-sans text-[11px] font-semibold">FCFA</span></span>
           </div>
@@ -45,12 +46,12 @@ function SlideVisual({ i }: { i: number }) {
         <>
           <div className="absolute top-10 left-1/2 flex w-[230px] -translate-x-1/2 flex-col gap-3 rounded-card bg-surface p-4">
             {[
-              { m: 'OM', c: '#FF7900', f: '#fff', n: 'Orange Money', on: true },
-              { m: 'W', c: '#1DC8F2', f: '#0B0B0B', n: 'Wave' },
-              { m: 'MTN', c: '#FFCC00', f: '#0B0B0B', n: 'MTN MoMo' },
+              { id: 'om', m: 'OM', c: '#FF7900', f: '#fff', n: 'Orange Money', on: true },
+              { id: 'wave', m: 'W', c: '#1DC8F2', f: '#0B0B0B', n: 'Wave' },
+              { id: 'mtn', m: 'MTN', c: '#FFCC00', f: '#0B0B0B', n: 'MTN MoMo' },
             ].map((x) => (
               <div key={x.n} className="flex items-center gap-2.5">
-                <span className="grid size-9 place-items-center rounded-[10px] text-[12px] font-extrabold" style={{ background: x.c, color: x.f }}>{x.m}</span>
+                <MethodLogo method={{ id: x.id, mono: x.m, color: x.c, fg: x.f }} size={36} />
                 <span className="flex-1 text-sm font-bold">{x.n}</span>
                 <span className={cx('size-5 rounded-full', x.on ? 'border-[6px] border-brand' : 'border-2 border-radio')} />
               </div>
