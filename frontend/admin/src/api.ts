@@ -65,6 +65,7 @@ export type WhatsAppState = {
   wabaConfigured: boolean
   template: string
   language: string
+  account: { name?: string; account_review_status?: string; business_verification_status?: string; currency?: string; error?: string } | null
   status: { templates?: { name: string; language: string; status: string; category: string; rejected_reason?: string }[]; error?: string; code?: number } | null
 }
 

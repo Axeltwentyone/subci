@@ -175,6 +175,17 @@ function WhatsAppPanel() {
               )}
             </span>
             {state.status?.error && <span className="text-err-ink">Meta : {state.status.error} (#{state.status.code})</span>}
+            {state.account && !state.account.error && (
+              <span className="flex flex-col gap-0.5 text-[13px] text-muted">
+                <span>
+                  Examen du compte : <b className={state.account.account_review_status === 'APPROVED' ? 'text-ok-ink' : 'text-warn-ink'}>{state.account.account_review_status ?? '?'}</b>
+                </span>
+                <span>
+                  Vérification de l’entreprise : <b className={state.account.business_verification_status === 'verified' ? 'text-ok-ink' : 'text-warn-ink'}>{state.account.business_verification_status ?? '?'}</b>
+                </span>
+                {state.account.currency && <span>Devise du compte : {state.account.currency}</span>}
+              </span>
+            )}
             {!tpl && (
               <Button
                 variant="ink"

@@ -63,6 +63,16 @@ class WhatsAppOtp
         return ['templates' => collect($response->json('data', []))->where('name', $c['otp_template'])->values()->all()];
     }
 
+    /** Statut du compte WhatsApp chez Meta (examen du compte, vérification de l'entreprise). */
+    public function accountStatus(): array
+    {
+        $response = $this->graph()->get(config('services.whatsapp.waba_id'), ['fields' => 'name,account_review_status,business_verification_status,currency,timezone_id']);
+
+        return $response->successful()
+            ? $response->json()
+            : ['error' => $response->json('error.message'), 'code' => $response->json('error.code')];
+    }
+
     /** Crée le modèle « Authentification » avec bouton « Copier le code » (10 min). */
     public function createTemplate(): array
     {

@@ -21,6 +21,7 @@ class WhatsAppController extends Controller
             'template' => config('services.whatsapp.otp_template'),
             'language' => config('services.whatsapp.language'),
             'status' => $configured && $waba ? $whatsapp->templateStatus() : null,
+            'account' => $configured && $waba ? $whatsapp->accountStatus() : null,
         ]);
     }
 
