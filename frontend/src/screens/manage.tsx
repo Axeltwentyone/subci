@@ -11,7 +11,7 @@ import type { IssueReason } from '../lib/api'
 import { getMethod, getService, type PayMethodId } from '../lib/data'
 import { shareOffer } from '../lib/share'
 import { supportWhatsApp } from '../lib/support'
-import { daysLeft, fcfa, haptic, maskPhone, shortDate, timeLeft } from '../lib/format'
+import { dayAndTime, daysLeft, fcfa, haptic, maskPhone, shortDate, timeLeft } from '../lib/format'
 import { usePushState } from '../lib/push'
 import { byUrgency, errorMessage, hostNet, subStatus, useSavings, useStore, type HostOffer, type JoinRequest, type UserSub } from '../lib/store'
 import { NotFound } from './discover'
@@ -306,7 +306,7 @@ function HostDashboard() {
           <div className="flex flex-col gap-0.5 rounded-[14px] bg-ink-3 px-3.5 py-2.5 text-[13px] font-semibold text-ink-muted">
             <span>
               <b className="text-sand">+{fcfa(state.pending)} FCFA à venir</b>
-              {state.nextRelease && <> · prochain versement le {shortDate(state.nextRelease)}</>}
+              {state.nextRelease && <> · prochain versement {state.nextRelease <= Date.now() ? 'dans quelques minutes' : dayAndTime(state.nextRelease)}</>}
             </span>
             <span>Chaque mois payé par un membre arrive dans ton solde {state.holdHours} h après son début.</span>
             {state.held > 0 && <span className="text-warn">{fcfa(state.held)} FCFA en pause : un membre a signalé un souci.</span>}

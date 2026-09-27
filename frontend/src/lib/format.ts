@@ -32,6 +32,15 @@ export function clock(ts: number): string {
   return hm.format(ts)
 }
 
+/** « aujourd'hui à 13:16 », « demain à 09:05 », « le 29 sept. à 18:40 » */
+export function dayAndTime(ts: number, now = Date.now()): string {
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  const diff = Math.floor((ts - start.getTime()) / DAY)
+  const day = diff === 0 ? 'aujourd’hui' : diff === 1 ? 'demain' : `le ${shortDate(ts)}`
+  return `${day} à ${clock(ts)}`
+}
+
 export function daysLeft(ts: number, now = Date.now()): number {
   return Math.ceil((ts - now) / DAY)
 }
