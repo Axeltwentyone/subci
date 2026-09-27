@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router'
 import { PullToRefresh } from '../components/gestures'
 import { IconBell, IconSearch } from '../components/icons'
 import { InstallBanner, InstallSheet, NotifSheet, canAskNotifications, shouldOfferInstall } from '../components/pwa'
-import { Badge, Card, Progress, ServiceLogo, Skeleton, StatusBadge, cx } from '../components/ui'
-import { CATEGORIES, availLabel, getService, popularServices } from '../lib/data'
-import { daysLeft, dayName, fcfa, greeting, shortDate, todayLabel } from '../lib/format'
+import { Badge, Card, Progress, ServiceLogo, Skeleton, Spinner, StatusBadge, cx } from '../components/ui'
+import { useToast } from '../components/Toast'
+import { CATEGORIES, availLabel, getMethod, getService, popularServices } from '../lib/data'
+import { daysLeft, dayName, fcfa, greeting, maskPhone, shortDate, todayLabel } from '../lib/format'
 import { isStandalone, useInstall } from '../lib/hooks'
-import { subStatus, useActiveSubs, useStore, useUnread, type UserSub } from '../lib/store'
+import { errorMessage, subStatus, useActiveSubs, useStore, useUnread, type Payment, type UserSub } from '../lib/store'
 
 let promptsShownThisSession = false
 
@@ -72,6 +73,11 @@ export function Home() {
             </Link>
           </header>
           <InstallBanner onOpen={() => setSheet('install')} />
+          {state.payments
+            .filter((p) => p.refundChoice === 'pending')
+            .map((p) => (
+              <RefundChoice key={p.ref} payment={p} />
+            ))}
 
           <div className="grid gap-[22px] md:grid-cols-[1.3fr_1fr] md:gap-4 desk:grid-cols-1">
             <FocusCard sub={focus} onGo={navigate} />
@@ -149,6 +155,64 @@ export function Home() {
       />
       <NotifSheet open={sheet === 'notif'} onClose={() => setSheet(null)} />
     </PullToRefresh>
+  )
+}
+
+/** Demande refusée / sans réponse : le membre choisit crédit Sub.ci (immédiat) ou argent (sous 48 h). */
+function RefundChoice({ payment }: { payment: Payment }) {
+  const { actions } = useStore()
+  const toast = useToast()
+  const navigate = useNavigate()
+  const [busy, setBusy] = useState<'credit' | 'cash' | null>(null)
+  const m = getMethod(payment.method)
+
+  const choose = async (choice: 'credit' | 'cash') => {
+    setBusy(choice)
+    try {
+      await actions.chooseRefund(payment.ref, choice)
+      if (choice === 'credit') {
+        toast({ tone: 'success', text: `${fcfa(payment.amount)} FCFA de crédit disponibles` })
+        navigate('/explore')
+      } else {
+        toast({ tone: 'ink', text: `${fcfa(payment.amount)} FCFA renvoyés sur ton ${m.name} sous 48 h` })
+      }
+    } catch (e) {
+      toast({ tone: 'error', text: errorMessage(e) })
+      setBusy(null)
+    }
+  }
+
+  return (
+    <Card className="flex flex-col gap-3.5 p-4">
+      <div className="flex flex-col gap-1">
+        <span className="text-[15px] font-bold">{fcfa(payment.amount)} FCFA te reviennent</span>
+        <span className="text-[13px] leading-snug font-semibold text-muted">{payment.label.replace(/^Remboursement /, '')} · l’hôte n’a pas pu t’accepter. Comment veux-tu les récupérer ?</span>
+      </div>
+      <button
+        type="button"
+        disabled={busy !== null}
+        onClick={() => choose('credit')}
+        className="pressable flex items-center gap-3 rounded-btn border-[1.5px] border-ok bg-ok-soft p-3.5 text-left disabled:opacity-60"
+      >
+        <span className="flex flex-1 flex-col gap-0.5">
+          <span className="text-[15px] font-bold text-ok-ink">Crédit Sub.ci · tout de suite</span>
+          <span className="text-[13px] font-semibold text-muted">Choisis une autre offre maintenant, sans rien repayer.</span>
+        </span>
+        {busy === 'credit' ? <Spinner /> : <span className="text-ok-ink">›</span>}
+      </button>
+      <button
+        type="button"
+        disabled={busy !== null}
+        onClick={() => choose('cash')}
+        className="pressable flex items-center gap-3 rounded-btn border-[1.5px] border-line-strong p-3.5 text-left disabled:opacity-60"
+      >
+        <span className="flex flex-1 flex-col gap-0.5">
+          <span className="text-[15px] font-bold">Sur mon {m.name} · sous 48 h</span>
+          <span className="text-[13px] font-semibold text-muted">Renvoyé au {maskPhone(payment.phone ?? '')}.</span>
+        </span>
+        {busy === 'cash' ? <Spinner /> : <span className="text-subtle">›</span>}
+      </button>
+    </Card>
   )
 }
 

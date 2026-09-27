@@ -54,8 +54,7 @@ class PaymentController extends Controller
 
     public function payouts(): JsonResponse
     {
-        $pending = Payment::with('user', 'service')->where('status', PaymentStatus::Pending)
-            ->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal])->oldest()->get();
+        $pending = Payment::with('user', 'service')->toPayOut()->oldest()->get();
         $done = Payment::with('user', 'service')->where('status', PaymentStatus::Succeeded)
             ->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal])->latest('confirmed_at')->limit(20)->get();
 
@@ -72,7 +71,7 @@ class PaymentController extends Controller
         // Verrou : un double clic ne marque (et ne notifie) qu'une fois.
         $done = DB::transaction(function () use ($payment) {
             $locked = Payment::whereKey($payment->id)->lockForUpdate()->first();
-            if ($locked->status !== PaymentStatus::Pending || ! in_array($locked->type, [PaymentType::Refund, PaymentType::Withdrawal], true)) {
+            if ($locked->status !== PaymentStatus::Pending || ! in_array($locked->type, [PaymentType::Refund, PaymentType::Withdrawal], true) || $locked->refund_choice === 'pending') {
                 return false;
             }
             $locked->update(['status' => PaymentStatus::Succeeded, 'confirmed_at' => now()]);

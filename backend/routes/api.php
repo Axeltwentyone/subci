@@ -109,6 +109,7 @@ Route::prefix('v1')->group(function () {
         Route::get('payments/{payment:reference}', [PaymentController::class, 'show'])->middleware('throttle:60,1');
         Route::post('payments/{payment:reference}/resend', [PaymentController::class, 'resend'])->middleware('throttle:5,1');
         Route::post('payments/{payment:reference}/cancel', [PaymentController::class, 'cancel']);
+        Route::post('payments/{payment:reference}/refund-choice', [PaymentController::class, 'refundChoice'])->middleware('throttle:10,1');
 
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::post('notifications/read-all', [NotificationController::class, 'readAll']);

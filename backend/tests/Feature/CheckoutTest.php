@@ -376,4 +376,57 @@ class CheckoutTest extends TestCase
         $this->assertSame(300, $payment->service_fee);
         $this->assertSame(2400 + 300, $payment->amount);
     }
+
+    /** Refus : le membre choisit crédit Sub.ci (immédiat) ou argent (versement admin) ; sans choix, argent après 7 jours. */
+    public function test_declined_member_chooses_credit_or_cash_refund(): void
+    {
+        config(['services.payments.manual_payouts' => true]);
+        $offer = $this->offer('netflix', ['seats' => 3]);
+
+        // Crédit : immédiat, jamais dans les versements admin.
+        $alice = User::factory()->create();
+        $this->actingAs($alice);
+        $first = $this->payFor($offer);
+        $this->asHost()->postJson("/api/v1/host/requests/{$first->id}/decline")->assertOk();
+        $refund = $alice->payments()->where('type', 'refund')->sole();
+        $this->assertSame('pending', $refund->refund_choice);
+        $this->assertSame(0, \App\Models\Payment::toPayOut()->count());
+
+        $this->actingAs($alice)->postJson("/api/v1/payments/{$refund->reference}/refund-choice", ['choice' => 'credit'])->assertOk()
+            ->assertJsonPath('data.refundChoice', 'credit')->assertJsonPath('data.status', 'succeeded');
+        $this->assertSame(2400, $alice->fresh()->referral_credit);
+        $this->postJson("/api/v1/payments/{$refund->reference}/refund-choice", ['choice' => 'cash'])->assertStatus(409);
+
+        // Argent : part dans les versements à faire.
+        $bob = User::factory()->create();
+        $this->actingAs($bob);
+        $second = $this->payFor($offer);
+        $this->asHost()->postJson("/api/v1/host/requests/{$second->id}/decline")->assertOk();
+        $bobRefund = $bob->payments()->where('type', 'refund')->sole();
+        $this->actingAs($bob)->postJson("/api/v1/payments/{$bobRefund->reference}/refund-choice", ['choice' => 'cash'])->assertOk();
+        $this->assertSame([$bobRefund->id], \App\Models\Payment::toPayOut()->pluck('id')->all());
+        $this->assertSame(0, $bob->fresh()->referral_credit);
+
+        // Sans choix : argent au bout de 7 jours.
+        $carol = User::factory()->create();
+        $this->actingAs($carol);
+        $third = $this->payFor($offer);
+        $this->asHost()->postJson("/api/v1/host/requests/{$third->id}/decline")->assertOk();
+        $this->travel(8)->days();
+        app(\App\Services\RefundService::class)->defaultOverdue();
+        $this->assertSame('cash', $carol->payments()->where('type', 'refund')->value('refund_choice'));
+        $this->assertSame(2, \App\Models\Payment::toPayOut()->count());
+    }
+
+    public function test_member_cannot_choose_for_someone_elses_refund(): void
+    {
+        $offer = $this->offer();
+        $alice = User::factory()->create();
+        $this->actingAs($alice);
+        $request = $this->payFor($offer);
+        $this->asHost()->postJson("/api/v1/host/requests/{$request->id}/decline")->assertOk();
+        $ref = $alice->payments()->where('type', 'refund')->value('reference');
+
+        $this->actingAs(User::factory()->create())->postJson("/api/v1/payments/{$ref}/refund-choice", ['choice' => 'credit'])->assertNotFound();
+    }
 }

@@ -202,7 +202,7 @@ export function Checkout() {
           )}
           {credit > 0 && (
             <div className="flex justify-between text-ok-ink">
-              <span>Crédit parrainage</span>
+              <span>Crédit Sub.ci</span>
               <span className="tabular-nums">−{fcfa(credit)} FCFA</span>
             </div>
           )}

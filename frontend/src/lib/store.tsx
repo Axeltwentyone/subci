@@ -48,6 +48,10 @@ export type Payment = {
   direction: 'out' | 'in'
   /** Remboursement ou retrait pas encore versé */
   pending?: boolean
+  /** Remboursement d'une demande refusée : en attente du choix du membre, crédit ou argent */
+  refundChoice?: 'pending' | 'credit' | 'cash' | null
+  /** Numéro mobile money (remboursement, retrait) */
+  phone?: string | null
 }
 
 export type Member = {
@@ -398,6 +402,11 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
     },
     resendPayment: async (ref: string) => toPending((await api.resendPayment(ref)).data),
     cancelPayment: (ref: string) => api.cancelPayment(ref).catch(() => {}),
+    /** Remboursement : crédit Sub.ci immédiat ou argent sous 48 h. */
+    async chooseRefund(ref: string, choice: 'credit' | 'cash') {
+      await api.refundChoice(ref, choice)
+      await sync().catch(() => {})
+    },
 
     read: (id: string) => {
       dispatch({ type: 'read', id })

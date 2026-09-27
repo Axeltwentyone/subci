@@ -77,7 +77,8 @@ type ApiSub = {
 }
 export type IssueReason = 'no_access' | 'wrong_password' | 'removed' | 'other'
 type ApiPayment = {
-  id: string; ref: string; type: 'subscription' | 'earning' | 'withdrawal'; direction: 'in' | 'out'
+  id: string; ref: string; type: 'subscription' | 'earning' | 'withdrawal' | 'refund'; direction: 'in' | 'out'
+  refundChoice?: 'pending' | 'credit' | 'cash' | null
   status: 'pending' | 'succeeded' | 'failed' | 'expired'; label: string; amount: number; months: number | null
   method: PayMethodId; phone: string | null; serviceId: string | null; subscriptionId: string | null
   hostName: string | null; joinStatus: JoinRequest['status'] | null
@@ -140,6 +141,8 @@ export const toPayment = (p: ApiPayment): Payment => ({
   ref: p.ref,
   direction: p.direction,
   pending: p.status === 'pending',
+  refundChoice: p.refundChoice ?? null,
+  phone: p.phone,
 })
 
 export const toNotif = (n: ApiNotif): Notif => ({
@@ -274,6 +277,7 @@ export const api = {
   payment: (ref: string) => request<Data<ApiPayment>>('GET', `/payments/${ref}`),
   resendPayment: (ref: string) => request<Data<ApiPayment>>('POST', `/payments/${ref}/resend`),
   cancelPayment: (ref: string) => request<Data<ApiPayment>>('POST', `/payments/${ref}/cancel`),
+  refundChoice: (ref: string, choice: 'credit' | 'cash') => request<Data<ApiPayment>>('POST', `/payments/${ref}/refund-choice`, { choice }),
 
   readNotif: (id: string) => request<unknown>('POST', `/notifications/${id}/read`),
   readAllNotifs: () => request<unknown>('POST', '/notifications/read-all'),

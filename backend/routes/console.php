@@ -12,6 +12,7 @@ use App\Services\ExpiryReminder;
 use App\Services\InviteReminder;
 use App\Services\JoinService;
 use App\Services\PaymentService;
+use App\Services\RefundService;
 use App\Services\SubscriptionSweeper;
 use App\Services\WaitlistService;
 use Illuminate\Foundation\Inspiring;
@@ -43,6 +44,8 @@ Schedule::call(function () {
     // Relance de l'hôte à 6 h de la fin, puis remboursement après 24 h.
     app(JoinService::class)->remindHosts();
     app(JoinService::class)->expireOverdue();
+    // Remboursements sans choix du membre depuis quelques jours : renvoyés en argent.
+    app(RefundService::class)->defaultOverdue();
     // Places libres : on prévient la liste d'attente.
     app(WaitlistService::class)->notifyAvailable();
     // Paiements en attente : on relit la passerelle (membre jamais revenu, webhook manqué).
@@ -80,10 +83,7 @@ Artisan::command('push:vapid', function () {
 
 // Remboursements et retraits à verser à la main (passerelle sans API de versement).
 Artisan::command('payouts:list', function () {
-    $rows = Payment::with('user')
-        ->where('status', PaymentStatus::Pending)
-        ->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal])
-        ->oldest()->get();
+    $rows = Payment::with('user')->toPayOut()->oldest()->get();
     if ($rows->isEmpty()) {
         return $this->info('Rien à verser.');
     }
@@ -94,8 +94,7 @@ Artisan::command('payouts:list', function () {
 })->purpose('Lister les remboursements et retraits à verser');
 
 Artisan::command('payouts:done {reference}', function (string $reference) {
-    $p = Payment::with('user')->where('reference', $reference)->where('status', PaymentStatus::Pending)
-        ->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal])->first();
+    $p = Payment::with('user')->where('reference', $reference)->toPayOut()->first();
     if (! $p) {
         return $this->error("Aucun versement en attente avec la référence {$reference}.");
     }

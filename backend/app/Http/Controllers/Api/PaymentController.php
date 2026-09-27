@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\Service;
 use App\Services\PaymentService;
 use App\Services\ReferralService;
+use App\Services\RefundService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
@@ -91,6 +92,15 @@ class PaymentController extends Controller
         $origin = rtrim((string) $origin, '/');
 
         return in_array($origin, config('app.frontend_origins'), true) ? $origin : rtrim(config('app.frontend_url'), '/');
+    }
+
+    /** Remboursement d'une demande refusée : crédit Sub.ci immédiat ou argent sous 48 h. */
+    public function refundChoice(Request $request, Payment $payment, RefundService $refunds): PaymentResource
+    {
+        $this->authorizeOwner($request, $payment);
+        $data = $request->validate(['choice' => ['required', Rule::in(['credit', 'cash'])]]);
+
+        return new PaymentResource($refunds->choose($payment, $data['choice'])->load('service'));
     }
 
     private function authorizeOwner(Request $request, Payment $payment): void

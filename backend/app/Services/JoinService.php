@@ -145,41 +145,32 @@ class JoinService
             $member = $request->user;
             $offer = $request->offer()->with('service', 'user')->first();
 
-            // Pas d'API de remboursement chez la passerelle : remboursement manuel (payouts:*).
-            $manual = (bool) config('services.payments.manual_payouts');
             $payment->update(['refunded_at' => now()]);
             // Le membre récupère ce qu'il a payé, et son crédit parrainage.
             $this->referrals->restoreCredit($payment);
             $member->payments()->create([
                 'type' => PaymentType::Refund,
-                'status' => $manual ? PaymentStatus::Pending : PaymentStatus::Succeeded,
+                // Le membre choisit : crédit Sub.ci immédiat ou argent sous 48 h (RefundService).
+                'status' => PaymentStatus::Pending,
+                'refund_choice' => 'pending',
                 'service_id' => $payment->service_id,
                 'host_offer_id' => $offer->id,
                 'label' => 'Remboursement '.$payment->label,
                 'amount' => $payment->amount,
                 'method' => $payment->method,
                 'phone' => $payment->phone,
-                'confirmed_at' => now(),
             ]);
 
             $short = Str::before($offer->service->name, ' ');
             $amount = number_format($payment->amount, 0, ',', ' ').' FCFA';
             $host = $offer->user->shortName();
-            if ($manual) {
-                AdminAlerts::send('payouts', "Remboursement à verser · {$amount}",
-                    $member->shortName()." · {$short}, ".match ($status) {
-                        JoinStatus::Declined => "refusé par {$host}",
-                        JoinStatus::Expired => "sans réponse de {$host}",
-                        default => 'demande annulée',
-                    }, '/payouts', 'payouts');
-            }
-            $refund = $manual ? "Remboursement de {$amount} en cours (sous 48 h)." : "Tu es remboursé de {$amount}.";
+            $refund = "Tes {$amount} te reviennent : en crédit Sub.ci tout de suite, ou sur ton mobile money sous 48 h. À toi de choisir.";
             [$title, $body] = match ($status) {
-                JoinStatus::Declined => ["{$host} n’a pas pu t’accepter", "{$refund} Choisis une autre offre {$short}."],
-                JoinStatus::Expired => ["Pas de réponse de {$host}", "{$refund} Choisis une autre offre {$short}."],
+                JoinStatus::Declined => ["{$host} n’a pas pu t’accepter", $refund],
+                JoinStatus::Expired => ["Pas de réponse de {$host}", $refund],
                 default => ['Demande annulée', $refund],
             };
-            $member->notify(new AppNotification('pay', $title, $body, ['label' => 'Voir les offres', 'to' => '/service/'.$offer->service->slug]));
+            $member->notify(new AppNotification('pay', $title, $body, ['label' => 'Choisir', 'to' => '/home']));
 
             if ($status === JoinStatus::Cancelled) {
                 $offer->user->notify(new AppNotification('host', 'Demande annulée', $member->shortName()." a annulé sa demande pour ton {$short}."));

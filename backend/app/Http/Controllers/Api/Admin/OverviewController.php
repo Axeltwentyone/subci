@@ -51,7 +51,7 @@ class OverviewController extends Controller
         $usersByDay = User::where('created_at', '>=', $now->subDays(29)->startOfDay())
             ->selectRaw('DATE(created_at) d, COUNT(*) n')->groupBy('d')->pluck('n', 'd');
 
-        $pendingPayouts = Payment::where('status', PaymentStatus::Pending)->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal]);
+        $pendingPayouts = Payment::toPayOut();
 
         return response()->json([
             'kpis' => [

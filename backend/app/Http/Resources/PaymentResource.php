@@ -22,6 +22,8 @@ class PaymentResource extends JsonResource
             'label' => $this->label,
             'amount' => $this->amount,
             'serviceFee' => (int) $this->service_fee,
+            // Remboursement : en attente du choix (pending), crédit Sub.ci ou argent.
+            'refundChoice' => $this->refund_choice,
             'months' => $this->months,
             'method' => $this->method,
             'phone' => $this->phone,

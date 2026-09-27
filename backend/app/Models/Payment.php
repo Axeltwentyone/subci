@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'service_fee', 'credit_used', 'credit_restored_at', 'gross', 'months',
+    'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'service_fee', 'credit_used', 'credit_restored_at', 'refund_choice', 'gross', 'months',
     'method', 'phone', 'invite_email', 'provider_reference', 'checkout_url', 'return_url', 'period_start', 'period_end', 'expires_at', 'available_at', 'held_at',
     'confirmed_at', 'refunded_at',
 ])]
@@ -71,6 +71,13 @@ class Payment extends Model
         $query->where(fn (Builder $q) => $q
             ->where('status', PaymentStatus::Succeeded)
             ->orWhere(fn (Builder $q) => $q->where('status', PaymentStatus::Pending)->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal])));
+    }
+
+    /** Remboursements et retraits à verser à la main (hors remboursements en attente du choix du membre). */
+    public function scopeToPayOut(Builder $query): void
+    {
+        $query->where('status', PaymentStatus::Pending)->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal])
+            ->where(fn (Builder $q) => $q->whereNull('refund_choice')->orWhere('refund_choice', '!=', 'pending'));
     }
 
     /** Gains d'hôte encore en séquestre (pas encore dans le solde retirable). */

@@ -23,7 +23,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: 'Acceptation et remboursements',
     body: [
-      'Après le paiement, l’hôte a 24 h pour accepter le membre. S’il refuse ou ne répond pas, le membre est remboursé intégralement, frais compris.',
+      'Après le paiement, l’hôte a 24 h pour accepter le membre. S’il refuse ou ne répond pas, le membre récupère l’intégralité de ce qu’il a payé, frais compris, au choix : en crédit Sub.ci utilisable tout de suite, ou sur son compte mobile money sous 48 h. Sans choix de sa part sous 7 jours, le montant est renvoyé sur son mobile money.',
       'L’argent est versé à l’hôte mois par mois, quelques jours après le début de chaque mois payé. Si l’accès ne fonctionne pas, le membre signale un souci depuis l’app : les versements à l’hôte pour ce membre sont suspendus le temps de régler le problème, et le temps non encore versé peut être remboursé.',
       'Les remboursements et retraits sont envoyés sur le compte mobile money indiqué, sous 48 h. Les retraits des hôtes sont possibles à partir de 2 000 FCFA ; les frais d’envoi (environ 1 %) sont déduits du montant retiré et affichés avant de confirmer.',
     ],
