@@ -562,7 +562,7 @@ function PayoutSheet({ open, onClose, onDone }: { open: boolean; onClose: () => 
           <>
             <PayMethodPicker value={method} onChange={setMethod} phone={phone} onPhone={setPhone} methods={['wave', 'om', 'mtn', 'moov']} />
             <p className="text-[13px] leading-snug font-semibold text-muted">
-              Par sécurité, on t’envoie un code par SMS au {maskPhone(state.user?.phone ?? '')}, et les retraits sont bloqués 24 h après le changement.
+              Par sécurité, on t’envoie un code {state.otpChannel === 'whatsapp' ? 'sur WhatsApp' : 'par SMS'} au {maskPhone(state.user?.phone ?? '')}, et les retraits sont bloqués 24 h après le changement.
             </p>
             <Button loading={loading} disabled={phone.length !== 10} onClick={sendCode}>
               Recevoir le code

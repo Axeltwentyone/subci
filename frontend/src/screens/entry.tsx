@@ -155,6 +155,7 @@ export function Login() {
   const [error, setError] = useState<string>()
   const [codeError, setCodeError] = useState<string>()
   const [sent, setSent] = useState(false)
+  const [channel, setChannel] = useState<'whatsapp' | 'sms'>('sms')
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [resendKey, setResendKey] = useState(0)
@@ -169,11 +170,13 @@ export function Login() {
     setLoading(true)
     try {
       const res = await actions.sendOtp(phone)
+      setChannel(res.channel ?? 'sms')
       setSent(true)
       setCode('')
       setResendKey((k) => k + 1)
       // En local, l'API renvoie le code (pas encore de passerelle SMS).
-      toast({ tone: 'ink', text: res.debugCode ? `Code envoyé · démo : ${res.debugCode}` : 'Code envoyé par SMS', duration: res.debugCode ? 8000 : 3000 })
+      const where = res.channel === 'whatsapp' ? 'sur WhatsApp' : 'par SMS'
+      toast({ tone: 'ink', text: res.debugCode ? `Code envoyé · démo : ${res.debugCode}` : `Code envoyé ${where}`, duration: res.debugCode ? 8000 : 3000 })
     } catch (e) {
       setError(errorMessage(e))
     } finally {
@@ -209,12 +212,12 @@ export function Login() {
           <Wordmark className="text-[26px]" />
           <div className="flex flex-col gap-2.5">
             <h1 className="t-hero">Ton numéro, c’est tout.</h1>
-            <p className="text-base leading-normal font-medium text-muted">Pas de mot de passe. On t’envoie un code par SMS.</p>
+            <p className="text-base leading-normal font-medium text-muted">Pas de mot de passe. On t’envoie un code de connexion.</p>
           </div>
           <PhoneInput value={phone} onChange={(v) => { setPhone(v); setError(undefined) }} error={error} autoFocus />
           {sent && (
             <div className="flex animate-fade-in flex-col gap-2.5">
-              <span className="text-[13px] font-bold text-muted">Code reçu par SMS</span>
+              <span className="text-[13px] font-bold text-muted">{channel === 'whatsapp' ? 'Code reçu sur WhatsApp (de Sub.ci)' : 'Code reçu par SMS'}</span>
               <OtpInput value={code} onChange={(v) => { setCode(v); setCodeError(undefined) }} onComplete={verify} />
               {codeError && <span className="text-[13px] font-semibold text-err-ink">{codeError}</span>}
               {left > 0 ? (

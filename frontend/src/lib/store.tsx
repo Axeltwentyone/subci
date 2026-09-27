@@ -147,6 +147,8 @@ export type State = {
   serviceFee: number
   /** Frais de service pour 3 mois ou plus. */
   serviceFeeLong: number
+  /** Canal des codes de vérification */
+  otpChannel: 'whatsapp' | 'sms'
   referral: Referral | null
   /** Services sur lesquels on attend une place (prévenu dès qu'elle se libère) */
   waitlist: string[]
@@ -207,6 +209,7 @@ function empty(): State {
     holdHours: 48,
     serviceFee: 300,
     serviceFeeLong: 200,
+    otpChannel: 'sms',
     referral: null,
     waitlist: [],
     payout: { method: 'wave', phone: '' },
@@ -300,6 +303,7 @@ function reducer(s: State, a: Action): State {
         requests: (d.requests ?? []).map(toJoinRequest),
         serviceFee: d.config?.serviceFee ?? s.serviceFee,
         serviceFeeLong: d.config?.serviceFeeLong ?? d.config?.serviceFee ?? s.serviceFeeLong,
+        otpChannel: d.config?.otpChannel ?? s.otpChannel,
         waitlist: d.waitlist ?? [],
         lastSync: Date.now(),
         syncing: false,

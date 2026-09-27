@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Codes SMS à 6 chiffres.
@@ -47,13 +48,22 @@ class OtpService
             'expires_at' => now()->addSeconds(config('services.otp.ttl')),
         ]);
 
-        // TODO passerelle SMS (Orange SMS API, Twilio…). Le format « @sub.ci #code » active WebOTP.
+        // Vrai code : envoyé par WhatsApp (SMS à brancher en secours : Orange SMS API…).
+        if (! $test && WhatsAppOtp::enabled() && ! app(WhatsAppOtp::class)->send($phone, $code)) {
+            throw new HttpException(503, 'On n’a pas pu t’envoyer le code sur WhatsApp. Vérifie que ce numéro a WhatsApp, ou réessaie dans un instant.');
+        }
         // Code en clair dans les logs : uniquement en local (en prod, quiconque lit les logs pourrait se connecter).
         if (app()->environment('local', 'testing')) {
             Log::info("OTP Sub.ci ({$purpose}) pour {$phone} : {$code}");
         }
 
         return $code;
+    }
+
+    /** Canal du code, pour l'afficher dans l'app. */
+    public static function channel(): string
+    {
+        return WhatsAppOtp::enabled() ? 'whatsapp' : 'sms';
     }
 
     public function verify(string $phone, string $code, string $purpose = 'login'): bool

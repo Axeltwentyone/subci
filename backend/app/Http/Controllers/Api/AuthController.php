@@ -27,6 +27,7 @@ class AuthController extends Controller
         return response()->json([
             'sent' => true,
             'ttl' => config('services.otp.ttl'),
+            'channel' => OtpService::channel(),
             'debugCode' => config('services.otp.expose_code') ? $code : null,
         ]);
     }

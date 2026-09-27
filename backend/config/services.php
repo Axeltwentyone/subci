@@ -103,6 +103,15 @@ return [
         'require_2fa' => (bool) env('ADMIN_REQUIRE_2FA', true),
     ],
 
+    // Codes de connexion par WhatsApp (API Cloud de Meta). Vide = pas d'envoi WhatsApp.
+    'whatsapp' => [
+        'token' => trim((string) env('WHATSAPP_TOKEN', '')),
+        'phone_number_id' => trim((string) env('WHATSAPP_PHONE_NUMBER_ID', '')),
+        'otp_template' => env('WHATSAPP_OTP_TEMPLATE', 'code_connexion'),
+        'language' => env('WHATSAPP_TEMPLATE_LANG', 'fr'),
+        'version' => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
+    ],
+
     'otp' => [
         'ttl' => (int) env('OTP_TTL', 300),
         'max_attempts' => 5,

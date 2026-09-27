@@ -250,7 +250,7 @@ export type Bootstrap = {
   notifications: ApiNotif[]
   host: ApiHost
   requests: ApiRequest[]
-  config?: { serviceFee: number; serviceFeeLong?: number }
+  config?: { serviceFee: number; serviceFeeLong?: number; otpChannel?: 'whatsapp' | 'sms' }
   /** Services sur lesquels le membre attend une place */
   waitlist?: string[]
 }
@@ -258,7 +258,7 @@ export type Bootstrap = {
 type Data<T> = { data: T }
 
 export const api = {
-  sendOtp: (phone: string) => request<{ sent: boolean; ttl: number; debugCode: string | null }>('POST', '/auth/otp', { phone }),
+  sendOtp: (phone: string) => request<{ sent: boolean; ttl: number; debugCode: string | null; channel?: 'whatsapp' | 'sms' }>('POST', '/auth/otp', { phone }),
   verifyOtp: (phone: string, code: string) => request<{ token: string; user: ApiUser; isNew: boolean }>('POST', '/auth/verify', { phone, code }),
   logout: () => request<{ ok: boolean }>('POST', '/auth/logout'),
 
