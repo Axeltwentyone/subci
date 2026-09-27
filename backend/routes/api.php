@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BootstrapController;
 use App\Http\Controllers\Api\GeniusPayWebhookController;
+use App\Http\Controllers\Api\WhatsAppWebhookController;
 use App\Http\Controllers\Api\HostController;
 use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MeController;
@@ -77,6 +78,9 @@ Route::prefix('v1')->group(function () {
     Route::get('services/{service}', [ServiceController::class, 'show']);
     Route::get('push/key', [PushController::class, 'key']);
     Route::post('webhooks/geniuspay', GeniusPayWebhookController::class)->middleware('throttle:120,1');
+    // WhatsApp (Meta) : vérification de l'URL, puis accusés de réception (statuts des messages).
+    Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->middleware('throttle:30,1');
+    Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->middleware('throttle:300,1');
 
     Route::middleware(['auth:sanctum', 'member'])->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);

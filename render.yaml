@@ -97,6 +97,11 @@ services:
         sync: false
       - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
+      # Webhook WhatsApp : jeton de vérification (au choix, recopié dans Meta) et clé secrète de l'app Meta.
+      - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
 
 databases:
   - name: subci-db

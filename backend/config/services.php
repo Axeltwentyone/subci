@@ -110,6 +110,9 @@ return [
         'otp_template' => env('WHATSAPP_OTP_TEMPLATE', 'code_connexion'),
         'language' => env('WHATSAPP_TEMPLATE_LANG', 'fr'),
         'version' => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
+        // Webhook : jeton choisi librement, recopié dans Meta (« Vérifier le token »), et clé secrète de l'app Meta.
+        'webhook_verify_token' => trim((string) env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', '')),
+        'app_secret' => trim((string) env('WHATSAPP_APP_SECRET', '')),
     ],
 
     'otp' => [

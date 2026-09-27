@@ -46,4 +46,23 @@ class WhatsAppOtpTest extends TestCase
         $this->postJson('/api/v1/auth/otp', ['phone' => '0758421121'])->assertOk();
         Http::assertNothingSent();
     }
+
+    public function test_meta_can_verify_the_webhook_url_only_with_the_right_token(): void
+    {
+        config(['services.whatsapp.webhook_verify_token' => 'jeton-sub-ci']);
+
+        $this->get('/api/v1/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=faux&hub.challenge=123')->assertForbidden();
+        $this->get('/api/v1/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=jeton-sub-ci&hub.challenge=987654')
+            ->assertOk()->assertSeeText('987654');
+    }
+
+    public function test_webhook_events_need_a_valid_signature_when_app_secret_is_set(): void
+    {
+        config(['services.whatsapp.app_secret' => 'app-secret']);
+        $body = json_encode(['entry' => [['changes' => [['value' => ['statuses' => [['status' => 'failed', 'errors' => [['code' => 131026, 'title' => 'Undeliverable']]]]]]]]]]);
+
+        $this->call('POST', '/api/v1/webhooks/whatsapp', [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_X_HUB_SIGNATURE_256' => 'sha256=faux'], $body)->assertStatus(401);
+        $sig = 'sha256='.hash_hmac('sha256', $body, 'app-secret');
+        $this->call('POST', '/api/v1/webhooks/whatsapp', [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_X_HUB_SIGNATURE_256' => $sig], $body)->assertOk();
+    }
 }
