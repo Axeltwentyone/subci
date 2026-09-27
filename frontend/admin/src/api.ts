@@ -60,6 +60,14 @@ export const errorText = (e: unknown) =>
 
 /* ---------- Types ---------- */
 
+export type WhatsAppState = {
+  configured: boolean
+  wabaConfigured: boolean
+  template: string
+  language: string
+  status: { templates?: { name: string; language: string; status: string; category: string; rejected_reason?: string }[]; error?: string; code?: number } | null
+}
+
 export type Brand = { id: string; name: string; color: string; fg: string; mono: string }
 
 export type AdminUser = {
@@ -297,6 +305,8 @@ export const api = {
   deletePush: (endpoint: string) => call<PushState>('DELETE', '/push/subscriptions', { endpoint }),
   setAlerts: (alerts: Record<string, boolean>) => call<PushState>('PATCH', '/push/alerts', { alerts }),
   testPush: () => call<{ ok: boolean; devices: number }>('POST', '/push/test'),
+  whatsapp: () => call<WhatsAppState>('GET', '/whatsapp'),
+  createWhatsAppTemplate: () => call<{ ok: boolean; status?: string; error?: string; code?: number }>('POST', '/whatsapp/template'),
 
   audit: (page = 1) => call<Page<AuditRow>>('GET', `/audit${qs({ page })}`),
 }

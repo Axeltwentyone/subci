@@ -65,4 +65,16 @@ class WhatsAppOtpTest extends TestCase
         $sig = 'sha256='.hash_hmac('sha256', $body, 'app-secret');
         $this->call('POST', '/api/v1/webhooks/whatsapp', [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_X_HUB_SIGNATURE_256' => $sig], $body)->assertOk();
     }
+
+    public function test_admin_creates_the_authentication_template_through_the_api(): void
+    {
+        config(['services.whatsapp.waba_id' => '999', 'services.admin.require_2fa' => false]);
+        Http::fake(['graph.facebook.com/*' => Http::response(['id' => 'tpl_1', 'status' => 'APPROVED', 'category' => 'AUTHENTICATION'])]);
+        \App\Models\Admin::create(['name' => 'A', 'email' => 'wa@sub.ci', 'password' => 'un-mot-de-passe-long']);
+        $token = $this->postJson('/api/v1/admin/auth/login', ['email' => 'wa@sub.ci', 'password' => 'un-mot-de-passe-long'])->json('token');
+
+        $this->withToken($token)->postJson('/api/v1/admin/whatsapp/template')->assertOk()->assertJsonPath('status', 'APPROVED');
+        Http::assertSent(fn ($r) => str_ends_with($r->url(), '/999/message_templates') && $r['category'] === 'AUTHENTICATION'
+            && $r['name'] === 'code_connexion' && $r['language'] === 'fr' && $r['components'][2]['buttons'][0]['otp_type'] === 'COPY_CODE');
+    }
 }

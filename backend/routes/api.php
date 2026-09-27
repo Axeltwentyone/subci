@@ -68,6 +68,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('push/subscriptions', [Admin\PushController::class, 'destroy']);
             Route::patch('push/alerts', [Admin\PushController::class, 'alerts']);
             Route::post('push/test', [Admin\PushController::class, 'test'])->middleware('throttle:6,1');
+            Route::get('whatsapp', [Admin\WhatsAppController::class, 'show']);
+            Route::post('whatsapp/template', [Admin\WhatsAppController::class, 'createTemplate'])->middleware('throttle:6,1');
         });
     });
 

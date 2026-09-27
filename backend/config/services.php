@@ -107,6 +107,8 @@ return [
     'whatsapp' => [
         'token' => trim((string) env('WHATSAPP_TOKEN', '')),
         'phone_number_id' => trim((string) env('WHATSAPP_PHONE_NUMBER_ID', '')),
+        // Compte WhatsApp Business (WABA) : pour créer / lire le modèle depuis l'admin.
+        'waba_id' => trim((string) env('WHATSAPP_WABA_ID', '')),
         'otp_template' => env('WHATSAPP_OTP_TEMPLATE', 'code_connexion'),
         'language' => env('WHATSAPP_TEMPLATE_LANG', 'fr'),
         'version' => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),

@@ -50,4 +50,46 @@ class WhatsAppOtp
 
         return true;
     }
+
+    /** Modèle de code (nom configuré) sur le compte WhatsApp : statut par langue, ou erreur Meta. */
+    public function templateStatus(): array
+    {
+        $c = config('services.whatsapp');
+        $response = $this->graph()->get("{$c['waba_id']}/message_templates", ['name' => $c['otp_template'], 'fields' => 'name,language,status,category,rejected_reason']);
+        if (! $response->successful()) {
+            return ['error' => $response->json('error.message'), 'code' => $response->json('error.code')];
+        }
+
+        return ['templates' => collect($response->json('data', []))->where('name', $c['otp_template'])->values()->all()];
+    }
+
+    /** Crée le modèle « Authentification » avec bouton « Copier le code » (10 min). */
+    public function createTemplate(): array
+    {
+        $c = config('services.whatsapp');
+        $response = $this->graph()->post("{$c['waba_id']}/message_templates", [
+            'name' => $c['otp_template'],
+            'language' => $c['language'],
+            'category' => 'AUTHENTICATION',
+            'components' => [
+                ['type' => 'BODY', 'add_security_recommendation' => true],
+                ['type' => 'FOOTER', 'code_expiration_minutes' => 10],
+                ['type' => 'BUTTONS', 'buttons' => [['type' => 'OTP', 'otp_type' => 'COPY_CODE', 'text' => 'Copier le code']]],
+            ],
+        ]);
+        if (! $response->successful()) {
+            Log::warning('WhatsApp : création du modèle refusée', ['error' => $response->json('error.message'), 'code' => $response->json('error.code'), 'subcode' => $response->json('error.error_subcode')]);
+
+            return ['ok' => false, 'error' => $response->json('error.error_user_msg') ?? $response->json('error.message'), 'code' => $response->json('error.code'), 'subcode' => $response->json('error.error_subcode')];
+        }
+
+        return ['ok' => true, 'status' => $response->json('status'), 'id' => $response->json('id')];
+    }
+
+    private function graph(): \Illuminate\Http\Client\PendingRequest
+    {
+        $c = config('services.whatsapp');
+
+        return Http::withToken($c['token'])->acceptJson()->timeout(15)->baseUrl("https://graph.facebook.com/{$c['version']}/");
+    }
 }

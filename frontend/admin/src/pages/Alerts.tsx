@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useToast } from '../../../src/components/Toast'
-import { api, errorText } from '../api'
+import { api, errorText, type WhatsAppState } from '../api'
 import { Button, ErrorBox, Loading, PageHeader, Panel, cx, useAsync } from '../kit'
 import { currentSubscription, disablePush, enablePush, needsInstall, pushSupported, type EnableResult } from '../push'
 
@@ -134,8 +134,73 @@ export function Alerts() {
           ))}
         </ul>
       </Panel>
+      <WhatsAppPanel />
       <p className="text-[13px] font-medium text-muted">Ces choix valent pour tous tes appareils. Les alertes partent dès que la file d’attente Laravel tourne (queue:work).</p>
     </>
+  )
+}
+
+/** Codes de connexion WhatsApp : état du modèle chez Meta, et création par l'API si l'écran de Meta bloque. */
+function WhatsAppPanel() {
+  const toast = useToast()
+  const [state, setState] = useState<WhatsAppState | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const load = () => api.whatsapp().then(setState).catch((e) => setError(errorText(e)))
+  useEffect(() => {
+    load()
+  }, [])
+
+  if (!state) return error ? <ErrorBox message={error} /> : null
+  const tpl = state.status?.templates?.find((t) => t.language === state.language) ?? state.status?.templates?.[0]
+
+  return (
+    <Panel title="Codes de connexion WhatsApp">
+      <div className="flex flex-col gap-3 text-sm font-semibold">
+        {!state.configured ? (
+          <span className="text-muted">Pas encore configuré : ajoute WHATSAPP_TOKEN et WHATSAPP_PHONE_NUMBER_ID dans Render.</span>
+        ) : !state.wabaConfigured ? (
+          <span className="text-muted">Ajoute WHATSAPP_WABA_ID (ID du compte WhatsApp Business) dans Render pour gérer le modèle d’ici.</span>
+        ) : (
+          <>
+            <span>
+              Modèle <b>{state.template}</b> ({state.language}) :{' '}
+              {tpl ? (
+                <b className={tpl.status === 'APPROVED' ? 'text-ok-ink' : 'text-warn-ink'}>
+                  {tpl.status}
+                  {tpl.rejected_reason && tpl.rejected_reason !== 'NONE' ? ` · ${tpl.rejected_reason}` : ''}
+                </b>
+              ) : (
+                <b className="text-err-ink">introuvable</b>
+              )}
+            </span>
+            {state.status?.error && <span className="text-err-ink">Meta : {state.status.error} (#{state.status.code})</span>}
+            {!tpl && (
+              <Button
+                variant="ink"
+                loading={busy}
+                onClick={async () => {
+                  setBusy(true)
+                  setError(null)
+                  try {
+                    const r = await api.createWhatsAppTemplate()
+                    toast({ tone: 'success', text: `Modèle créé · ${r.status ?? ''}` })
+                    await load()
+                  } catch (e) {
+                    setError(errorText(e))
+                  } finally {
+                    setBusy(false)
+                  }
+                }}
+              >
+                Créer le modèle chez Meta
+              </Button>
+            )}
+            {error && <span className="text-err-ink">{error}</span>}
+          </>
+        )}
+      </div>
+    </Panel>
   )
 }
 
