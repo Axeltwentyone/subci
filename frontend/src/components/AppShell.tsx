@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useLocation } from 'react-router'
 import { SAND, useTopColor } from '../lib/hooks'
 import { useUnread } from '../lib/store'
 import { IconBell, IconHome, IconSearch, IconSubs, IconUser } from './icons'
@@ -29,6 +29,8 @@ function CountBadge({ n, className }: { n: number; className?: string }) {
 export function AppShell() {
   useTopColor(SAND)
   const unread = useUnread()
+  const { pathname } = useLocation()
+  const active = Math.max(0, TABS.findIndex((t) => pathname === t.to || pathname.startsWith(t.to + '/')))
   return (
     <div className="min-h-dvh bg-sand md:grid md:grid-cols-[88px_1fr] desk:grid-cols-[248px_1fr]">
       {/* Rail / sidebar */}
@@ -75,25 +77,28 @@ export function AppShell() {
         </main>
       </div>
 
-      {/* Bottom nav (mobile). replace : changer d'onglet n'ajoute rien à l'historique,
-          le geste « retour » du téléphone ne fait donc pas défiler les onglets. */}
+      {/* Bottom nav (mobile), façon iOS 26 : capsule flottante en verre, pastille qui glisse vers l'onglet actif.
+          replace : changer d'onglet n'ajoute rien à l'historique (le geste « retour » ne fait pas défiler les onglets). */}
       <nav
         aria-label="Navigation principale"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-surface/96 px-1.5 pt-2 pb-[calc(env(safe-area-inset-bottom)+14px)] backdrop-blur md:hidden"
+        className="fixed inset-x-3 bottom-[max(12px,calc(env(safe-area-inset-bottom)-8px))] z-40 mx-auto max-w-[440px] rounded-full border border-line/70 bg-surface/70 p-1 shadow-[0_10px_30px_-8px_rgba(22,19,15,.28),inset_0_1px_0_rgba(255,255,255,.35)] backdrop-blur-2xl backdrop-saturate-150 md:hidden"
       >
-        {TABS.map(({ to, label, Icon }) => (
-          <NavLink key={to} to={to} replace className="pressable relative flex flex-col items-center gap-1 text-[11px] font-bold">
-            {({ isActive }) => (
-              <>
-                <span className={cx('grid h-8 w-14 place-items-center rounded-2xl transition-colors duration-150', isActive ? 'bg-ink text-brand' : 'text-subtle')}>
-                  <Icon />
-                </span>
-                <span className={isActive ? 'text-ink' : 'text-subtle'}>{label}</span>
-                {to === '/activity' && <CountBadge n={unread} className="absolute top-0.5 right-[calc(50%-26px)]" />}
-              </>
-            )}
-          </NavLink>
-        ))}
+        <div className="relative grid grid-cols-5">
+          <span
+            aria-hidden
+            className="absolute inset-y-0 left-0 w-1/5 rounded-full bg-ink/[.07] transition-transform duration-300 ease-app"
+            style={{ transform: `translateX(${active * 100}%)` }}
+          />
+          {TABS.map(({ to, label, Icon }, i) => (
+            <NavLink key={to} to={to} replace className="pressable relative flex h-[54px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold">
+              <span className={cx('flex transition-colors duration-200', i === active ? 'text-brand' : 'text-ink/75')}>
+                <Icon size={22} />
+              </span>
+              <span className={cx('transition-colors duration-200', i === active ? 'text-brand' : 'text-ink/75')}>{label}</span>
+              {to === '/activity' && <CountBadge n={unread} className="absolute top-1 right-[calc(50%-20px)]" />}
+            </NavLink>
+          ))}
+        </div>
       </nav>
     </div>
   )
