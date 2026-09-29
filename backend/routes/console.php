@@ -35,27 +35,30 @@ Artisan::command('offers:approve {offer : ID de l’offre}', function (int $offe
     $this->info("Offre #{$offer} ({$model->service->name}) en ligne.");
 })->purpose('Valider la preuve d’une offre hôte');
 
+// Tâches de fond, chacune séparée : une étape en erreur n'empêche plus les autres de tourner
+// (ex. les gains des hôtes restaient bloqués si la relecture des paiements échouait).
+// Verrou de 5 min (et non 24 h) : un serveur arrêté en pleine tâche ne la bloque plus une journée.
+$every = fn (string $name, callable $task) => Schedule::call($task)->everyMinute()->name($name)->withoutOverlapping(5);
+
+// Séquestre : gains d'hôte arrivés à échéance → solde retirable.
+$every('earnings:release', fn () => app(EarningService::class)->release());
+// Paiements en attente : on relit la passerelle (membre jamais revenu, webhook manqué).
+$every('payments:reconcile', fn () => app(PaymentService::class)->reconcile());
 // Active les accès prêts, expire les abonnements échus, valide les offres (auto en dev).
-Schedule::call(function () {
+$every('subscriptions:sweep', function () {
     $sweeper = app(SubscriptionSweeper::class);
     $sweeper->run();
     $sweeper->approveOffers();
-    // Demandes sans réponse de l'hôte sous 24 h → remboursées.
-    // Relance de l'hôte à 6 h de la fin, puis remboursement après 24 h.
+});
+// Relance de l'hôte à 6 h de la fin, puis remboursement des demandes sans réponse après 24 h.
+$every('requests:expire', function () {
     app(JoinService::class)->remindHosts();
     app(JoinService::class)->expireOverdue();
-    // Remboursements sans choix du membre depuis quelques jours : renvoyés en argent.
-    app(RefundService::class)->defaultOverdue();
-    // Places libres : on prévient la liste d'attente.
-    app(WaitlistService::class)->notifyAvailable();
-    // Paiements en attente : on relit la passerelle (membre jamais revenu, webhook manqué).
-    app(PaymentService::class)->reconcile();
-    // Séquestre : gains d'hôte arrivés à échéance → solde retirable.
-    app(EarningService::class)->release();
-})
-    ->everyMinute()
-    ->name('subscriptions:sweep')
-    ->withoutOverlapping();
+});
+// Remboursements sans choix du membre depuis quelques jours : renvoyés en argent.
+$every('refunds:default', fn () => app(RefundService::class)->defaultOverdue());
+// Places libres : on prévient la liste d'attente.
+$every('waitlist:notify', fn () => app(WaitlistService::class)->notifyAvailable());
 
 // Liens d'invitation famille pas encore utilisés (expirent vers 7 jours chez Spotify) : rappel au membre et à l'hôte.
 Artisan::command('invites:remind', function () {
