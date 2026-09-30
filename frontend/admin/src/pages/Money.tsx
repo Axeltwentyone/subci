@@ -64,7 +64,7 @@ export function Payouts() {
                     <Td className={cx('text-[13px] font-semibold', Date.now() - Date.parse(p.createdAt) > 36 * 3600e3 ? 'text-err' : 'text-muted')}>{ago(p.createdAt)}</Td>
                     <Td>
                       <Button size="xs" block={false} onClick={() => setConfirm(p)}>
-                        Marquer versé
+                        J’ai envoyé l’argent
                       </Button>
                     </Td>
                   </Tr>
@@ -97,7 +97,7 @@ export function Payouts() {
               Confirme uniquement après avoir envoyé l’argent à <b className="text-ink">{confirm.user?.name}</b> sur le <b className="text-ink">{phone(confirm.phone)}</b> ({confirm.methodLabel}).
             </>
           }
-          confirm="Oui, c’est versé"
+          confirm="Oui, je l’ai envoyé"
           reason={{ label: 'Référence du transfert (facultatif)', placeholder: 'Ex. : ID de transaction Wave' }}
           onCancel={() => setConfirm(null)}
           onConfirm={async (note) => {
