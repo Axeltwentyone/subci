@@ -11,7 +11,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
-/** Connexion = inscription : numéro + code SMS, pas de mot de passe. */
 class AuthController extends Controller
 {
     public function __construct(private OtpService $otp) {}
@@ -51,7 +50,6 @@ class AuthController extends Controller
         $user->forceFill(['phone_verified_at' => now()])->save();
 
         return response()->json([
-            // Session de 90 jours, prolongée à l'usage (EnsureMember).
             'token' => $user->createToken('pwa', ['*'], now()->addDays(90))->plainTextToken,
             'user' => new UserResource($user),
             'isNew' => $user->wasRecentlyCreated,

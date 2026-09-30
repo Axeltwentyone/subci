@@ -141,6 +141,8 @@ export type State = {
   withdrawLockedUntil: number | null
   /** Retraits : minimum et frais d'envoi à la charge de l'hôte. */
   withdrawal: { min: number; feeFixed: number; feePercent: number }
+  /** Gains à venir, mois par mois */
+  upcoming: { label: string; amount: number; at: number }[]
   trusted: boolean
   holdHours: number
   /** Frais de service Sub.ci ajoutés à chaque paiement */
@@ -205,6 +207,7 @@ function empty(): State {
     nextRelease: null,
     withdrawLockedUntil: null,
     withdrawal: { min: 2000, feeFixed: 0, feePercent: 1 },
+    upcoming: [],
     trusted: false,
     holdHours: 48,
     serviceFee: 300,
@@ -263,6 +266,7 @@ function hostPart(h: ApiHost): Partial<State> {
     nextRelease: h.nextRelease ? Date.parse(h.nextRelease) : null,
     withdrawLockedUntil: h.withdrawLockedUntil ? Date.parse(h.withdrawLockedUntil) : null,
     withdrawal: h.withdrawal ?? { min: 2000, feeFixed: 0, feePercent: 1 },
+    upcoming: (h.upcoming ?? []).filter((u) => u.at).map((u) => ({ label: u.label, amount: u.amount, at: Date.parse(u.at!) })),
     trusted: !!h.trusted,
     holdHours: h.holdHours ?? 48,
     offers: h.offers.map(toOffer),

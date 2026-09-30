@@ -273,6 +273,7 @@ function HostDashboard() {
   const { state } = useStore()
   const navigate = useNavigate()
   const [withdraw, setWithdraw] = useState(false)
+  const [calendar, setCalendar] = useState(false)
   const [push, refreshPush] = usePushState()
   const [params, setParams] = useSearchParams()
   const [notifSheet, setNotifSheet] = useState(false)
@@ -308,7 +309,14 @@ function HostDashboard() {
               <b className="text-sand">+{fcfa(state.pending)} FCFA à venir</b>
               {state.nextRelease && <> · prochain versement {state.nextRelease <= Date.now() ? 'dans quelques minutes' : dayAndTime(state.nextRelease)}</>}
             </span>
-            <span>Chaque mois payé par un membre arrive dans ton solde {state.holdHours} h après son début.</span>
+            <span>
+              Chaque mois payé par un membre arrive dans ton solde {state.holdHours} h après son début : un membre qui paie 3 ou 6 mois te verse un mois à la fois.
+            </span>
+            {state.upcoming.length > 0 && (
+              <button type="button" onClick={() => setCalendar(true)} className="self-start pt-1 font-bold text-sand underline underline-offset-2">
+                Voir le calendrier
+              </button>
+            )}
             {state.held > 0 && <span className="text-warn">{fcfa(state.held)} FCFA en pause : un membre a signalé un souci.</span>}
           </div>
         )}
@@ -368,6 +376,25 @@ function HostDashboard() {
       </Button>
 
       <WithdrawSheet open={withdraw} onClose={() => setWithdraw(false)} />
+      <Sheet open={calendar} onClose={() => setCalendar(false)} label="Calendrier des versements">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Tes prochains versements</h2>
+            <p className="text-sm font-medium text-muted">Chaque mois arrive dans ton solde à cette date, puis tu peux le retirer.</p>
+          </div>
+          <div className="flex flex-col">
+            {state.upcoming.map((u, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 border-b border-line-soft py-3 last:border-b-0">
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-[15px] font-bold">{u.label.replace(/^Gains /, '')}</span>
+                  <span className="text-[13px] font-semibold text-muted">{dayAndTime(u.at)}</span>
+                </span>
+                <span className="font-display text-base font-extrabold text-ok-ink">+{fcfa(u.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Sheet>
       <NotifSheet host open={notifSheet} onClose={() => (setNotifSheet(false), refreshPush())} />
       <InstallSheet open={installSheet} onClose={() => setInstallSheet(false)} />
     </div>
@@ -925,7 +952,14 @@ export function SubDetail() {
         >
           Un souci ?
         </button>
-        <Button onClick={() => navigate(`/checkout/${svc.id}`, { viewTransition: true })}>Renouveler · {fcfa(sub.price)}/mois</Button>
+        {subStatus(sub) === 'due' || sub.state === 'expired' ? (
+          <Button onClick={() => navigate(`/checkout/${svc.id}`, { viewTransition: true })}>Renouveler · {fcfa(sub.price)}/mois</Button>
+        ) : (
+          // Déjà payé (3 ou 6 mois par exemple) : pas de renouvellement avant les derniers jours.
+          <span className="flex h-14 items-center justify-center rounded-btn bg-ok-soft px-4 text-center text-sm font-bold text-ok-ink">
+            Payé jusqu’au {shortDate(sub.endAt)}
+          </span>
+        )}
       </StickyAction>
 
       <IssueSheet sub={sub} open={issue} onClose={() => setIssue(false)} />

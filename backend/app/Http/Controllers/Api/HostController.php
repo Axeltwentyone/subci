@@ -56,6 +56,9 @@ class HostController extends Controller
             'pending' => (int) $user->payments()->escrowed()->sum('amount'),
             'nextRelease' => ($next = $user->payments()->escrowed()->whereNull('held_at')->min('available_at')) ? Carbon::parse($next)->toIso8601String() : null,
             'held' => (int) $user->payments()->escrowed()->whereNotNull('held_at')->sum('amount'),
+            // Calendrier : chaque mois payé d'avance arrive dans le solde à sa date (membres payés 3 ou 6 mois).
+            'upcoming' => $user->payments()->escrowed()->whereNull('held_at')->orderBy('available_at')->limit(24)->get(['label', 'amount', 'available_at'])
+                ->map(fn ($p) => ['label' => $p->label, 'amount' => $p->amount, 'at' => $p->available_at?->toIso8601String()]),
             'trusted' => $user->isTrustedHost(),
             'holdHours' => $user->holdHours(),
             'withdrawLockedUntil' => self::withdrawLockedUntil($user)?->toIso8601String(),

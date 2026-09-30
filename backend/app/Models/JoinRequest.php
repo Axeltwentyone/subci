@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['host_offer_id', 'user_id', 'payment_id', 'status', 'expires_at', 'host_reminded_at', 'decided_at'])]
 class JoinRequest extends Model
 {
-    /** Délai de réponse de l'hôte. */
     public const TTL_HOURS = 24;
 
     protected function casts(): array

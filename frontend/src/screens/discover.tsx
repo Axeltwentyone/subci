@@ -6,10 +6,10 @@ import { useToast } from '../components/Toast'
 import { Avatars, Button, Card, Chip, DeviceChip, DeviceList, RoundIconButton, BackButton, Row, ServiceLogo, Skeleton, StickyAction, UnderlineTabs, cx } from '../components/ui'
 import { CATEGORIES, DEVICES, SERVICES, availLabel, getService, savingPct, type Category, type Device, type PublicOffer, type Service } from '../lib/data'
 import { api } from '../lib/api'
-import { fcfa, since, timeLeft } from '../lib/format'
+import { fcfa, shortDate, since, timeLeft } from '../lib/format'
 import { SAND, tintOf, useOnline, useTopColor } from '../lib/hooks'
 import { useDark } from '../lib/theme'
-import { errorMessage, useStore } from '../lib/store'
+import { errorMessage, subStatus, useStore } from '../lib/store'
 import { OfflineScreen } from './system'
 import { useBack } from '../lib/nav'
 
@@ -432,7 +432,13 @@ export function ServicePage() {
 
         <StickyAction>
           {current ? (
-            <Button onClick={() => navigate(`/checkout/${s.id}`, { viewTransition: true })}>Renouveler · {fcfa(current.price)} FCFA</Button>
+            subStatus(current) === 'due' ? (
+              <Button onClick={() => navigate(`/checkout/${s.id}`, { viewTransition: true })}>Renouveler · {fcfa(current.price)} FCFA</Button>
+            ) : (
+              <Button variant="ink" onClick={() => navigate(`/subs/${current.id}`, { viewTransition: true })}>
+                Mon abonnement · payé jusqu’au {shortDate(current.endAt)}
+              </Button>
+            )
           ) : pending ? (
             <Button variant="ink" onClick={() => navigate('/subs')}>
               Voir ma demande

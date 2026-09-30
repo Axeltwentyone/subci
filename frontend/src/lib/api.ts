@@ -107,6 +107,7 @@ export type ApiHost = {
   /** Gains en séquestre (versés au solde mois par mois), dont gelés par un souci signalé. */
   pending: number; held: number; nextRelease: string | null; withdrawLockedUntil: string | null
   withdrawal?: { min: number; feeFixed: number; feePercent: number }
+  upcoming?: { label: string; amount: number; at: string | null }[]
   /** Hôte fiable : versé plus vite (holdHours). */
   trusted: boolean; holdHours: number
 }
