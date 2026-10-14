@@ -26,7 +26,7 @@ class ZavuSmsTest extends TestCase
         $this->postJson('/api/v1/auth/otp', ['phone' => '0758421121'])->assertOk()->assertJsonPath('channel', 'sms');
 
         Http::assertSent(fn ($r) => $r->url() === 'https://api.zavu.dev/v1/messages' && $r->hasHeader('Authorization', 'Bearer zv_test')
-            && $r['to'] === '+2250758421121' && $r['channel'] === 'sms'
+            && $r['to'] === '+2250758421121' && $r['channel'] === 'sms_oneway'
             && preg_match('/^Sub\.ci : ton code est \d{6}\./', $r['text']) && strlen($r['text']) <= 160);
     }
 

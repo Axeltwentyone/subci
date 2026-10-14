@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Codes de connexion par SMS via Zavu (POST /v1/messages, canal « sms »).
+ * Codes de connexion par SMS via Zavu (POST /v1/messages, canal « sms_oneway »).
  * Actif dès que ZAVU_API_KEY est renseignée ; en local, seulement avec ZAVU_SEND_IN_LOCAL=true
  * (chaque SMS consomme du crédit : en local le code reste dans les logs).
  */
@@ -30,7 +30,8 @@ class ZavuSms
         // Sans accents ni emoji : un seul SMS de 160 caractères (GSM-7), donc un seul crédit.
         $response = $request->post('https://api.zavu.dev/v1/messages', [
             'to' => '+225'.$phone,
-            'channel' => 'sms',
+            // « sms_oneway » : sans numéro attribué chez Zavu (« sms » l'exige) ; on n'attend pas de réponse.
+            'channel' => 'sms_oneway',
             'text' => "Sub.ci : ton code est {$code}. Il expire dans {$minutes} min. Ne le partage avec personne.",
         ]);
 
