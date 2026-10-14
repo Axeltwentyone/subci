@@ -55,6 +55,34 @@ class AdminTest extends TestCase
         $this->getJson('/api/v1/admin/overview')->assertOk()->assertJsonStructure(['kpis', 'money', 'todo', 'series', 'services', 'activity']);
     }
 
+    public function test_overview_by_month_compares_the_same_number_of_days(): void
+    {
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-10-14 12:00'));
+        $user = User::factory()->create(['created_at' => '2026-08-20']);
+        $pay = fn (int $amount, string $at) => $user->payments()->create(['type' => 'subscription', 'status' => 'succeeded', 'label' => 'x', 'amount' => $amount, 'months' => 1, 'method' => 'wave'])
+            ->forceFill(['confirmed_at' => $at])->save();
+        $pay(1000, '2026-09-05 10:00');
+        $pay(2000, '2026-09-20 10:00'); // après le 14 : hors comparaison du mois en cours
+        $pay(500, '2026-10-03 10:00');
+        $t = $this->token();
+
+        $this->withToken($t)->getJson('/api/v1/admin/overview')->assertOk()
+            ->assertJsonPath('period.month', '2026-10')->assertJsonPath('period.current', true)->assertJsonPath('period.previousTo', '2026-09-14')
+            ->assertJsonPath('kpis.gmv.value', 500)->assertJsonPath('kpis.gmv.previous', 1000)
+            ->assertJsonPath('months', ['2026-10', '2026-09', '2026-08'])
+            ->assertJsonPath('monthly.10', ['month' => '2026-09', 'gmv' => 3000, 'revenue' => 0, 'users' => 0])
+            ->assertJsonCount(12, 'monthly')->assertJsonCount(30, 'series');
+
+        // Mois passé : le mois entier, comparé au mois d'avant entier, une barre par jour du mois.
+        $this->withToken($t)->getJson('/api/v1/admin/overview?month=2026-09')->assertOk()
+            ->assertJsonPath('period.current', false)->assertJsonPath('kpis.gmv.value', 3000)->assertJsonPath('kpis.gmv.previous', 0)
+            ->assertJsonCount(30, 'series')->assertJsonPath('series.0.date', '2026-09-01')->assertJsonPath('series.4.gmv', 1000);
+
+        // Mois futur ou invalide : mois en cours.
+        $this->withToken($t)->getJson('/api/v1/admin/overview?month=2027-01')->assertJsonPath('period.month', '2026-10');
+        $this->withToken($t)->getJson('/api/v1/admin/overview?month=n-importe')->assertJsonPath('period.month', '2026-10');
+    }
+
     public function test_approve_and_reject_offers_are_logged_and_notify_host(): void
     {
         $t = $this->token();

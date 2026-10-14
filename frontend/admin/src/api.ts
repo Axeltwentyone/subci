@@ -178,6 +178,10 @@ export type UserDetail = AdminUser &
   }
 
 export type Overview = {
+  /** Mois affiché (AAAA-MM) ; mois en cours = comparé au même nombre de jours du mois d'avant (jusqu'à previousTo). */
+  period?: { month: string; current: boolean; previousTo: string }
+  months?: string[]
+  monthly?: { month: string; gmv: number; revenue: number; users: number }[]
   kpis: {
     gmv: { value: number; previous: number }
     commission: { value: number; previous: number }
@@ -270,7 +274,7 @@ export const api = {
   me: () => call<{ data: AdminMe }>('GET', '/auth/me'),
   logout: () => call<unknown>('POST', '/auth/logout'),
 
-  overview: () => call<Overview>('GET', '/overview'),
+  overview: (month?: string) => call<Overview>('GET', month ? `/overview?month=${month}` : '/overview'),
   search: (q: string) => call<{ users: AdminUser[]; payments: PaymentRow[]; offers: OfferRow[] }>('GET', `/search${qs({ q })}`),
 
   offers: (p: { status?: string; q?: string; page?: number }) => call<Page<OfferRow> & { counts: Record<string, number> }>('GET', `/offers${qs(p)}`),

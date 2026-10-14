@@ -3,30 +3,67 @@ import { Link, useNavigate } from 'react-router'
 import { api, type Overview as Data } from '../api'
 import { ErrorBox, Loading, PageHeader, Panel, Stat, ago, cx, fcfa, useAsync } from '../kit'
 
+/** « 2026-09 » → « septembre 2026 ». */
+const monthName = (m: string) => new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date(`${m}-01T12:00:00`))
+const capitalize = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+/** « 2026-01 » → « 2025-12 ». */
+const prevMonth = (m: string) => {
+  const [y, mo] = m.split('-').map(Number)
+  return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`
+}
+const dayMonth = (d: string) => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(new Date(`${d}T12:00:00`))
+
 export function Overview() {
-  const { data, error, loading, reload } = useAsync(() => api.overview(), [])
+  // null = mois en cours.
+  const [month, setMonth] = useState<string | null>(null)
+  const { data, error, loading, reload } = useAsync(() => api.overview(month ?? undefined), [month])
   const navigate = useNavigate()
 
   if (error) return <ErrorBox message={error} onRetry={reload} />
   if (loading && !data) return <Loading />
   if (!data) return null
   const { kpis, money, todo } = data
+  const period = data.period
+  const current = period?.current ?? true
+  const label = period ? monthName(period.month) : 'ce mois'
+  const prevLabel = period ? monthName(prevMonth(period.month)) : 'le mois dernier'
+  const subtitle = !period
+    ? 'Ce mois-ci, comparé au mois dernier.'
+    : current
+      ? `Du 1er au ${dayMonth(new Date().toISOString().slice(0, 10))}, comparé au 1er–${dayMonth(period.previousTo)}.`
+      : `${capitalize(label)} entier, comparé à ${prevLabel}.`
   const nothingToDo = todo.offersToReview + todo.payouts + todo.requests + todo.disputes === 0
 
   return (
     <>
       <PageHeader
         title="Vue d’ensemble"
-        subtitle="Ce mois-ci, comparé au mois dernier à la même date."
+        subtitle={subtitle}
         actions={
+          <>
+          {data.months && data.months.length > 1 && (
+            <select
+              aria-label="Mois affiché"
+              value={period?.month ?? ''}
+              onChange={(e) => setMonth(e.target.value === data.months![0] ? null : e.target.value)}
+              className="rounded-[10px] border-[1.5px] border-line bg-surface px-3 py-2 text-sm font-bold"
+            >
+              {data.months.map((m, i) => (
+                <option key={m} value={m}>
+                  {i === 0 ? `Ce mois-ci (${monthName(m)})` : capitalize(monthName(m))}
+                </option>
+              ))}
+            </select>
+          )}
           <button type="button" onClick={reload} className="rounded-[10px] px-3 py-2 text-sm font-bold text-muted hover:bg-surface">
             ↻ Actualiser
           </button>
+          </>
         }
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4 [&>:first-child]:max-lg:col-span-2">
-        <Stat tone="ink" label="Encaissé ce mois" value={fcfa(kpis.gmv.value)} unit="FCFA" current={kpis.gmv.value} previous={kpis.gmv.previous} hint="vs mois dernier" />
+        <Stat tone="ink" label={current ? 'Encaissé ce mois' : `Encaissé · ${label}`} value={fcfa(kpis.gmv.value)} unit="FCFA" current={kpis.gmv.value} previous={kpis.gmv.previous} hint={current ? 'vs même période le mois dernier' : `vs ${prevLabel}`} />
         <Stat
           label="Revenu Sub.ci"
           value={fcfa(kpis.commission.value)}
@@ -35,9 +72,9 @@ export function Overview() {
           previous={kpis.commission.previous}
           hint={kpis.fees ? `Commission + ${fcfa(kpis.fees.value)} F de frais de service` : 'Commission sur les paiements reversés'}
         />
-        <Stat label="Membres actifs" value={fcfa(kpis.members.value)} hint="avec un abonnement en cours" />
-        <Stat label="Hôtes actifs" value={fcfa(kpis.hosts.value)} hint="au moins une offre en ligne" />
-        <Stat label="Inscriptions" value={fcfa(kpis.newUsers.value)} current={kpis.newUsers.value} previous={kpis.newUsers.previous} hint="ce mois" />
+        <Stat label="Membres actifs" value={fcfa(kpis.members.value)} hint={current ? 'avec un abonnement en cours' : 'aujourd’hui (pas par mois)'} />
+        <Stat label="Hôtes actifs" value={fcfa(kpis.hosts.value)} hint={current ? 'au moins une offre en ligne' : 'aujourd’hui (pas par mois)'} />
+        <Stat label="Inscriptions" value={fcfa(kpis.newUsers.value)} current={kpis.newUsers.value} previous={kpis.newUsers.previous} hint={current ? 'ce mois' : label} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.35fr_1fr]">
@@ -72,18 +109,24 @@ export function Overview() {
             <MoneyRow label="Soldes des hôtes" value={money.hostBalances} hint="dû aux hôtes, retirable" />
             <MoneyRow label="Versements à faire" value={money.payoutsPending} hint="remboursements + retraits demandés" strong />
             {money.referralCredit !== undefined && (
-              <MoneyRow label="Crédits parrainage" value={money.referralCredit} hint={`non utilisés · ${money.referralsMonth ?? 0} parrainage(s) ce mois`} />
+              <MoneyRow label="Crédits parrainage" value={money.referralCredit} hint={`non utilisés · ${money.referralsMonth ?? 0} parrainage(s) ${current ? 'ce mois' : `en ${label}`}`} />
             )}
           </div>
         </Panel>
       </div>
 
-      <Panel title="Encaissements · 30 derniers jours" action={<span className="text-[13px] font-semibold text-muted">Total {fcfa(data.series.reduce((a, d) => a + d.gmv, 0))} FCFA</span>}>
+      {data.monthly && (
+        <Panel title="12 derniers mois" action={<span className="text-[13px] font-semibold text-muted">Clique sur un mois pour l’afficher</span>}>
+          <MonthlyChart months={data.monthly} selected={period?.month} onSelect={(m) => setMonth(m === data.monthly![data.monthly!.length - 1].month ? null : m)} />
+        </Panel>
+      )}
+
+      <Panel title={current ? 'Encaissements · 30 derniers jours' : `Encaissements · ${label}`} action={<span className="text-[13px] font-semibold text-muted">Total {fcfa(data.series.reduce((a, d) => a + d.gmv, 0))} FCFA</span>}>
         <GmvChart series={data.series} />
       </Panel>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel title="Par service · ce mois">
+        <Panel title={`Par service · ${current ? 'ce mois' : label}`}>
           <ServiceBars services={data.services} />
         </Panel>
         <Panel title="Activité récente" pad={false}>
@@ -210,6 +253,53 @@ function GmvChart({ series }: { series: Data['series'] }) {
           <span className="tabular text-sm font-extrabold">{fcfa(d.gmv)} FCFA</span>
           <span className="text-ink-muted">
             {d.payments} paiement{d.payments > 1 ? 's' : ''} · {d.users} inscription{d.users > 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Un mois par barre : encaissé ; info-bulle avec revenu Sub.ci et inscriptions ; clic = afficher ce mois. */
+function MonthlyChart({ months, selected, onSelect }: { months: NonNullable<Data['monthly']>; selected?: string; onSelect: (m: string) => void }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const max = niceMax(Math.max(1, ...months.map((m) => m.gmv)))
+  const short = new Intl.DateTimeFormat('fr-FR', { month: 'short' })
+  const d = hover !== null ? months[hover] : null
+  return (
+    <div className="relative" onMouseLeave={() => setHover(null)}>
+      <div className="flex h-[200px] items-end gap-1.5 lg:gap-3">
+        {months.map((m, i) => {
+          const on = m.month === selected
+          return (
+            <button
+              key={m.month}
+              type="button"
+              onClick={() => onSelect(m.month)}
+              onMouseEnter={() => setHover(i)}
+              onFocus={() => setHover(i)}
+              aria-label={`${monthName(m.month)} : ${fcfa(m.gmv)} FCFA`}
+              aria-pressed={on}
+              className="group flex h-full flex-1 flex-col items-center justify-end gap-1.5"
+            >
+              <span
+                className={cx('w-full rounded-[4px] transition-colors', on ? 'bg-brand' : 'bg-ink group-hover:bg-brand/70')}
+                style={{ height: `${Math.max(m.gmv > 0 ? 2 : 0, (m.gmv / max) * 100) * 0.85}%` }}
+              />
+              <span className={cx('text-[11px] font-semibold capitalize', on ? 'font-extrabold text-ink' : 'text-subtle')}>{short.format(new Date(`${m.month}-01T12:00:00`)).replace('.', '')}</span>
+            </button>
+          )
+        })}
+      </div>
+      {d && hover !== null && (
+        <div
+          className="pointer-events-none absolute top-0 z-10 flex -translate-x-1/2 flex-col gap-0.5 scheme-card rounded-tile bg-ink px-3 py-2 text-[12px] font-semibold text-sand shadow-lg"
+          style={{ left: `clamp(90px, ${((hover + 0.5) / months.length) * 100}%, calc(100% - 90px))` }}
+        >
+          <span className="text-ink-muted capitalize">{monthName(d.month)}</span>
+          <span className="tabular text-sm font-extrabold">{fcfa(d.gmv)} FCFA encaissés</span>
+          <span className="text-ink-muted">
+            {fcfa(d.revenue)} F de revenu Sub.ci · {d.users} inscription{d.users > 1 ? 's' : ''}
           </span>
         </div>
       )}
