@@ -18,6 +18,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 class OtpService
 {
+    private ?string $lastChannel = null;
+
     /** Génère et « envoie » un code. Renvoie le code (à n'exposer qu'en local). */
     public function send(string $phone, string $purpose = 'login'): string
     {
@@ -48,9 +50,8 @@ class OtpService
             'expires_at' => now()->addSeconds(config('services.otp.ttl')),
         ]);
 
-        // Vrai code : envoyé par WhatsApp (SMS à brancher en secours : Orange SMS API…).
-        if (! $test && WhatsAppOtp::enabled() && ! app(WhatsAppOtp::class)->send($phone, $code)) {
-            throw new HttpException(503, 'On n’a pas pu t’envoyer le code sur WhatsApp. Vérifie que ce numéro a WhatsApp, ou réessaie dans un instant.');
+        if (! $test) {
+            $this->deliver($phone, $code);
         }
         // Code en clair dans les logs : uniquement en local (en prod, quiconque lit les logs pourrait se connecter).
         if (app()->environment('local', 'testing')) {
@@ -60,10 +61,37 @@ class OtpService
         return $code;
     }
 
-    /** Canal du code, pour l'afficher dans l'app. */
+    /** Canal prévu pour les codes, pour l'afficher dans l'app. */
     public static function channel(): string
     {
         return WhatsAppOtp::enabled() ? 'whatsapp' : 'sms';
+    }
+
+    /** Canal réellement utilisé par le dernier envoi (SMS si WhatsApp a échoué). */
+    public function lastChannel(): string
+    {
+        return $this->lastChannel ?? self::channel();
+    }
+
+    /** Vrai code : WhatsApp d'abord, SMS Zavu en secours (ou seul canal sans WhatsApp). */
+    private function deliver(string $phone, string $code): void
+    {
+        if (WhatsAppOtp::enabled() && app(WhatsAppOtp::class)->send($phone, $code)) {
+            $this->lastChannel = 'whatsapp';
+
+            return;
+        }
+        if (ZavuSms::enabled()) {
+            if (app(ZavuSms::class)->send($phone, $code)) {
+                $this->lastChannel = 'sms';
+
+                return;
+            }
+            throw new HttpException(503, 'On n’a pas pu t’envoyer le code par SMS. Vérifie le numéro, ou réessaie dans un instant.');
+        }
+        if (WhatsAppOtp::enabled()) {
+            throw new HttpException(503, 'On n’a pas pu t’envoyer le code sur WhatsApp. Vérifie que ce numéro a WhatsApp, ou réessaie dans un instant.');
+        }
     }
 
     public function verify(string $phone, string $code, string $purpose = 'login'): bool

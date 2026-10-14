@@ -117,6 +117,15 @@ return [
         'app_secret' => trim((string) env('WHATSAPP_APP_SECRET', '')),
     ],
 
+    // SMS des codes via Zavu (secours si WhatsApp échoue, ou canal principal sans WhatsApp).
+    'zavu' => [
+        'key' => trim((string) env('ZAVU_API_KEY', '')),
+        // ID d'expéditeur Zavu (« sender_… ») ; vide = expéditeur par défaut du projet.
+        'sender' => trim((string) env('ZAVU_SENDER', '')),
+        // En local, aucun SMS (le code est dans les logs) sauf si true : chaque envoi consomme du crédit.
+        'send_in_local' => (bool) env('ZAVU_SEND_IN_LOCAL', false),
+    ],
+
     'otp' => [
         'ttl' => (int) env('OTP_TTL', 300),
         'max_attempts' => 5,

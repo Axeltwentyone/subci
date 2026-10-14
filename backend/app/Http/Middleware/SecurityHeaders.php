@@ -21,7 +21,6 @@ class SecurityHeaders
             'Referrer-Policy' => 'no-referrer',
             'Permissions-Policy' => 'camera=(), microphone=(), geolocation=()',
             'Cross-Origin-Resource-Policy' => 'same-site',
-            // L'API ne sert que du JSON (et des images privées à l'admin) : rien à exécuter.
             'Content-Security-Policy' => "default-src 'none'; img-src 'self'; frame-ancestors 'none'",
         ];
         if ($request->isSecure()) {

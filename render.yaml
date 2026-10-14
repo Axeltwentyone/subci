@@ -92,6 +92,11 @@ services:
         sync: false
       - key: OTP_BETA_UNTIL
         sync: false
+      # SMS des codes via Zavu (secours de WhatsApp, ou seul canal sans WhatsApp).
+      - key: ZAVU_API_KEY
+        sync: false
+      - key: ZAVU_SENDER
+        sync: false
       # Codes de connexion par WhatsApp (Meta) : jeton permanent d'utilisateur système + ID du numéro.
       - key: WHATSAPP_TOKEN
         sync: false
