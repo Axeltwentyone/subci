@@ -14,7 +14,7 @@ class ZavuSmsTest extends TestCase
     {
         parent::setUp();
         config([
-            'services.zavu.key' => 'zv_test', 'services.zavu.sender' => '', 'services.zavu.send_in_local' => true,
+            'services.zavu.key' => 'zv_test', 'services.zavu.sender' => 'kd74test', 'services.zavu.send_in_local' => true,
             'services.whatsapp.token' => '', 'services.otp.beta_code' => null, 'services.otp.test_codes' => [],
         ]);
     }
@@ -25,7 +25,7 @@ class ZavuSmsTest extends TestCase
 
         $this->postJson('/api/v1/auth/otp', ['phone' => '0758421121'])->assertOk()->assertJsonPath('channel', 'sms');
 
-        Http::assertSent(fn ($r) => $r->url() === 'https://api.zavu.dev/v1/messages' && $r->hasHeader('Authorization', 'Bearer zv_test')
+        Http::assertSent(fn ($r) => $r->url() === 'https://api.zavu.dev/v1/messages' && $r->hasHeader('Authorization', 'Bearer zv_test') && $r->hasHeader('Zavu-Sender', 'kd74test')
             && $r['to'] === '+2250758421121' && $r['channel'] === 'sms_oneway'
             && preg_match('/^Subci : ton code est \d{6}\./', $r['text']) && ! preg_match('/\w\.\w/', $r['text']) && strlen($r['text']) <= 160);
     }
