@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
 import { ApiError, UNAUTHORIZED_EVENT, api, getToken, setToken, toJoinRequest, toNotif, toOffer, toPayment, toPending, toSub, type ApiHost, type ApiUser, type Bootstrap, type IssueReason, type PendingPayment, type Referral } from './api'
-import { getService, setCatalog, type Device, type PayMethodId, type Service } from './data'
+import { HOST_FEE, getService, setCatalog, type Device, type PayMethodId, type Service } from './data'
 import { daysLeft } from './format'
 import { subscribePush, unsubscribePush } from './push'
 
@@ -607,9 +607,11 @@ export function byUrgency(a: UserSub, b: UserSub) {
   return d !== 0 ? d : a.endAt - b.endAt
 }
 
+/** Gain de l'hôte : prix × places, moins la commission Sub.ci (même taux que HostOffer::FEE côté serveur). */
 export function hostNet(price: number, seats: number) {
   const gross = price * seats
-  return { gross, fee: Math.round(gross * 0.1), net: Math.round(gross * 0.9) }
+  const fee = Math.round(gross * HOST_FEE)
+  return { gross, fee, net: gross - fee }
 }
 
 export function useUnread() {
