@@ -296,7 +296,6 @@ export function HostSetup() {
                 {fcfa(net)} FCFA
               </span>
             </div>
-            {plan && <Payback net={net} own={plan.own} />}
             <Button onClick={() => setStep(2)} disabled={!plan}>
               Continuer
             </Button>
@@ -870,18 +869,6 @@ const MIN_PRICE = 1000
 const MAX_PRICE = 5000
 
 /** Curseur de prix avec la zone conseillée (repère vert). */
-/** Ce que les places rapportent face au prix de son propre abonnement : l'hôte voit s'il rentre dans ses frais. */
-function Payback({ net, own }: { net: number; own: number }) {
-  const covered = net >= own
-  return (
-    <p className={cx('-mt-1 text-[13px] leading-snug font-semibold', covered ? 'text-ok-ink' : 'text-muted')} aria-live="polite">
-      {covered
-        ? <>Ton abonnement (≈ {fcfa(own)} FCFA) est remboursé, et tu gagnes <b>{fcfa(net - own)} FCFA</b> de plus chaque mois.</>
-        : <>Ça couvre <b>{Math.round((net / own) * 100)} %</b> de ton abonnement (≈ {fcfa(own)} FCFA) : il ne te coûte plus que {fcfa(own - net)} FCFA/mois.</>}
-    </p>
-  )
-}
-
 function PriceCard({ value, onChange, reco, note }: { value: number; onChange: (n: number) => void; reco: [number, number]; note?: string }) {
   const id = useId()
   const [lo, hi] = reco
