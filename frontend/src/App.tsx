@@ -14,6 +14,7 @@ const entry = () => import('./screens/entry')
 const host = () => import('./screens/host')
 const manage = () => import('./screens/manage')
 const purchase = () => import('./screens/purchase')
+const circles = () => import('./screens/circles')
 
 /** Lien de parrainage (…/?ref=AYA-7K2) : on garde le code pour l'inscription. */
 function captureReferral() {
@@ -79,6 +80,7 @@ const router = createBrowserRouter([
             children: [
               { path: '/home', element: <Home /> },
               { path: '/explore', lazy: () => discover().then((m) => ({ Component: m.Explore })) },
+              { path: '/share', lazy: () => circles().then((m) => ({ Component: m.ShareTab })) },
               { path: '/subs', lazy: () => manage().then((m) => ({ Component: m.MySubs })) },
               { path: '/activity', lazy: () => account().then((m) => ({ Component: m.Activity })) },
               { path: '/profile', lazy: () => account().then((m) => ({ Component: m.Profile })) },
@@ -92,6 +94,8 @@ const router = createBrowserRouter([
           { path: '/success/:ref', lazy: () => purchase().then((m) => ({ Component: m.Success })) },
           { path: '/subs/:id', lazy: () => manage().then((m) => ({ Component: m.SubDetail })) },
           { path: '/settings', lazy: () => account().then((m) => ({ Component: m.SettingsScreen })) },
+          { path: '/circles/new', lazy: () => circles().then((m) => ({ Component: m.CreateCircle })) },
+          { path: '/circles/:code', lazy: () => circles().then((m) => ({ Component: m.CircleDetail })) },
           { path: '/host', lazy: () => host().then((m) => ({ Component: m.HostPitch })) },
           { path: '/host/new', lazy: () => host().then((m) => ({ Component: m.HostSetup })) },
           { path: '/host/offers/:id', lazy: () => host().then((m) => ({ Component: m.ManageOffer })) },

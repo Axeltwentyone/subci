@@ -63,3 +63,12 @@ export const IconMinus = (p: P) => <Svg strokeWidth={2.6} {...p}><path d="M5 12h
 export const IconTablet = (p: P) => <Svg strokeWidth={2} {...p}><rect x="4" y="3" width="16" height="18" rx="2.5" /><path d="M11 18h2" /></Svg>
 export const IconLaptop = (p: P) => <Svg strokeWidth={2} {...p}><rect x="4" y="5" width="16" height="11" rx="1.5" /><path d="M2 19h20" /></Svg>
 export const IconTv = (p: P) => <Svg strokeWidth={2} {...p}><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M8 21h8M12 17v4" /></Svg>
+/** Deux personnes : je partage avec d'autres (onglet Partage). */
+export const IconPeople = (p: P) => (
+  <Svg {...p}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+    <circle cx="16.5" cy="9" r="2.8" />
+    <path d="M17.5 14.2A5 5 0 0 1 21.5 19" />
+  </Svg>
+)

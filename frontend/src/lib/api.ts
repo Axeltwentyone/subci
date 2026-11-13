@@ -258,6 +258,30 @@ export type Bootstrap = {
 
 type Data<T> = { data: T }
 
+/** Cercle de partage : des amis s'organisent autour d'un même abonnement. */
+export type Circle = {
+  code: string
+  name: string
+  serviceId: string
+  /** Ouvert : les places libres sont proposées aux autres utilisateurs. */
+  open: boolean
+  seats: number
+  /** Prix réel de l'abonnement par mois. */
+  price: number
+  /** Part égale de chacun. */
+  share: number
+  /** Prix d'une place fixé par le créateur (cercle ouvert). */
+  seatPrice: number | null
+  /** Ce que paie un membre. */
+  memberPrice: number
+  free: number
+  owner: string
+  isOwner: boolean
+  isMember: boolean
+  members: { id: string; name: string; owner: boolean; me: boolean }[]
+}
+export type CircleInput = { service: string; name: string; seats: number; price: number; open: boolean; seat_price?: number }
+
 export const api = {
   sendOtp: (phone: string) => request<{ sent: boolean; ttl: number; debugCode: string | null; channel?: 'whatsapp' | 'sms' }>('POST', '/auth/otp', { phone }),
   verifyOtp: (phone: string, code: string) => request<{ token: string; user: ApiUser; isNew: boolean }>('POST', '/auth/verify', { phone, code }),
@@ -309,5 +333,12 @@ export const api = {
   logoutOthers: () => request<{ ok: boolean; revoked: number }>('POST', '/auth/logout-others'),
   reportIssue: (subId: string, reason: IssueReason, message?: string) => request<Data<ApiSub>>('POST', `/subscriptions/${subId}/dispute`, { reason, message }),
   solveIssue: (subId: string) => request<Data<ApiSub>>('POST', `/subscriptions/${subId}/dispute/solve`),
+  circles: (serviceId?: string) =>
+    request<{ mine: Circle[]; open: Circle[] }>('GET', serviceId ? `/circles?service=${encodeURIComponent(serviceId)}` : '/circles'),
+  circle: (code: string) => request<Data<Circle>>('GET', `/circles/${encodeURIComponent(code)}`),
+  createCircle: (body: CircleInput) => request<Data<Circle>>('POST', '/circles', body),
+  updateCircle: (code: string, body: Partial<Omit<CircleInput, 'service'>>) => request<Data<Circle>>('PATCH', `/circles/${code}`, body),
+  circleAction: (code: string, action: 'join' | 'leave' | 'close') => request<unknown>('POST', `/circles/${code}/${action}`),
+  removeCircleMember: (code: string, memberId: string) => request<unknown>('DELETE', `/circles/${code}/members/${memberId}`),
   withdraw: (amount: number) => request<{ host: ApiHost; payment: ApiPayment }>('POST', '/host/withdrawals', { amount }),
 }

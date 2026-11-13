@@ -1,17 +1,22 @@
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { SAND, useTopColor } from '../lib/hooks'
 import { useUnread } from '../lib/store'
-import { IconBell, IconHome, IconSearch, IconSubs, IconUser } from './icons'
+import { IconBell, IconHome, IconPeople, IconSearch, IconSubs, IconUser } from './icons'
 import { OfflineBanner } from './OfflineBanner'
 import { LogoMark, Wordmark, cx } from './ui'
 
+/** Rail / sidebar (≥ 768) : toutes les destinations, Activité comprise. */
 const TABS = [
   { to: '/home', label: 'Accueil', Icon: IconHome },
   { to: '/explore', label: 'Explorer', Icon: IconSearch },
+  { to: '/share', label: 'Partage', Icon: IconPeople },
   { to: '/subs', label: 'Mes abos', Icon: IconSubs },
   { to: '/activity', label: 'Activité', Icon: IconBell },
   { to: '/profile', label: 'Profil', Icon: IconUser },
 ] as const
+
+/** Bottom nav (mobile), comme l'app : Activité s'ouvre par la cloche de l'Accueil. */
+const MOBILE_TABS = TABS.filter((t) => t.to !== '/activity')
 
 function CountBadge({ n, className }: { n: number; className?: string }) {
   if (!n) return null
@@ -23,14 +28,13 @@ function CountBadge({ n, className }: { n: number; className?: string }) {
 }
 
 /**
- * Mêmes 5 destinations partout : bottom nav (mobile),
- * rail (≥ 768), sidebar (≥ 1200).
+ * Bottom nav (mobile, 5 onglets), rail (≥ 768), sidebar (≥ 1200).
  */
 export function AppShell() {
   useTopColor(SAND)
   const unread = useUnread()
   const { pathname } = useLocation()
-  const active = Math.max(0, TABS.findIndex((t) => pathname === t.to || pathname.startsWith(t.to + '/')))
+  const active = Math.max(0, MOBILE_TABS.findIndex((t) => pathname === t.to || pathname.startsWith(t.to + '/')))
   return (
     <div className="min-h-dvh bg-sand md:grid md:grid-cols-[88px_1fr] desk:grid-cols-[248px_1fr]">
       {/* Rail / sidebar */}
@@ -89,13 +93,12 @@ export function AppShell() {
             className="absolute inset-y-0 left-0 w-1/5 rounded-full bg-ink/[.07] transition-transform duration-300 ease-app"
             style={{ transform: `translateX(${active * 100}%)` }}
           />
-          {TABS.map(({ to, label, Icon }, i) => (
+          {MOBILE_TABS.map(({ to, label, Icon }, i) => (
             <NavLink key={to} to={to} replace className="pressable relative flex h-[54px] flex-col items-center justify-center gap-0.5 text-[10.5px] font-bold">
               <span className={cx('flex transition-colors duration-200', i === active ? 'text-brand' : 'text-ink/75')}>
                 <Icon size={22} />
               </span>
               <span className={cx('transition-colors duration-200', i === active ? 'text-brand' : 'text-ink/75')}>{label}</span>
-              {to === '/activity' && <CountBadge n={unread} className="absolute top-1 right-[calc(50%-20px)]" />}
             </NavLink>
           ))}
         </div>

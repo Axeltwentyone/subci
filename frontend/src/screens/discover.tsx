@@ -11,6 +11,7 @@ import { SAND, tintOf, useOnline, useTopColor } from '../lib/hooks'
 import { useDark } from '../lib/theme'
 import { errorMessage, subStatus, useStore } from '../lib/store'
 import { OfflineScreen } from './system'
+import { OpenCircleOffers } from './circles'
 import { useBack } from '../lib/nav'
 
 type Filters = { available: boolean; maxPrice: number | null; period: 'month' | '3m' | null }
@@ -275,6 +276,8 @@ export function ServicePage() {
   const s = getService(id)
   const [offers, setOffers] = useState<PublicOffer[] | null>(null)
   const [device, setDevice] = useState<Device | null>(null)
+  /** Places proposées par des utilisateurs (cercles ouverts) pour ce service. */
+  const [circleOffers, setCircleOffers] = useState(0)
   // Lien partagé par un hôte (/service/netflix?offer=81) : son offre est présélectionnée.
   const [params] = useSearchParams()
   const sharedId = params.get('offer')
@@ -374,7 +377,9 @@ export function ServicePage() {
                 <li>• Si l’hôte refuse ou ne répond pas, tu es remboursé.</li>
               </ul>
             </Card>
-          ) : (
+          ) : null}
+          {!current && !pending && !s.chooseOffer && <OpenCircleOffers serviceId={s.id} title="Autres offres" />}
+          {current || pending || !s.chooseOffer ? null : (
             <section className="flex flex-col gap-3" aria-label="Offres disponibles">
               <div className="flex items-baseline justify-between px-1">
                 <h2 className="t-section">Choisis ton offre</h2>
@@ -397,7 +402,7 @@ export function ServicePage() {
                   <Skeleton className="h-[132px] rounded-card" />
                 </>
               ) : visible.length === 0 ? (
-                <Card className="flex flex-col items-center gap-2 p-6 text-center">
+                circleOffers > 0 && !offers.length ? null : <Card className="flex flex-col items-center gap-2 p-6 text-center">
                   <span className="text-[15px] font-bold">{offers.length ? 'Aucune offre pour cet appareil' : 'Aucune place libre pour l’instant'}</span>
                   <span className="text-[13px] font-medium text-muted">
                     {offers.length ? 'Essaie un autre appareil.' : 'Inscris-toi sur la liste d’attente : on te prévient dès qu’une place se libère.'}
@@ -420,6 +425,7 @@ export function ServicePage() {
                   ))}
                 </div>
               )}
+              <OpenCircleOffers serviceId={s.id} onCount={setCircleOffers} />
             </section>
           )}
 
