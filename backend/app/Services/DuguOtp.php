@@ -15,6 +15,21 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 class DuguOtp
 {
+    /** Raison du dernier échec (code d'erreur DUGU, jamais de secret), pour le diagnostic. */
+    public static ?string $lastError = null;
+
+    /** Pourquoi DUGU n'est pas utilisé, ou null s'il l'est. */
+    public static function disabledReason(): ?string
+    {
+        $key = (string) config('services.dugu.key');
+
+        return match (true) {
+            $key === '' => 'no_key',
+            str_starts_with($key, 'dsk_test_') && ! app()->environment('local', 'testing') => 'test_key',
+            default => self::enabled() ? null : 'off',
+        };
+    }
+
     public static function enabled(): bool
     {
         $key = (string) config('services.dugu.key');
@@ -38,12 +53,14 @@ class DuguOtp
                 'whatsapp_mode' => 'shared',
             ]);
         } catch (ConnectionException) {
+            self::$lastError = 'timeout';
             Log::error('DUGU : API injoignable (envoi du code)');
 
             return null;
         }
 
         if (! $response->successful() || ! filled($response->json('data.otp_id'))) {
+            self::$lastError = $response->status().' '.($response->json('error.code') ?? 'no_otp_id');
             // Jamais le code ni la clé dans les logs.
             Log::error('DUGU : envoi du code refusé', [
                 'status' => $response->status(),

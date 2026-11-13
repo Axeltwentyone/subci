@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Log;
  */
 class ZavuSms
 {
+    /** Raison du dernier échec (code d'erreur Zavu, jamais de secret), pour le diagnostic. */
+    public static ?string $lastError = null;
+
     public static function enabled(): bool
     {
         return filled(config('services.zavu.key'))
@@ -37,6 +40,7 @@ class ZavuSms
         ]);
 
         if (! $response->successful()) {
+            self::$lastError = $response->status().' '.($response->json('code') ?? $response->json('error.code') ?? '');
             // Jamais le code ni la clé dans les logs.
             Log::error('Zavu : envoi du SMS refusé', [
                 'status' => $response->status(),

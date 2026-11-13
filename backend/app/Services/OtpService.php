@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\OtpCode;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -95,11 +96,26 @@ class OtpService
 
                 return;
             }
-            throw new HttpException(503, 'On n’a pas pu t’envoyer le code par SMS. Vérifie le numéro, ou réessaie dans un instant.');
+            $this->fail('On n’a pas pu t’envoyer le code par SMS. Vérifie le numéro, ou réessaie dans un instant.');
         }
         if (DuguOtp::enabled() || WhatsAppOtp::enabled()) {
-            throw new HttpException(503, 'On n’a pas pu t’envoyer le code sur WhatsApp. Vérifie que ce numéro a WhatsApp, ou réessaie dans un instant.');
+            $this->fail('On n’a pas pu t’envoyer le code sur WhatsApp. Vérifie que ce numéro a WhatsApp, ou réessaie dans un instant.');
         }
+    }
+
+    /**
+     * 503 avec, pour le diagnostic, la raison de chaque canal (codes d'erreur des fournisseurs, jamais de clé ni de code).
+     */
+    private function fail(string $message): never
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => $message,
+            'channels' => [
+                'dugu' => DuguOtp::disabledReason() ?? DuguOtp::$lastError ?? 'ok',
+                'meta' => WhatsAppOtp::enabled() ? 'failed' : 'off',
+                'zavu' => ZavuSms::enabled() ? (ZavuSms::$lastError ?? 'failed') : 'off',
+            ],
+        ], 503));
     }
 
     public function verify(string $phone, string $code, string $purpose = 'login'): bool
