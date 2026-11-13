@@ -65,7 +65,7 @@ return [
         'payout_change_lock_hours' => (int) env('PAYOUT_CHANGE_LOCK_HOURS', 24),
         // Délai minimal entre deux lectures du statut chez la passerelle pour un même paiement.
         'poll_interval' => (int) env('PAYMENTS_POLL_INTERVAL', 3),
-        'manual_payouts' => (bool) env('PAYMENTS_MANUAL_PAYOUTS', env('PAYMENTS_DRIVER') === 'geniuspay'),
+        'manual_payouts' => (bool) env('PAYMENTS_MANUAL_PAYOUTS', in_array(env('PAYMENTS_DRIVER'), ['geniuspay', 'jeko'], true)),
     ],
 
     'geniuspay' => [
@@ -73,6 +73,16 @@ return [
         'key' => env('GENIUSPAY_API_KEY'),
         'secret' => env('GENIUSPAY_API_SECRET'),
         'webhook_secret' => env('GENIUSPAY_WEBHOOK_SECRET'),
+    ],
+
+    // Jèko (PAYMENTS_DRIVER=jeko) : clés dans business.jeko.africa → Paramètres → API & Webhooks ;
+    // identifiant du magasin dans la page « Magasins ». Pas de sandbox : utiliser une boutique de test.
+    'jeko' => [
+        'base_url' => env('JEKO_BASE_URL', 'https://api.jeko.africa'),
+        'key' => trim((string) env('JEKO_API_KEY', '')),
+        'key_id' => trim((string) env('JEKO_API_KEY_ID', '')),
+        'store_id' => trim((string) env('JEKO_STORE_ID', '')),
+        'webhook_secret' => trim((string) env('JEKO_WEBHOOK_SECRET', '')),
     ],
 
     'offers' => [
@@ -115,6 +125,13 @@ return [
         // Webhook : jeton choisi librement, recopié dans Meta (« Vérifier le token »), et clé secrète de l'app Meta.
         'webhook_verify_token' => trim((string) env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', '')),
         'app_secret' => trim((string) env('WHATSAPP_APP_SECRET', '')),
+    ],
+
+    // WhatsApp des codes via DUGU Sender (canal principal dès que la clé est là).
+    'dugu' => [
+        'key' => trim((string) env('DUGU_API_KEY', '')),
+        // En local, aucun envoi sauf si true (une clé sandbox dsk_test_ n'envoie rien et ne débite rien).
+        'send_in_local' => (bool) env('DUGU_SEND_IN_LOCAL', false),
     ],
 
     // SMS des codes via Zavu (secours si WhatsApp échoue, ou canal principal sans WhatsApp).

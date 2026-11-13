@@ -3,9 +3,10 @@
 use App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BootstrapController;
+use App\Http\Controllers\Api\CircleController;
 use App\Http\Controllers\Api\GeniusPayWebhookController;
-use App\Http\Controllers\Api\WhatsAppWebhookController;
 use App\Http\Controllers\Api\HostController;
+use App\Http\Controllers\Api\JekoWebhookController;
 use App\Http\Controllers\Api\JoinRequestController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\NotificationController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PushController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -80,6 +82,7 @@ Route::prefix('v1')->group(function () {
     Route::get('services/{service}', [ServiceController::class, 'show']);
     Route::get('push/key', [PushController::class, 'key']);
     Route::post('webhooks/geniuspay', GeniusPayWebhookController::class)->middleware('throttle:120,1');
+    Route::post('webhooks/jeko', JekoWebhookController::class)->middleware('throttle:120,1');
     // WhatsApp (Meta) : vérification de l'URL, puis accusés de réception (statuts des messages).
     Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->middleware('throttle:30,1');
     Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->middleware('throttle:300,1');
@@ -124,6 +127,16 @@ Route::prefix('v1')->group(function () {
         Route::post('notifications/{id}/restore', [NotificationController::class, 'restore']);
 
         Route::post('join-requests/{joinRequest}/cancel', [JoinRequestController::class, 'cancel']);
+
+        // Partage : cercles d'amis autour d'un abonnement.
+        Route::get('circles', [CircleController::class, 'index']);
+        Route::post('circles', [CircleController::class, 'store'])->middleware('throttle:10,1');
+        Route::get('circles/{circle}', [CircleController::class, 'show'])->middleware('throttle:60,1');
+        Route::patch('circles/{circle}', [CircleController::class, 'update']);
+        Route::post('circles/{circle}/join', [CircleController::class, 'join'])->middleware('throttle:10,1');
+        Route::post('circles/{circle}/leave', [CircleController::class, 'leave']);
+        Route::post('circles/{circle}/close', [CircleController::class, 'close']);
+        Route::delete('circles/{circle}/members/{member}', [CircleController::class, 'removeMember']);
 
         Route::get('host', [HostController::class, 'show']);
         Route::get('host/plans', [HostController::class, 'plans']);

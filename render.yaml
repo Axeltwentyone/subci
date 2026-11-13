@@ -71,6 +71,15 @@ services:
         sync: false
       - key: GENIUSPAY_WEBHOOK_SECRET
         sync: false
+      # Jèko (PAYMENTS_DRIVER=jeko pour basculer) ; webhook : https://subci-api.onrender.com/api/v1/webhooks/jeko
+      - key: JEKO_API_KEY
+        sync: false
+      - key: JEKO_API_KEY_ID
+        sync: false
+      - key: JEKO_STORE_ID
+        sync: false
+      - key: JEKO_WEBHOOK_SECRET
+        sync: false
 
       # Notifications push : php artisan push:vapid (nouvelle paire pour la prod)
       - key: VAPID_SUBJECT
@@ -91,6 +100,9 @@ services:
       - key: OTP_BETA_CODE
         sync: false
       - key: OTP_BETA_UNTIL
+        sync: false
+      # WhatsApp des codes via DUGU Sender : clé live dsk_live_ (une clé sandbox est ignorée en production).
+      - key: DUGU_API_KEY
         sync: false
       # SMS des codes via Zavu (secours de WhatsApp, ou seul canal sans WhatsApp).
       - key: ZAVU_API_KEY
