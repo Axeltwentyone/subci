@@ -865,7 +865,7 @@ function SeatStepper({ value, onChange, min, max, hint }: { value: number; onCha
   )
 }
 
-const MIN_PRICE = 1000
+const MIN_PRICE = 100
 const MAX_PRICE = 5000
 
 /** Curseur de prix avec la zone conseillée (repère vert). */

@@ -95,7 +95,7 @@ class HostController extends Controller
             'serviceId' => ['required', Rule::in(array_keys(config('plans')))],
             'plan' => ['required', 'string'],
             'seats' => ['required', 'integer', 'min:1'],
-            'price' => ['required', 'integer', 'between:1000,5000'],
+            'price' => ['required', 'integer', 'between:100,5000'],
             'devices' => ['required', 'array', 'min:1'],
             'devices.*' => [Rule::enum(Device::class)],
             'email' => ['nullable', 'email'],
@@ -156,7 +156,7 @@ class HostController extends Controller
         $plan = $offer->planConfig();
         $members = $offer->members()->count() + $offer->joinRequests()->pending()->count();
         $data = $request->validate([
-            'price' => ['sometimes', 'integer', 'between:1000,5000'],
+            'price' => ['sometimes', 'integer', 'between:100,5000'],
             'seats' => ['sometimes', 'integer', 'min:'.max(1, $members), 'max:'.$plan['max']],
             'devices' => ['sometimes', 'array', 'min:1'],
             'devices.*' => [Rule::in($plan['devices'])],

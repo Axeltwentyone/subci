@@ -29,7 +29,7 @@ class HostEconomicsTest extends TestCase
         $this->assertSame(0, $host->fresh()->balance);
     }
 
-    public function test_price_per_seat_is_at_least_1000(): void
+    public function test_price_per_seat_is_at_least_100(): void
     {
         $this->seed(ServiceSeeder::class);
         $host = User::factory()->create();
@@ -38,7 +38,7 @@ class HostEconomicsTest extends TestCase
             'devices' => ['tv'], 'seats' => 2, 'price' => 2500, 'access_mode' => 'credentials', 'access_email' => 'h@x.ci', 'access_password' => 'p', 'status' => 'live', 'approved_at' => now(),
         ]);
 
-        $this->actingAs($host)->patchJson("/api/v1/host/offers/{$offer->id}", ['price' => 900])->assertStatus(422);
-        $this->patchJson("/api/v1/host/offers/{$offer->id}", ['price' => 1000])->assertOk();
+        $this->actingAs($host)->patchJson("/api/v1/host/offers/{$offer->id}", ['price' => 90])->assertStatus(422);
+        $this->patchJson("/api/v1/host/offers/{$offer->id}", ['price' => 100])->assertOk();
     }
 }
