@@ -131,7 +131,8 @@ class EarningService
     /** Gèle / dégèle les gains en séquestre liés à un abonnement. */
     public function hold(Subscription $sub, bool $on): int
     {
-        return Payment::escrowed()->whereIn('source_payment_id', $sub->payments()->select('id'))
+        // Identifiants lus d'abord : MySQL refuse une sous-requête sur la table qu'il met à jour.
+        return Payment::escrowed()->whereIn('source_payment_id', $sub->payments()->pluck('id'))
             ->update(['held_at' => $on ? now() : null]);
     }
 
