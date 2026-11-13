@@ -81,7 +81,7 @@ class DuguOtp
 
     private function http(): PendingRequest
     {
-        return Http::withToken(config('services.dugu.key'))->acceptJson()->asJson()->timeout(20)
+        return Http::withToken(config('services.dugu.key'))->acceptJson()->asJson()->timeout(30)
             ->baseUrl('https://dugusender.com/api/v1/');
     }
 }
