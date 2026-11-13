@@ -64,14 +64,14 @@ services:
         sync: false
 
       - key: PAYMENTS_DRIVER
-        value: geniuspay
+        value: jeko
       - key: GENIUSPAY_API_KEY
         sync: false
       - key: GENIUSPAY_API_SECRET
         sync: false
       - key: GENIUSPAY_WEBHOOK_SECRET
         sync: false
-      # Jèko (PAYMENTS_DRIVER=jeko pour basculer) ; webhook : https://subci-api.onrender.com/api/v1/webhooks/jeko
+      # Jèko (passerelle active ; geniuspay pour revenir en arrière) ; webhook : https://subci-api.onrender.com/api/v1/webhooks/jeko
       - key: JEKO_API_KEY
         sync: false
       - key: JEKO_API_KEY_ID

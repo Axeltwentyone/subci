@@ -3,13 +3,16 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/** API visée par /api : Laravel local par défaut, ou la prod (API_PROXY=https://subci-api.onrender.com). */
+const API = { target: process.env.API_PROXY ?? 'http://127.0.0.1:8000', changeOrigin: true, secure: true }
+
 export default defineConfig({
   server: {
     // En dev, l'API Laravel (php artisan serve) est servie sous la même origine.
-    proxy: { '/api': 'http://127.0.0.1:8000' },
+    proxy: { '/api': API },
   },
   preview: {
-    proxy: { '/api': 'http://127.0.0.1:8000' },
+    proxy: { '/api': API },
   },
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
