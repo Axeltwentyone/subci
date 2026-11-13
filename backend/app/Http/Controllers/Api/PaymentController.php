@@ -87,6 +87,15 @@ class PaymentController extends Controller
     }
 
     /** N'accepte qu'une origine déclarée dans FRONTEND_URL (pas de redirection ouverte). */
+    /** Page de retour Jèko → l'écran de retour de l'app (adresse enregistrée au paiement). */
+    public function bounce(string $reference): \Illuminate\Http\RedirectResponse
+    {
+        $payment = Payment::where('reference', $reference)->first();
+        $fallback = rtrim((string) config('app.frontend_url'), '/')."/retour/{$reference}";
+
+        return redirect()->away($payment?->return_url ?? $fallback);
+    }
+
     private static function allowedOrigin(?string $origin): string
     {
         $origin = rtrim((string) $origin, '/');

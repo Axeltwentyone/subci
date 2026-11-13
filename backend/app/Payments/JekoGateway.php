@@ -36,6 +36,10 @@ class JekoGateway implements PaymentGateway
             throw new HttpException(422, 'La carte bancaire n’est pas encore disponible. Choisis Wave, Orange Money, MTN ou Moov.');
         }
         $return = $payment->return_url ?? rtrim((string) config('app.frontend_url'), '/')."/retour/{$payment->reference}";
+        // Jèko refuse les adresses locales (http://localhost…) : on repasse alors par l'API, qui redirige.
+        if (! self::isPublicUrl($return)) {
+            $return = self::apiRoot()."/api/v1/payments/return/{$payment->reference}";
+        }
 
         // Référence unique par tentative (Jèko refuse un doublon) ; la partie avant « _ » est la nôtre.
         $response = $this->http()->post('/partner_api/payment_requests', [
@@ -106,6 +110,26 @@ class JekoGateway implements PaymentGateway
             'error' => PaymentStatus::Failed,
             default => PaymentStatus::Pending,
         };
+    }
+
+    /** https et un vrai nom de domaine (pas localhost, ni .test / .localhost). */
+    public static function isPublicUrl(?string $url): bool
+    {
+        $parts = parse_url((string) $url);
+        $host = strtolower($parts['host'] ?? '');
+
+        return ($parts['scheme'] ?? '') === 'https'
+            && str_contains($host, '.')
+            && ! str_ends_with($host, '.localhost')
+            && ! str_ends_with($host, '.test')
+            && ! filter_var($host, FILTER_VALIDATE_IP);
+    }
+
+    private static function apiRoot(): string
+    {
+        $url = rtrim((string) config('app.url'), '/');
+
+        return self::isPublicUrl($url.'/') ? $url : 'https://'.request()->getHost();
     }
 
     private function http(): PendingRequest

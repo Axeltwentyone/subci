@@ -83,6 +83,8 @@ Route::prefix('v1')->group(function () {
     Route::get('push/key', [PushController::class, 'key']);
     Route::post('webhooks/geniuspay', GeniusPayWebhookController::class)->middleware('throttle:120,1');
     Route::post('webhooks/jeko', JekoWebhookController::class)->middleware('throttle:120,1');
+    // Retour de la page Jèko quand l'app n'a pas d'adresse publique (dev, app web pas encore en ligne).
+    Route::get('payments/return/{reference}', [PaymentController::class, 'bounce'])->middleware('throttle:60,1');
     // WhatsApp (Meta) : vérification de l'URL, puis accusés de réception (statuts des messages).
     Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->middleware('throttle:30,1');
     Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->middleware('throttle:300,1');

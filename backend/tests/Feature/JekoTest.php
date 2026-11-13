@@ -56,8 +56,20 @@ class JekoTest extends TestCase
             && $r['storeId'] === 'store_1' && $r['amountCents'] === 250000 && $r['currency'] === 'XOF'
             && str_starts_with($r['reference'], $data['ref'].'_')
             && $r['paymentDetails']['type'] === 'redirect' && $r['paymentDetails']['data']['paymentMethod'] === 'orange'
-            && str_ends_with($r['paymentDetails']['data']['successUrl'], '/retour/'.$data['ref']));
+            // Front en localhost (tests) : Jèko refuse ces adresses, le retour passe par l'API.
+            && str_starts_with($r['paymentDetails']['data']['successUrl'], 'https://')
+            && str_ends_with($r['paymentDetails']['data']['successUrl'], '/api/v1/payments/return/'.$data['ref']));
         $this->assertSame('pr_1', Payment::sole()->provider_reference);
+
+        $this->get('/api/v1/payments/return/'.$data['ref'])->assertRedirectContains('/retour/'.$data['ref']);
+    }
+
+    public function test_public_return_url_is_sent_as_is(): void
+    {
+        $this->assertTrue(\App\Payments\JekoGateway::isPublicUrl('https://subci.vercel.app/retour/X'));
+        $this->assertFalse(\App\Payments\JekoGateway::isPublicUrl('http://localhost:5173/retour/X'));
+        $this->assertFalse(\App\Payments\JekoGateway::isPublicUrl('https://localhost/retour/X'));
+        $this->assertFalse(\App\Payments\JekoGateway::isPublicUrl('https://127.0.0.1/retour/X'));
     }
 
     public function test_card_is_refused_with_a_clear_message(): void
