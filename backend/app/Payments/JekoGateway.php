@@ -56,7 +56,10 @@ class JekoGateway implements PaymentGateway
         if (! $response->successful() || ! $response->json('id')) {
             Log::error('Jèko : création du paiement refusée', [
                 'status' => $response->status(),
-                'error' => $response->json('code') ?? $response->json('error') ?? $response->json('message'),
+                // Jèko renvoie {id: "business_not_enabled_for_api_access", message: …} ; pas de clé dans la réponse.
+                'error' => $response->json('id') ?? $response->json('code') ?? $response->json('error'),
+                'message' => $response->json('message'),
+                'body' => Str::limit($response->body(), 500),
             ]);
             throw new HttpException(502, 'Le paiement n’a pas pu démarrer. Réessaie dans un instant.');
         }
