@@ -217,7 +217,7 @@ export function Login() {
           <PhoneInput value={phone} onChange={(v) => { setPhone(v); setError(undefined) }} error={error} autoFocus />
           {sent && (
             <div className="flex animate-fade-in flex-col gap-2.5">
-              <span className="text-[13px] font-bold text-muted">{channel === 'whatsapp' ? 'Code reçu sur WhatsApp (de Sub.ci)' : 'Code reçu par SMS'}</span>
+              <span className="text-[13px] font-bold text-muted">{channel === 'whatsapp' ? 'Code reçu sur WhatsApp' : 'Code reçu par SMS'}</span>
               <OtpInput value={code} onChange={(v) => { setCode(v); setCodeError(undefined) }} onComplete={verify} />
               {codeError && <span className="text-[13px] font-semibold text-err-ink">{codeError}</span>}
               {left > 0 ? (

@@ -39,7 +39,9 @@ class OtpService
 
         // Numéro de test déclaré sur le serveur, ou code commun de la bêta : code fixe, aucun SMS.
         $test = config('services.otp.test_codes')[$phone] ?? self::betaCode();
-        $code = $test ?? str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        // DUGU génère et vérifie son propre code : le nôtre, aléatoire, ne sert alors qu'à remplir code_hash.
+        $dugu = ! $test && DuguOtp::enabled() ? app(DuguOtp::class)->request($phone) : null;
+        $code = $test ?? $dugu['testCode'] ?? str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         if ($test) {
             Log::notice('OTP : numéro de test utilisé', ['phone' => substr($phone, 0, 4).'••••'.substr($phone, -2)]);
         }
@@ -47,9 +49,15 @@ class OtpService
             'phone' => $phone,
             'purpose' => $purpose,
             'code_hash' => Hash::make($code),
+            'provider_id' => $dugu['id'] ?? null,
             'expires_at' => now()->addSeconds(config('services.otp.ttl')),
         ]);
 
+        if ($dugu) {
+            $this->lastChannel = 'whatsapp';
+
+            return (string) ($dugu['testCode'] ?? '');
+        }
         if (! $test) {
             $this->deliver($phone, $code);
         }
@@ -64,7 +72,7 @@ class OtpService
     /** Canal prévu pour les codes, pour l'afficher dans l'app. */
     public static function channel(): string
     {
-        return WhatsAppOtp::enabled() ? 'whatsapp' : 'sms';
+        return DuguOtp::enabled() || WhatsAppOtp::enabled() ? 'whatsapp' : 'sms';
     }
 
     /** Canal réellement utilisé par le dernier envoi (SMS si WhatsApp a échoué). */
@@ -73,7 +81,7 @@ class OtpService
         return $this->lastChannel ?? self::channel();
     }
 
-    /** Vrai code : WhatsApp d'abord, SMS Zavu en secours (ou seul canal sans WhatsApp). */
+    /** Code généré ici : WhatsApp Meta d'abord, SMS Zavu en secours (ou seul canal sans WhatsApp). */
     private function deliver(string $phone, string $code): void
     {
         if (WhatsAppOtp::enabled() && app(WhatsAppOtp::class)->send($phone, $code)) {
@@ -89,7 +97,7 @@ class OtpService
             }
             throw new HttpException(503, 'On n’a pas pu t’envoyer le code par SMS. Vérifie le numéro, ou réessaie dans un instant.');
         }
-        if (WhatsAppOtp::enabled()) {
+        if (DuguOtp::enabled() || WhatsAppOtp::enabled()) {
             throw new HttpException(503, 'On n’a pas pu t’envoyer le code sur WhatsApp. Vérifie que ce numéro a WhatsApp, ou réessaie dans un instant.');
         }
     }
@@ -103,7 +111,8 @@ class OtpService
         if (! $otp || $otp->attempts >= config('services.otp.max_attempts')) {
             return false;
         }
-        if (! Hash::check($code, $otp->code_hash)) {
+        $valid = $otp->provider_id ? app(DuguOtp::class)->verify($otp->provider_id, $code) : Hash::check($code, $otp->code_hash);
+        if (! $valid) {
             $otp->increment('attempts');
             RateLimiter::hit("otp-fail:{$phone}", 86400);
 

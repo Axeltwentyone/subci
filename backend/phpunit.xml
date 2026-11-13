@@ -33,6 +33,8 @@
         <env name="SERVICE_FEE_LONG" value="0"/>
         <env name="WHATSAPP_TOKEN" value=""/>
         <env name="WHATSAPP_PHONE_NUMBER_ID" value=""/>
+        <env name="DUGU_SEND_IN_LOCAL" value="false" force="true"/>
+        <env name="ZAVU_SEND_IN_LOCAL" value="false" force="true"/>
         <env name="ADMIN_REQUIRE_2FA" value="false"/>
         <!-- Jamais la vraie passerelle en test (jetons sandbox, argent réel). -->
         <env name="PAYMENTS_DRIVER" value="fake"/>

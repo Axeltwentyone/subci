@@ -27,7 +27,7 @@ class AuthController extends Controller
             'sent' => true,
             'ttl' => config('services.otp.ttl'),
             'channel' => $this->otp->lastChannel(),
-            'debugCode' => config('services.otp.expose_code') ? $code : null,
+            'debugCode' => config('services.otp.expose_code') && $code !== '' ? $code : null,
         ]);
     }
 
