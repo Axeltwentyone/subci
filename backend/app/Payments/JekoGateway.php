@@ -5,7 +5,10 @@ namespace App\Payments;
 use App\Contracts\PaymentGateway;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -27,7 +30,22 @@ class JekoGateway implements PaymentGateway
         'moov' => 'moov',
     ];
 
+    /** Moyens payés sans la page Jèko quand on connaît le numéro du client. */
+    private const DIRECT = ['wave', 'mtn', 'moov'];
+
     public function __construct(private array $config) {}
+
+    /** Référence unique par tentative (Jèko refuse un doublon) ; la partie avant « _ » est la nôtre. */
+    private function create(Payment $payment, array $data): Response
+    {
+        return $this->http()->post('/partner_api/payment_requests', [
+            'storeId' => $this->config['store_id'],
+            'amountCents' => $payment->amount * 100,
+            'currency' => 'XOF',
+            'reference' => $payment->reference.'_'.Str::lower(Str::random(6)),
+            'paymentDetails' => ['type' => 'redirect', 'data' => $data],
+        ]);
+    }
 
     public function request(Payment $payment): array
     {
@@ -41,21 +59,22 @@ class JekoGateway implements PaymentGateway
             $return = self::apiRoot()."/api/v1/payments/return/{$payment->reference}";
         }
 
-        // Référence unique par tentative (Jèko refuse un doublon) ; la partie avant « _ » est la nôtre.
-        $response = $this->http()->post('/partner_api/payment_requests', [
-            'storeId' => $this->config['store_id'],
-            'amountCents' => $payment->amount * 100,
-            'currency' => 'XOF',
-            'reference' => $payment->reference.'_'.Str::lower(Str::random(6)),
-            'paymentDetails' => [
-                'type' => 'redirect',
-                'data' => [
-                    'paymentMethod' => $method,
-                    'successUrl' => $return,
-                    'errorUrl' => $return,
-                ],
-            ],
-        ]);
+        $data = ['paymentMethod' => $method, 'successUrl' => $return, 'errorUrl' => $return];
+        // Mode direct : Jèko ne redemande pas le numéro. Wave renvoie directement son lien de paiement,
+        // MTN et Moov envoient la demande en USSD sur le téléphone. Orange garde la page Jèko.
+        $direct = in_array($method, self::DIRECT, true) && preg_match('/^0[157]\d{8}$/', (string) $payment->phone);
+        $response = $direct
+            ? $this->create($payment, $data + ['forceProviderDirect' => true, 'payerPhone' => '+225'.$payment->phone])
+            : null;
+        if ($response === null || ! $response->successful() || ! $response->json('id')) {
+            if ($response !== null) {
+                Log::warning('Jèko : mode direct refusé, repli sur la page Jèko', [
+                    'status' => $response->status(),
+                    'error' => $response->json('id') ?? $response->json('code'),
+                ]);
+            }
+            $response = $this->create($payment, $data);
+        }
 
         if (! $response->successful() || ! $response->json('id')) {
             Log::error('Jèko : création du paiement refusée', [
@@ -139,6 +158,8 @@ class JekoGateway implements PaymentGateway
             ->acceptJson()
             ->asJson()
             ->timeout(15)
-            ->retry(2, 300, throw: false);
+            // On ne relance que sur coupure réseau ou panne Jèko : un refus (4xx) ne changera pas.
+            ->retry(2, 300, fn ($e) => $e instanceof ConnectionException
+                || ($e instanceof RequestException && $e->response->serverError()), throw: false);
     }
 }

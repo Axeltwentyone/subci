@@ -64,12 +64,48 @@ class JekoTest extends TestCase
         $this->get('/api/v1/payments/return/'.$data['ref'])->assertRedirectContains('/retour/'.$data['ref']);
     }
 
+    public function test_wave_uses_direct_mode_with_the_payer_phone(): void
+    {
+        Http::fake(['jeko.test/*' => Http::response(['id' => 'pr_1', 'status' => 'pending', 'redirectUrl' => 'https://pay.wave.com/c/cos-1'])]);
+
+        $data = $this->checkout('wave')->assertCreated()->json('data');
+        $this->assertSame('https://pay.wave.com/c/cos-1', $data['checkoutUrl']);
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($r) => $r['paymentDetails']['data']['paymentMethod'] === 'wave'
+            && $r['paymentDetails']['data']['forceProviderDirect'] === true
+            && $r['paymentDetails']['data']['payerPhone'] === '+2250758421121');
+    }
+
+    public function test_direct_mode_failure_falls_back_to_the_jeko_page(): void
+    {
+        Http::fakeSequence('jeko.test/*')
+            ->push(['id' => 'third_party_payment_provider_error', 'message' => 'MTN indisponible'], 400)
+            ->push(['id' => 'pr_2', 'status' => 'pending', 'redirectUrl' => 'https://pay.jeko.africa/pr_2']);
+
+        $data = $this->checkout('mtn')->assertCreated()->json('data');
+        $this->assertSame('https://pay.jeko.africa/pr_2', $data['checkoutUrl']);
+        $this->assertSame('pr_2', Payment::sole()->provider_reference);
+        $sent = Http::recorded()->map(fn ($pair) => $pair[0]);
+        $this->assertCount(2, $sent);
+        $this->assertTrue($sent[0]['paymentDetails']['data']['forceProviderDirect']);
+        $this->assertArrayNotHasKey('forceProviderDirect', $sent[1]['paymentDetails']['data']);
+        $this->assertNotSame($sent[0]['reference'], $sent[1]['reference']);
+    }
+
+    public function test_orange_keeps_the_jeko_page(): void
+    {
+        Http::fake(['jeko.test/*' => Http::response(['id' => 'pr_1', 'status' => 'pending', 'redirectUrl' => 'https://pay.jeko.africa/pr_1'])]);
+
+        $this->checkout('om')->assertCreated();
+        Http::assertSent(fn ($r) => ! isset($r['paymentDetails']['data']['forceProviderDirect']));
+    }
+
     public function test_public_return_url_is_sent_as_is(): void
     {
-        $this->assertTrue(\App\Payments\JekoGateway::isPublicUrl('https://subci.vercel.app/retour/X'));
-        $this->assertFalse(\App\Payments\JekoGateway::isPublicUrl('http://localhost:5173/retour/X'));
-        $this->assertFalse(\App\Payments\JekoGateway::isPublicUrl('https://localhost/retour/X'));
-        $this->assertFalse(\App\Payments\JekoGateway::isPublicUrl('https://127.0.0.1/retour/X'));
+        $this->assertTrue(JekoGateway::isPublicUrl('https://subci.vercel.app/retour/X'));
+        $this->assertFalse(JekoGateway::isPublicUrl('http://localhost:5173/retour/X'));
+        $this->assertFalse(JekoGateway::isPublicUrl('https://localhost/retour/X'));
+        $this->assertFalse(JekoGateway::isPublicUrl('https://127.0.0.1/retour/X'));
     }
 
     public function test_card_is_refused_with_a_clear_message(): void
