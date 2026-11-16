@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\PaymentStatus;
+use App\Enums\PaymentType;
 use App\Enums\PayMethod;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaymentResource;
@@ -71,6 +72,7 @@ class PaymentController extends Controller
     public function resend(Request $request, Payment $payment): PaymentResource
     {
         $this->authorizeOwner($request, $payment);
+        abort_unless($payment->type === PaymentType::Subscription, 404);
 
         return new PaymentResource($this->payments->resend($payment)->load('service', 'hostOffer.user', 'joinRequest'));
     }
@@ -78,6 +80,7 @@ class PaymentController extends Controller
     public function cancel(Request $request, Payment $payment): PaymentResource
     {
         $this->authorizeOwner($request, $payment);
+        abort_unless($payment->type === PaymentType::Subscription, 404);
         if ($payment->status === PaymentStatus::Pending) {
             $payment->update(['status' => PaymentStatus::Failed]);
             app(ReferralService::class)->restoreCredit($payment);

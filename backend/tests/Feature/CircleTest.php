@@ -88,6 +88,12 @@ class CircleTest extends TestCase
         // Un membre ne gère pas le cercle ; il peut partir.
         $this->patchJson("/api/v1/circles/{$code}", ['open' => true])->assertForbidden();
 
+        // Part de Moussa pas encore versée : places et prix figés, le nom reste modifiable.
+        $this->actingAs($aya)->patchJson("/api/v1/circles/{$code}", ['seats' => 2])->assertStatus(422);
+        $this->patchJson("/api/v1/circles/{$code}", ['name' => 'Famille K.'])->assertOk();
+        \App\Models\Payment::escrowed()->update(['available_at' => now()]);
+        app(\App\Services\EarningService::class)->release();
+
         // Ouvert sans prix : la part égale sert de point de départ, puis le créateur la change.
         $this->actingAs($aya)->patchJson("/api/v1/circles/{$code}", ['open' => true, 'price' => 6000])
             ->assertOk()->assertJsonPath('data.open', true)->assertJsonPath('data.memberPrice', 1500);

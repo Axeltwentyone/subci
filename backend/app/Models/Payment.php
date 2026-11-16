@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'circle_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'service_fee', 'provider_fee', 'provider_transaction_id', 'credit_used', 'credit_restored_at', 'refund_choice', 'gross', 'months',
+    'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'circle_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'service_fee', 'provider_fee', 'provider_transaction_id', 'credit_used', 'credit_shortfall', 'credit_restored_at', 'refund_choice', 'gross', 'months',
     'method', 'phone', 'invite_email', 'provider_reference', 'checkout_url', 'return_url', 'period_start', 'period_end', 'expires_at', 'available_at', 'held_at',
     'confirmed_at', 'refunded_at', 'payout_attempted_at', 'payout_error',
 ])]
@@ -50,6 +50,7 @@ class Payment extends Model
             'service_fee' => 'integer',
             'provider_fee' => 'integer',
             'credit_used' => 'integer',
+            'credit_shortfall' => 'integer',
             'credit_restored_at' => 'datetime',
             'invite_email' => 'encrypted',
             'available_at' => 'datetime',

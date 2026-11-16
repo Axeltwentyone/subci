@@ -138,6 +138,10 @@ class PaymentService
         if ($payment->status !== PaymentStatus::Pending && $payment->status !== PaymentStatus::Expired) {
             return $payment;
         }
+        // Crédit déjà dépensé ailleurs : relancer offrirait la remise une seconde fois.
+        if (! $this->referrals->canReapply($payment)) {
+            throw ValidationException::withMessages(['payment' => 'Ton crédit Sub.ci a déjà servi pour un autre paiement. Lance un nouveau paiement.']);
+        }
         $payment->status = PaymentStatus::Pending;
         $payment->expires_at = now()->addSeconds(config('services.payments.request_ttl'));
         DB::transaction(fn () => $this->referrals->reapplyCredit($payment));

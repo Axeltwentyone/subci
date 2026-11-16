@@ -81,7 +81,11 @@ class ReferralService
                 return;
             }
             $locked->update(['credit_restored_at' => now()]);
-            User::whereKey($locked->user_id)->increment('referral_credit', $locked->credit_used);
+            // Ce qui n'avait pas pu être repris (déjà dépensé ailleurs) n'est jamais rendu une seconde fois.
+            $back = $locked->credit_used - (int) $locked->credit_shortfall;
+            if ($back > 0) {
+                User::whereKey($locked->user_id)->increment('referral_credit', $back);
+            }
         });
     }
 
@@ -92,8 +96,24 @@ class ReferralService
             return;
         }
         $user = User::whereKey($payment->user_id)->lockForUpdate()->first();
-        $user->decrement('referral_credit', min($user->referral_credit, $payment->credit_used));
-        $payment->update(['credit_restored_at' => null]);
+        // Seul ce qui avait été rendu peut être repris ; le reste manquant est noté pour ne jamais être rendu à nouveau.
+        $restored = $payment->credit_used - (int) $payment->credit_shortfall;
+        $taken = min($user->referral_credit, $restored);
+        if ($taken > 0) {
+            $user->decrement('referral_credit', $taken);
+        }
+        $payment->update(['credit_restored_at' => null, 'credit_shortfall' => (int) $payment->credit_shortfall + ($restored - $taken)]);
+    }
+
+    /** Le crédit rendu pour ce paiement est-il encore disponible (sinon le relancer offrirait la remise deux fois) ? */
+    public function canReapply(Payment $payment): bool
+    {
+        if ($payment->credit_used <= 0 || ! $payment->credit_restored_at) {
+            return true;
+        }
+        $restored = $payment->credit_used - (int) $payment->credit_shortfall;
+
+        return User::whereKey($payment->user_id)->value('referral_credit') >= $restored;
     }
 
     /** Récompense le parrain seulement quand le filleul revient payer : 2 paiements aboutis (acceptés, non remboursés). */

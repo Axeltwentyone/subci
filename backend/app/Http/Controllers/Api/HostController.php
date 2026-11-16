@@ -203,13 +203,14 @@ class HostController extends Controller
                     $offer->user->shortName()." a remplacé l’e-mail du compte de l’offre #{$offer->id}.", "/offers?open={$offer->id}", 'offers');
             }
             if ($accessChanged) {
-                $offer->subscriptions()->with('user')->get()->each(function ($sub) use ($offer, $short) {
+                // Seulement les membres encore en cours : un ancien membre ne reçoit jamais les nouveaux accès.
+                $offer->subscriptions()->with('user')->where('status', '!=', SubscriptionStatus::Expired)->where('ends_at', '>', now())->get()->each(function ($sub) use ($offer, $short) {
                     $sub->update(['access_email' => $offer->access_email, 'access_password' => $offer->access_password]);
                     $sub->user->notify(new AppNotification('ok', "Nouveaux accès {$short}", 'Ton hôte a mis à jour les identifiants. Ils sont dans ton coffre.', ['label' => 'Voir', 'to' => "/subs/{$sub->id}"]));
                 });
             }
             if ($priceChanged) {
-                $offer->subscriptions()->with('user')->get()->each(fn ($sub) => $sub->user->notify(new AppNotification(
+                $offer->subscriptions()->with('user')->where('status', '!=', SubscriptionStatus::Expired)->get()->each(fn ($sub) => $sub->user->notify(new AppNotification(
                     'pay', "Nouveau prix {$short}", number_format($offer->price, 0, ',', ' ').' FCFA / mois à partir de ton prochain renouvellement.',
                 )));
             }

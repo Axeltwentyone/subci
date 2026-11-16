@@ -124,12 +124,22 @@ class OtpService
 
         $otp = OtpCode::where('phone', $phone)->where('purpose', $purpose)->whereNull('consumed_at')
             ->where('expires_at', '>', now())->latest()->first();
-        if (! $otp || $otp->attempts >= config('services.otp.max_attempts')) {
+        if (! $otp) {
             return false;
         }
-        $valid = $otp->provider_id ? app(DuguOtp::class)->verify($otp->provider_id, $code) : Hash::check($code, $otp->code_hash);
+        // Essai compté AVANT la vérification, de façon atomique : des requêtes simultanées ne dépassent jamais le maximum.
+        $claimed = OtpCode::whereKey($otp->id)->where('attempts', '<', (int) config('services.otp.max_attempts'))->increment('attempts');
+        if (! $claimed) {
+            return false;
+        }
+        try {
+            $valid = $otp->provider_id ? app(DuguOtp::class)->verify($otp->provider_id, $code) : Hash::check($code, $otp->code_hash);
+        } catch (\Throwable $e) {
+            // Panne du fournisseur : l'essai n'est pas compté contre la personne.
+            OtpCode::whereKey($otp->id)->where('attempts', '>', 0)->decrement('attempts');
+            throw $e;
+        }
         if (! $valid) {
-            $otp->increment('attempts');
             RateLimiter::hit("otp-fail:{$phone}", 86400);
 
             return false;

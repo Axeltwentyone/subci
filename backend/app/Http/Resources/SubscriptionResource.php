@@ -18,7 +18,8 @@ class SubscriptionResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $ready = $this->status !== SubscriptionStatus::Pending;
+        // Coffre ouvert seulement pendant l'abonnement : ni avant l'activation, ni après l'échéance.
+        $ready = $this->status === SubscriptionStatus::Active && $this->ends_at->isFuture();
 
         return [
             'id' => (string) $this->id,
@@ -41,7 +42,8 @@ class SubscriptionResource extends JsonResource
             'invite' => ($type = $this->hostOffer?->inviteType()) ? [
                 'type' => $type,
                 'email' => $this->invite_email,
-                'link' => $this->invite_link,
+                // Lien d'invitation famille : utile en attente d'activation, jamais après l'échéance.
+                'link' => $this->status !== SubscriptionStatus::Expired && $this->ends_at->isFuture() ? $this->invite_link : null,
                 'sentAt' => $this->invite_sent_at?->toIso8601String(),
                 'joinedAt' => $this->invite_joined_at?->toIso8601String(),
                 'problemAt' => $this->invite_problem_at?->toIso8601String(),

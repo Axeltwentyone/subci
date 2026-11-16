@@ -101,31 +101,45 @@ class EarningService
         }
 
         $gross = (int) $earnings->sum('gross');
+        // Part payée avec du crédit Sub.ci (parrainage, remboursement en crédit) : rendue en crédit, jamais en argent.
+        $credit = (int) $earnings->sum(function (Payment $e) {
+            $src = $e->source;
+            $base = $src ? $src->offerAmount() : 0;
+
+            return $src && $src->credit_used > 0 && $base > 0 ? (int) round($e->gross * min(1, $src->credit_used / $base)) : 0;
+        });
+        $cash = $gross - $credit;
         // Accès payé jusqu'au début du premier mois rendu.
         $first = $earnings->first();
         $paidUntil = $first->period_start ?? $first->available_at->copy()->subHours((int) config('services.payments.hold_hours'));
         Payment::whereIn('id', $earnings->modelKeys())->update(['status' => PaymentStatus::Failed, 'held_at' => null]);
 
         $source = $earnings->first()->source;
+        if ($credit > 0) {
+            User::whereKey($sub->user_id)->increment('referral_credit', $credit);
+        }
+        if ($cash <= 0) {
+            return [$gross, $paidUntil];
+        }
         $manual = (bool) config('services.payments.manual_payouts');
-        $refund = $sub->user->payments()->create([
+        $sub->user->payments()->create([
             'type' => PaymentType::Refund,
             'status' => $manual ? PaymentStatus::Pending : PaymentStatus::Succeeded,
             'service_id' => $sub->service_id,
             'host_offer_id' => $earnings->first()->host_offer_id,
             'subscription_id' => $sub->id,
-            'label' => "Remboursement {$why}",
-            'amount' => $gross,
+            'label' => "Remboursement {$why}".($credit > 0 ? ' (+ '.self::fcfa($credit).' en crédit Sub.ci)' : ''),
+            'amount' => $cash,
             'method' => $source?->method ?? PayMethod::Wave,
             'phone' => $source?->phone ?? $sub->user->phone,
             'confirmed_at' => $manual ? null : now(),
         ]);
         if ($manual) {
-            AdminAlerts::send('payouts', 'Remboursement à verser · '.self::fcfa($gross),
+            AdminAlerts::send('payouts', 'Remboursement à verser · '.self::fcfa($cash),
                 $sub->user->shortName()." · {$why}", '/payouts', 'payouts');
         }
 
-        return [$refund->amount, $paidUntil];
+        return [$gross, $paidUntil];
     }
 
     /** Gèle / dégèle les gains en séquestre liés à un abonnement. */

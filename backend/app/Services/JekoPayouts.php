@@ -45,7 +45,8 @@ class JekoPayouts
                 $done += (int) $this->follow($p);
             });
         // Nouveaux versements (hors remboursements en attente du choix du membre).
-        Payment::toPayOut()->whereNull('payout_attempted_at')->oldest()->limit(20)->get()
+        // Déjà rattaché à un transfert Jèko (envoyé à la main depuis le dashboard) : jamais renvoyé.
+        Payment::toPayOut()->whereNull('payout_attempted_at')->whereNull('provider_transaction_id')->oldest()->limit(20)->get()
             ->filter(fn (Payment $p) => self::handles($p))
             ->each(function (Payment $p) use (&$done) {
                 $done += (int) $this->send($p);
@@ -59,7 +60,7 @@ class JekoPayouts
         // Verrou : une seule tentative, même si deux tâches tournent en même temps.
         $claimed = DB::transaction(function () use ($payment) {
             $locked = Payment::whereKey($payment->id)->lockForUpdate()->first();
-            if ($locked->status !== PaymentStatus::Pending || $locked->payout_attempted_at || $locked->refund_choice === 'pending') {
+            if ($locked->status !== PaymentStatus::Pending || $locked->payout_attempted_at || $locked->provider_transaction_id || $locked->refund_choice === 'pending') {
                 return false;
             }
             $locked->update(['payout_attempted_at' => now(), 'payout_error' => null]);

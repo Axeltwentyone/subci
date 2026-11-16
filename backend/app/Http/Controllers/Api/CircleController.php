@@ -140,6 +140,14 @@ class CircleController extends Controller
             'seat_price' => ['sometimes', 'nullable', 'integer', 'min:200', 'max:'.(int) $request->input('price', $circle->price)],
         ], self::MESSAGES);
         abort_if(isset($data['seats']) && $data['seats'] < $circle->members()->count(), 422, 'Il y a déjà plus de membres que de places.');
+        // Parts du mois pas encore versées : places et prix figés (sinon le versement au créateur pourrait être avancé).
+        $money = array_intersect_key($data, array_flip(['seats', 'price', 'seat_price', 'open']));
+        $changes = array_filter($money, fn ($v, $k) => match ($k) {
+            'seats' => $v != $circle->seats, 'price' => $v != $circle->price,
+            'seat_price' => $v != $circle->seat_price, 'open' => (bool) $v !== $circle->is_open,
+        }, ARRAY_FILTER_USE_BOTH);
+        abort_if($changes && \App\Models\Payment::escrowed()->where('circle_id', $circle->id)->exists(), 422,
+            'Des parts de ce mois n’ont pas encore été versées : places et prix sont figés jusqu’au versement.');
         $circle->update(array_filter([
             'name' => isset($data['name']) ? trim($data['name']) : null,
             'seats' => $data['seats'] ?? null,
