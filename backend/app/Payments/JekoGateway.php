@@ -120,6 +120,14 @@ class JekoGateway implements PaymentGateway
             return PaymentStatus::Failed;
         }
 
+        // Commission réellement prélevée par Jèko (centimes → FCFA), pour la trésorerie.
+        $transactionId = $response->json('transaction.id');
+        $fees = $response->json('transaction.fees.amount');
+        if ($status === PaymentStatus::Succeeded && $payment->exists && $payment->provider_transaction_id === null && is_string($transactionId) && is_numeric($fees)
+            && $reference === $payment->provider_reference) {
+            $payment->forceFill(['provider_fee' => intdiv((int) $fees, 100), 'provider_transaction_id' => mb_substr($transactionId, 0, 64)])->saveQuietly();
+        }
+
         return $status;
     }
 

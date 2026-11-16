@@ -83,6 +83,9 @@ return [
         'key_id' => trim((string) env('JEKO_API_KEY_ID', '')),
         'store_id' => trim((string) env('JEKO_STORE_ID', '')),
         'webhook_secret' => trim((string) env('JEKO_WEBHOOK_SECRET', '')),
+        // Commissions Jèko, pour estimer les frais tant que le montant réel n'est pas connu (%).
+        'fee_in_percent' => (float) env('JEKO_FEE_IN_PERCENT', 1.5),
+        'fee_out_percent' => (float) env('JEKO_FEE_OUT_PERCENT', 1.5),
     ],
 
     'offers' => [

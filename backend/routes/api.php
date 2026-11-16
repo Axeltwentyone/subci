@@ -65,6 +65,19 @@ Route::prefix('v1')->group(function () {
 
             Route::get('audit', [Admin\MiscController::class, 'audit']);
 
+            // Bénéfices & trésorerie Sub.ci.
+            Route::get('treasury', [Admin\TreasuryController::class, 'summary']);
+            Route::get('treasury/journal', [Admin\TreasuryController::class, 'journal']);
+            Route::get('treasury/withdrawals', [Admin\TreasuryController::class, 'withdrawals']);
+            Route::post('treasury/withdrawals', [Admin\TreasuryController::class, 'storeWithdrawal']);
+            Route::post('treasury/withdrawals/{withdrawal}/status', [Admin\TreasuryController::class, 'decideWithdrawal']);
+            Route::get('treasury/entries', [Admin\TreasuryController::class, 'entries']);
+            Route::post('treasury/entries', [Admin\TreasuryController::class, 'storeEntry']);
+            Route::get('treasury/jeko', [Admin\TreasuryController::class, 'jeko']);
+            Route::post('treasury/jeko/sync', [Admin\TreasuryController::class, 'sync'])->middleware('throttle:6,1');
+            Route::post('treasury/jeko/{transaction}/classify', [Admin\TreasuryController::class, 'classify']);
+            Route::post('treasury/balances', [Admin\TreasuryController::class, 'storeBalance']);
+
             Route::get('push', [Admin\PushController::class, 'show']);
             Route::post('push/subscriptions', [Admin\PushController::class, 'store']);
             Route::delete('push/subscriptions', [Admin\PushController::class, 'destroy']);

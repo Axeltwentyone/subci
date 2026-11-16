@@ -9,6 +9,7 @@ import { Payments, Payouts, Requests } from './pages/Money'
 import { Offers } from './pages/Offers'
 import { Alerts } from './pages/Alerts'
 import { Overview } from './pages/Overview'
+import { Treasury } from './pages/Treasury'
 import { UserPage, Users } from './pages/People'
 import { Login, SessionProvider, Shell, TwoFactorSetup, useSession } from './shell'
 
@@ -22,6 +23,7 @@ const router = createBrowserRouter([
       { path: 'disputes', element: <Disputes /> },
       { path: 'requests', element: <Requests /> },
       { path: 'payments', element: <Payments /> },
+      { path: 'treasury', element: <Treasury /> },
       { path: 'users', element: <Users /> },
       { path: 'users/:id', element: <UserPage /> },
       { path: 'catalog', element: <Catalog /> },

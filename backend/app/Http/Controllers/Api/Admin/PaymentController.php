@@ -67,14 +67,15 @@ class PaymentController extends Controller
 
     public function markPaid(Request $request, Payment $payment): JsonResponse
     {
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:120']]);
+        // fee : frais d'envoi réellement facturés par l'opérateur (sinon estimés dans la trésorerie).
+        $data = $request->validate(['note' => ['nullable', 'string', 'max:120'], 'fee' => ['nullable', 'integer', 'min:0']]);
         // Verrou : un double clic ne marque (et ne notifie) qu'une fois.
-        $done = DB::transaction(function () use ($payment) {
+        $done = DB::transaction(function () use ($payment, $data) {
             $locked = Payment::whereKey($payment->id)->lockForUpdate()->first();
             if ($locked->status !== PaymentStatus::Pending || ! in_array($locked->type, [PaymentType::Refund, PaymentType::Withdrawal], true) || $locked->refund_choice === 'pending') {
                 return false;
             }
-            $locked->update(['status' => PaymentStatus::Succeeded, 'confirmed_at' => now()]);
+            $locked->update(['status' => PaymentStatus::Succeeded, 'confirmed_at' => now()] + (isset($data['fee']) ? ['provider_fee' => $data['fee']] : []));
 
             return true;
         });
@@ -84,7 +85,7 @@ class PaymentController extends Controller
         $payment->user->notify($payment->type === PaymentType::Refund
             ? new AppNotification('pay', 'Remboursement reçu', "{$amount} renvoyés sur ton ".$payment->method->label().'.')
             : new AppNotification('host', 'Retrait envoyé', "{$amount} versés sur ton ".$payment->method->label().'.'));
-        $request->user()->log('payout.paid', $payment, array_filter(['amount' => $payment->amount, 'note' => $data['note'] ?? null]));
+        $request->user()->log('payout.paid', $payment, array_filter(['amount' => $payment->amount, 'fee' => $data['fee'] ?? null, 'note' => $data['note'] ?? null], fn ($v) => $v !== null));
 
         return response()->json(['data' => Presenter::payment($payment->fresh(['user', 'service']))]);
     }

@@ -257,6 +257,101 @@ export type DisputeRow = {
 
 export type PushState = { publicKey: string | null; devices: number; alerts: { kind: string; label: string; on: boolean }[] }
 
+
+/* ---------- Trésorerie ---------- */
+
+export type TreasuryPeriod = 'today' | 'week' | 'month' | 'year' | 'custom'
+
+export type ProfitBlock = {
+  gross: number
+  serviceFees: number
+  commission: number
+  hostWithdrawalFees: number
+  revenue: number
+  feesIn: number
+  feesInEstimated: number
+  feesOut: number
+  feesOutEstimated: number
+  withdrawalFees: number
+  charges: number
+  referral: number
+  net: number
+  withdrawn: number
+  paidOut: number
+  refunded: number
+}
+
+export type Treasury = {
+  preset: TreasuryPeriod
+  period: { from: string; to: string }
+  profit: ProfitBlock
+  allTime: ProfitBlock
+  cash: {
+    theoretical: number
+    real: { amount: number; source: 'jeko' | 'manual'; at: string; stale: boolean; theoreticalThen: number; gap: number } | null
+  }
+  liabilities: {
+    owners: { hostBalances: number; escrow: number; hostWithdrawalsToSend: number }
+    ownersTotal: number
+    members: { refundsToSend: number; refundsAwaitingChoice: number; held: number; memberCredit: number }
+    membersTotal: number
+    sendingFees: number
+    pendingWithdrawals: number
+    total: number
+  }
+  available: { confirmed: number | null; estimated: number }
+  profitLeft: number
+  withdrawable: number | null
+  series: { date: string; gross: number; revenue: number; net: number; fees: number; withdrawn: number; balance: number }[]
+  reconciliation: {
+    subci: { collections: number; fees: number; feesEstimated: number; payouts: number; withdrawals: number; charges: number; adjustments: number; balance: number }
+    jeko: { synced: boolean; collections: number; feesIn: number; transfers: number; feesOut: number; balance: number | null; balanceAt: string | null }
+    unclassified: number
+    unmatchedPayments: number
+  }
+  config: { feeInPercent: number; feeOutPercent: number; jeko: boolean }
+}
+
+export type JournalRow = { kind: string; at: string; label: string; cash: number; profit: number; estimated: boolean; reference: string | null; paymentId: number | null }
+
+export type TreasuryWithdrawal = {
+  id: number
+  amount: number
+  fee: number
+  net: number
+  destination: string
+  reference: string | null
+  status: 'pending' | 'confirmed' | 'failed'
+  at: string
+  decidedAt: string | null
+  note: string | null
+  by: string | null
+  fromJeko: boolean
+}
+
+export type TreasuryEntry = { id: number; kind: 'charge' | 'adjustment'; amount: number; label: string; fromMerchant: boolean; reversesId: number | null; at: string; by: string | null; reversed: boolean }
+
+export type JekoLedger = {
+  configured: boolean
+  balances: { id: number; amount: number; source: 'jeko' | 'manual'; note: string | null; at: string; by: string | null; theoretical: number }[]
+  transactions: {
+    id: number
+    type: string
+    status: string
+    method: string | null
+    amount: number
+    fee: number
+    counterpart: string | null
+    reference: string | null
+    at: string
+    payment: { id: number; reference: string; type: string } | null
+    withdrawalId: number | null
+    ignored: string | null
+  }[]
+}
+
+type PeriodQuery = { period: TreasuryPeriod; from?: string; to?: string }
+
 type Page<T> = { data: T[]; meta: { total: number; page: number; pages: number } }
 
 const qs = (p: Record<string, string | number | undefined | null>) => {
@@ -312,6 +407,21 @@ export const api = {
   testPush: () => call<{ ok: boolean; devices: number }>('POST', '/push/test'),
   whatsapp: () => call<WhatsAppState>('GET', '/whatsapp'),
   createWhatsAppTemplate: () => call<{ ok: boolean; status?: string; error?: string; code?: number }>('POST', '/whatsapp/template'),
+
+  treasury: (p: PeriodQuery) => call<Treasury>('GET', `/treasury${qs(p)}`),
+  treasuryJournal: (p: PeriodQuery & { page?: number; kind?: string }) => call<Page<JournalRow>>('GET', `/treasury/journal${qs(p)}`),
+  treasuryWithdrawals: () => call<{ data: TreasuryWithdrawal[] }>('GET', '/treasury/withdrawals'),
+  addTreasuryWithdrawal: (body: { amount: number; fee: number; net?: number; destination: string; reference?: string; status: string; withdrawnAt: string; note?: string }) =>
+    call<{ data: TreasuryWithdrawal }>('POST', '/treasury/withdrawals', body),
+  decideTreasuryWithdrawal: (id: number, status: 'confirmed' | 'failed') => call<{ data: TreasuryWithdrawal }>('POST', `/treasury/withdrawals/${id}/status`, { status }),
+  treasuryEntries: () => call<{ data: TreasuryEntry[] }>('GET', '/treasury/entries'),
+  addTreasuryEntry: (body: { kind: 'charge' | 'adjustment'; amount: number; label: string; fromMerchant?: boolean; occurredAt: string; reversesId?: number }) =>
+    call<{ data: TreasuryEntry }>('POST', '/treasury/entries', body),
+  jekoLedger: () => call<JekoLedger>('GET', '/treasury/jeko'),
+  syncJeko: () => call<{ configured: boolean; balance?: number; imported?: number; linked?: number }>('POST', '/treasury/jeko/sync'),
+  classifyJeko: (id: number, body: { as: 'payment' | 'withdrawal' | 'ignore'; reference?: string; reason?: string; destination?: string }) =>
+    call<{ ok: boolean }>('POST', `/treasury/jeko/${id}/classify`, body),
+  addMerchantBalance: (body: { amount: number; recordedAt: string; note?: string }) => call<unknown>('POST', '/treasury/balances', body),
 
   audit: (page = 1) => call<Page<AuditRow>>('GET', `/audit${qs({ page })}`),
 }

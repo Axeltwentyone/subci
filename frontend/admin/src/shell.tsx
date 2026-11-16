@@ -285,6 +285,7 @@ const NAV: Nav[] = [
   { to: '/offers', label: 'Offres à valider', short: 'Offres', icon: '✓', count: (c) => c.offersToReview, urgent: true, tab: true },
   { to: '/payouts', label: 'Versements', icon: '↗', count: (c) => c.payouts, urgent: true, tab: true },
   { to: '/payments', label: 'Paiements', icon: '₣', tab: true },
+  { to: '/treasury', label: 'Bénéfices & trésorerie', short: 'Trésorerie', icon: '◈' },
   { to: '/disputes', label: 'Soucis signalés', short: 'Soucis', icon: '⚑', count: (c) => c.disputes, urgent: true },
   { to: '/requests', label: 'Demandes', icon: '⧗', count: (c) => c.requests },
   { to: '/users', label: 'Utilisateurs', icon: '◉' },

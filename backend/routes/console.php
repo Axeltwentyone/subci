@@ -148,3 +148,9 @@ Artisan::command('admin:create {email} {--name=}', function (string $email) {
     $admin->tokens()->delete();
     $this->info("Compte admin prêt : {$admin->email}");
 })->purpose('Créer un compte d’administration');
+
+// Trésorerie : relevé Jèko (solde réel, transactions et frais réels) toutes les 15 minutes.
+Schedule::call(fn () => app(\App\Services\JekoLedger::class)->sync())->everyFifteenMinutes()->name('jeko:ledger')->withoutOverlapping(10);
+Artisan::command('jeko:ledger', function () {
+    $this->line(json_encode(app(\App\Services\JekoLedger::class)->sync(), JSON_UNESCAPED_UNICODE));
+})->purpose('Relève le solde et les transactions du compte marchand Jèko');
