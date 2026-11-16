@@ -83,6 +83,7 @@ type ApiPayment = {
   method: PayMethodId; phone: string | null; serviceId: string | null; subscriptionId: string | null
   hostName: string | null; joinStatus: JoinRequest['status'] | null
   periodStart: string | null; periodEnd: string | null; expiresAt: string | null; at: string; checkoutUrl: string | null
+  circleCode?: string | null
 }
 type ApiNotif = { id: string; kind: Notif['kind']; title: string; body: string; action: Notif['action'] | null; at: string; unread: boolean }
 type ApiOffer = Omit<HostOffer, 'pendingInvite' | 'email' | 'requests'> & { pendingInvite: string | null; monthlyNet: number; email: string | null; requests?: ApiRequest[] }
@@ -223,6 +224,8 @@ export type PendingPayment = {
   expiresAt?: number
   /** Page de la passerelle (GeniusPay) où valider le paiement */
   checkoutUrl?: string
+  /** Part d'un cercle : retour sur le cercle une fois payé. */
+  circleCode?: string
 }
 
 export const toPending = (p: ApiPayment): PendingPayment => ({
@@ -240,6 +243,7 @@ export const toPending = (p: ApiPayment): PendingPayment => ({
   periodEnd: ms(p.periodEnd),
   expiresAt: ms(p.expiresAt),
   checkoutUrl: p.checkoutUrl ?? undefined,
+  circleCode: p.circleCode ?? undefined,
 })
 
 /* ---------- Endpoints ---------- */
@@ -279,7 +283,16 @@ export type Circle = {
   owner: string
   isOwner: boolean
   isMember: boolean
-  members: { id: string; name: string; owner: boolean; me: boolean }[]
+  members: { id: string; name: string; owner: boolean; me: boolean; paidUntil?: string | null }[]
+  /** Frais de service ajoutés à la part, et total payé chaque mois. */
+  serviceFee?: number
+  total?: number
+  /** Ma part est réglée jusqu'à cette date. */
+  paidUntil?: string | null
+  /** Nouveau membre, ou échéance proche / passée. */
+  mustPay?: boolean
+  /** Créateur : tout le cercle a payé le mois. */
+  potReached?: boolean | null
 }
 export type CircleInput = { service: string; name: string; seats: number; price: number; open: boolean; seat_price?: number }
 
@@ -340,6 +353,8 @@ export const api = {
   createCircle: (body: CircleInput) => request<Data<Circle>>('POST', '/circles', body),
   updateCircle: (code: string, body: Partial<Omit<CircleInput, 'service'>>) => request<Data<Circle>>('PATCH', `/circles/${code}`, body),
   circleAction: (code: string, action: 'join' | 'leave' | 'close') => request<unknown>('POST', `/circles/${code}/${action}`),
+  payCircle: (code: string, body: { method: PayMethodId; phone: string }) =>
+    request<Data<ApiPayment>>('POST', `/circles/${code}/pay`, { ...body, returnOrigin: window.location.origin }),
   removeCircleMember: (code: string, memberId: string) => request<unknown>('DELETE', `/circles/${code}/members/${memberId}`),
   withdraw: (amount: number) => request<{ host: ApiHost; payment: ApiPayment }>('POST', '/host/withdrawals', { amount }),
 }

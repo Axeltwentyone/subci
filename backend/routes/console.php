@@ -156,3 +156,5 @@ Artisan::command('jeko:ledger', function () {
 })->purpose('Relève le solde et les transactions du compte marchand Jèko');
 // Versements : retraits et remboursements envoyés automatiquement par Jèko (opérateurs activés), puis suivis.
 $every('payouts:jeko', fn () => app(\App\Services\JekoPayouts::class)->run());
+// Cercles : rappel avant l'échéance de chaque part, place libérée après le délai de grâce.
+Schedule::call(fn () => app(\App\Services\CircleService::class)->sweep())->hourly()->name('circles:sweep')->withoutOverlapping(30);

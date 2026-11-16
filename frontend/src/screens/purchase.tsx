@@ -253,6 +253,12 @@ export function Paying() {
         setP(next)
         if (next.status === 'succeeded') {
           done.current = true
+          // Part d'un cercle : retour sur le cercle, place réglée.
+          if (next.circleCode) {
+            toast({ text: `Part payée · ${fcfa(next.amount)} FCFA` })
+            navigate(`/circles/${next.circleCode}`, { replace: true, viewTransition: true })
+            return
+          }
           navigate(`/success/${ref}`, { replace: true, state: next, viewTransition: true })
         } else if (next.status === 'expired' || next.status === 'failed') {
           done.current = true

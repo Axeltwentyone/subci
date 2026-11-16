@@ -50,7 +50,27 @@ class Circle extends Model
     /** Membres, créateur compris. */
     public function members(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'circle_members')->withTimestamps()->orderByPivot('created_at');
+        return $this->belongsToMany(User::class, 'circle_members')->withPivot('paid_until', 'reminded_at')->withTimestamps()->orderByPivot('created_at');
+    }
+
+    public function payments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /** Places prises par un paiement en cours (réservées le temps de valider sur le téléphone). */
+    public function reservedSeats(): int
+    {
+        return $this->payments()->where('status', \App\Enums\PaymentStatus::Pending)->where('expires_at', '>', now())
+            ->whereNotIn('user_id', $this->members()->select('users.id'))->distinct('user_id')->count('user_id');
+    }
+
+    /** Cercle complet et tous les membres (hors créateur) ont payé le mois en cours : le pot est atteint. */
+    public function potReached(): bool
+    {
+        $others = $this->members()->where('users.id', '!=', $this->user_id)->get();
+
+        return $others->isNotEmpty() && $others->count() >= $this->seats - 1 && $others->every(fn (User $u) => $u->pivot->paid_until && \Illuminate\Support\Carbon::parse($u->pivot->paid_until)->isFuture());
     }
 
     public function scopeActive(Builder $query): void

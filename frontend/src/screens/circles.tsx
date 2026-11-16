@@ -5,10 +5,12 @@ import { IconChevronRight, IconClose, IconMinus, IconPeople, IconPlus } from '..
 import { Sheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { Badge, Button, Card, Radio, RoundIconButton, Screen, ServiceLogo, Skeleton, StickyAction, Toggle, TopBar, cx } from '../components/ui'
-import { ApiError, api, type Circle } from '../lib/api'
+import { ApiError, api, toPending, type Circle } from '../lib/api'
+import { PayMethodPicker } from '../components/inputs'
+import type { PayMethodId } from '../lib/data'
 import { AVATAR_COLORS, SERVICES, getService } from '../lib/data'
-import { fcfa } from '../lib/format'
-import { errorMessage } from '../lib/store'
+import { fcfa, shortDate } from '../lib/format'
+import { errorMessage, useStore } from '../lib/store'
 import { ConfirmModal } from './manage'
 
 /*
@@ -92,7 +94,7 @@ export function ShareTab() {
             Créer un cercle
           </Button>
           <Button size="md" variant="ink" onClick={() => setCodeOpen(true)}>
-            J’ai un code
+            J’ai un lien ou un code
           </Button>
         </div>
 
@@ -173,7 +175,8 @@ export function ShareTab() {
 function CodeSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
   const [code, setCode] = useState('')
-  const clean = code.trim().toUpperCase().replace(/\s/g, '')
+  // Lien collé (…/circles/CODE) ou code seul.
+  const clean = (code.match(/circles\/([A-Za-z0-9]{6,12})/)?.[1] ?? code).trim().toUpperCase().replace(/\s/g, '')
   const go = () => {
     if (clean.length < 6) return
     onClose()
@@ -188,13 +191,12 @@ function CodeSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
           go()
         }}
       >
-        <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Code du cercle</h2>
-        <p className="text-sm font-medium text-muted">Ton ami le trouve dans son cercle, bouton « Inviter ».</p>
+        <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Lien ou code du cercle</h2>
+        <p className="text-sm font-medium text-muted">Colle le lien que ton ami t’a envoyé, ou tape son code.</p>
         <input
           value={code}
           onChange={(e) => setCode(e.target.value)}
           autoFocus
-          autoCapitalize="characters"
           autoComplete="off"
           aria-label="Code du cercle"
           placeholder="EX. 7KQ4MZ2P"
@@ -435,6 +437,7 @@ export function CircleDetail() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<null | { title: string; text: string; action: string; run: () => Promise<void> }>(null)
+  const [payOpen, setPayOpen] = useState(false)
   const [priceOpen, setPriceOpen] = useState(false)
 
   const load = useCallback(
@@ -560,7 +563,7 @@ export function CircleDetail() {
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="text-[15px] font-bold">{m.me ? `${m.name} (toi)` : m.name}</span>
                 <span className="text-[13px] font-medium text-muted">
-                  {m.owner ? (circle.open ? 'A créé le cercle' : `A créé le cercle · ${fcfa(circle.share)} FCFA`) : `${fcfa(circle.memberPrice)} FCFA/mois`}
+                  {m.owner ? (circle.open ? 'A créé le cercle' : `A créé le cercle · ${fcfa(circle.share)} FCFA`) : memberStatus(circle, m)}
                 </span>
               </span>
               {owner && !m.owner && (
@@ -609,7 +612,7 @@ export function CircleDetail() {
           </Card>
         )}
 
-        <Note>La collecte des parts par Sub.ci arrive bientôt. En attendant, mettez-vous d’accord entre vous pour payer chacun sa part.</Note>
+        <Note>{payNote(circle)}</Note>
 
         {circle.isMember && (
           <Button
@@ -642,7 +645,7 @@ export function CircleDetail() {
       </div>
 
       <StickyAction>
-        {circle.isMember ? (
+        {circle.isMember && !circle.mustPay ? (
           <Button
             onClick={async () => {
               const r = await inviteToCircle(circle)
@@ -651,14 +654,17 @@ export function CircleDetail() {
           >
             {circle.free > 0 ? 'Inviter des amis' : 'Partager le cercle'}
           </Button>
-        ) : circle.free > 0 ? (
-          <Button loading={busy} onClick={() => run(() => api.circleAction(circle.code, 'join'), `Bienvenue dans ${circle.name}`)}>
-            Rejoindre · {fcfa(circle.memberPrice)} FCFA/mois
+        ) : circle.isMember || circle.free > 0 ? (
+          // Rejoindre = payer sa part (+ frais), puis chaque mois.
+          <Button onClick={() => setPayOpen(true)}>
+            {circle.isMember ? `Payer ma part · ${fcfa(circle.total ?? circle.memberPrice)} FCFA` : `Rejoindre · ${fcfa(circle.total ?? circle.memberPrice)} FCFA/mois`}
           </Button>
         ) : (
           <Button disabled>Cercle complet</Button>
         )}
       </StickyAction>
+
+      <CirclePaySheet open={payOpen} circle={circle} onClose={() => setPayOpen(false)} />
 
       <SeatPriceSheet
         open={priceOpen}
@@ -775,5 +781,76 @@ export function OpenCircleOffers({ serviceId, title, onCount }: { serviceId: str
         </button>
       ))}
     </section>
+  )
+}
+
+/** Part d'un membre : payée jusqu'à quand (vu par le créateur et par le membre lui-même). */
+function memberStatus(circle: Circle, m: Circle['members'][number]): string {
+  if (!(circle.isOwner || m.me)) return `${fcfa(circle.memberPrice)} FCFA/mois`
+  if (!m.paidUntil) return `Part à payer · ${fcfa(circle.memberPrice)} FCFA`
+  const until = Date.parse(m.paidUntil)
+  return until < Date.now() ? `En retard depuis le ${shortDate(until)}` : `Payé jusqu’au ${shortDate(until)}`
+}
+
+function payNote(circle: Circle): string {
+  if (circle.isOwner)
+    return circle.potReached
+      ? 'Tout le cercle a payé ce mois : l’argent est dans ton solde, à retirer quand tu veux.'
+      : 'Chaque membre paie sa part par Sub.ci. Tu reçois l’argent dans ton solde dès que tout le cercle a payé (au plus tard 7 jours après chaque paiement).'
+  if (circle.isMember && circle.paidUntil && !circle.mustPay) return `Ta part est payée jusqu’au ${shortDate(Date.parse(circle.paidUntil))}. On te rappelle 3 jours avant.`
+  return `Tu paies ta part (${fcfa(circle.memberPrice)} F) + ${fcfa(circle.serviceFee ?? 0)} F de frais Sub.ci, chaque mois. Si le cercle ferme avant que ${circle.owner} ait reçu l’argent, tu es remboursé.`
+}
+
+/** Payer sa part : mobile money, puis « Valide sur ton téléphone ». */
+function CirclePaySheet({ open, circle, onClose }: { open: boolean; circle: Circle; onClose: () => void }) {
+  const { state } = useStore()
+  const navigate = useNavigate()
+  const [method, setMethod] = useState<PayMethodId>(state.lastMethod === 'card' ? 'wave' : state.lastMethod)
+  const [phone, setPhone] = useState(state.user?.phone ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const total = circle.total ?? circle.memberPrice
+
+  return (
+    <Sheet open={open} onClose={onClose} label="Payer ma part">
+      <div className="flex flex-col gap-4">
+        <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">{circle.isMember ? 'Payer ma part' : `Rejoindre ${circle.name}`}</h2>
+        <div className="flex flex-col gap-1.5 rounded-btn border border-line p-3.5 text-sm font-semibold">
+          <div className="flex justify-between text-muted">
+            <span>Ta part (1 mois)</span>
+            <span>{fcfa(circle.memberPrice)} F</span>
+          </div>
+          <div className="flex justify-between text-muted">
+            <span>Frais de service Sub.ci</span>
+            <span>{fcfa(circle.serviceFee ?? 0)} F</span>
+          </div>
+          <div className="flex justify-between font-bold">
+            <span>À payer</span>
+            <span>{fcfa(total)} FCFA</span>
+          </div>
+        </div>
+        <PayMethodPicker value={method} onChange={setMethod} phone={phone} onPhone={setPhone} methods={['wave', 'om', 'mtn', 'moov', 'djamo']} />
+        {error && <p className="text-sm font-semibold text-err-ink">{error}</p>}
+        <Button
+          loading={busy}
+          onClick={async () => {
+            const digits = phone.replace(/\D/g, '')
+            if (digits.length !== 10) return setError('Indique ton numéro mobile money (10 chiffres).')
+            setBusy(true)
+            setError(null)
+            try {
+              const { data } = await api.payCircle(circle.code, { method, phone: digits })
+              const pending = toPending(data)
+              navigate(`/pay/${pending.ref}`, { state: pending, viewTransition: true })
+            } catch (e) {
+              setError(errorMessage(e))
+              setBusy(false)
+            }
+          }}
+        >
+          Payer {fcfa(total)} FCFA
+        </Button>
+      </div>
+    </Sheet>
   )
 }

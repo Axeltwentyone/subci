@@ -96,7 +96,7 @@ class PaymentController extends Controller
         return redirect()->away($payment?->return_url ?? $fallback);
     }
 
-    private static function allowedOrigin(?string $origin): string
+    public static function allowedOrigin(?string $origin): string
     {
         $origin = rtrim((string) $origin, '/');
 

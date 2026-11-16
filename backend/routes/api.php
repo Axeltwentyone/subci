@@ -151,6 +151,7 @@ Route::prefix('v1')->group(function () {
         Route::get('circles/{circle}', [CircleController::class, 'show'])->middleware('throttle:60,1');
         Route::patch('circles/{circle}', [CircleController::class, 'update']);
         Route::post('circles/{circle}/join', [CircleController::class, 'join'])->middleware('throttle:10,1');
+        Route::post('circles/{circle}/pay', [CircleController::class, 'pay'])->middleware('throttle:10,1');
         Route::post('circles/{circle}/leave', [CircleController::class, 'leave']);
         Route::post('circles/{circle}/close', [CircleController::class, 'close']);
         Route::delete('circles/{circle}/members/{member}', [CircleController::class, 'removeMember']);

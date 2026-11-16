@@ -4,6 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CircleResource;
+use App\Http\Resources\PaymentResource;
+use App\Enums\PayMethod;
+use App\Services\CircleService;
+use App\Services\PaymentService;
 use App\Models\Circle;
 use App\Models\Service;
 use App\Models\User;
@@ -88,29 +92,33 @@ class CircleController extends Controller
         return new CircleResource($circle->load(self::RELATIONS));
     }
 
-    public function join(Request $request, Circle $circle): CircleResource
+    /**
+     * Rejoindre = payer sa part. Gardé pour les anciennes versions de l'app : on renvoie vers le paiement.
+     */
+    public function join(Request $request, Circle $circle): JsonResponse
     {
-        $user = $request->user();
         abort_if($circle->closed_at !== null, 404, 'Ce cercle n’existe plus.');
 
-        $joined = DB::transaction(function () use ($circle, $user) {
-            $locked = Circle::whereKey($circle->id)->lockForUpdate()->first();
-            if ($locked->hasMember($user)) {
-                return false;
-            }
-            abort_if($locked->freeSeats() === 0, 422, 'Le cercle est complet. Demande à '.$locked->owner->shortName().' d’ajouter une place.');
-            $locked->members()->attach($user->id);
+        return response()->json(['message' => 'Pour rejoindre ce cercle, paie ta part ('.number_format(CircleService::total($circle), 0, ',', ' ').' FCFA). Mets l’app à jour si le bouton n’apparaît pas.'], 422);
+    }
 
-            return true;
-        });
+    /** Payer sa part : nouvelle place, ou le mois suivant pour un membre. */
+    public function pay(Request $request, Circle $circle, PaymentService $payments): PaymentResource
+    {
+        abort_if($circle->closed_at !== null, 404, 'Ce cercle n’existe plus.');
+        $data = $request->validate([
+            'method' => ['required', Rule::enum(PayMethod::class)],
+            'phone' => ['required_unless:method,card', 'nullable', 'digits:10'],
+            'returnOrigin' => ['nullable', 'string', 'max:255'],
+        ], [
+            'phone.digits' => 'Le numéro doit avoir 10 chiffres.',
+            'phone.required_unless' => 'Indique ton numéro mobile money.',
+        ]);
 
-        if ($joined) {
-            $circle->owner->notify(new AppNotification('seat', "{$user->shortName()} a rejoint {$circle->name}",
-                $circle->freeSeats() > 0 ? "Encore {$circle->freeSeats()} place(s) libre(s)." : 'Ton cercle est complet.',
-                ['label' => 'Voir', 'to' => "/circles/{$circle->code}"]));
-        }
+        $payment = $payments->checkoutCircle($request->user(), $circle, PayMethod::from($data['method']), $data['phone'] ?? null,
+            PaymentController::allowedOrigin($data['returnOrigin'] ?? null));
 
-        return new CircleResource($circle->fresh()->load(self::RELATIONS));
+        return new PaymentResource($payment->load('service', 'circle'));
     }
 
     public function leave(Request $request, Circle $circle): JsonResponse
@@ -151,6 +159,8 @@ class CircleController extends Controller
     {
         $this->owner($request, $circle);
         abort_if($member->id === $circle->user_id, 422, 'Tu ne peux pas te retirer de ton propre cercle.');
+        $until = CircleService::paidUntil($circle, $member);
+        abort_if($until?->isFuture(), 422, $member->shortName().' a payé sa part jusqu’au '.$until?->translatedFormat('j M').' : sa place lui reste jusque-là.');
         $circle->members()->detach($member->id);
 
         return response()->json(['ok' => true]);
@@ -159,9 +169,10 @@ class CircleController extends Controller
     public function close(Request $request, Circle $circle): JsonResponse
     {
         $this->owner($request, $circle);
-        $circle->update(['closed_at' => now()]);
+        // Ce qui n'a pas encore été versé au créateur est rendu aux membres.
+        $refunded = app(CircleService::class)->close($circle);
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'refunded' => $refunded]);
     }
 
     private function owner(Request $request, Circle $circle): void

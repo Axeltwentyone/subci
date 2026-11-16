@@ -105,6 +105,17 @@ class PaymentService
         return $payment;
     }
 
+    /** Part d'un cercle (nouvelle place ou mois suivant) : demande envoyée sur le téléphone. */
+    public function checkoutCircle(User $user, \App\Models\Circle $circle, PayMethod $method, ?string $phone, ?string $returnOrigin = null): Payment
+    {
+        $payment = app(CircleService::class)->prepare($user, $circle, $method, $phone);
+        $payment->return_url = rtrim($returnOrigin ?? config('app.frontend_url'), '/')."/retour/{$payment->reference}";
+        $this->send($payment);
+        $user->update(['last_pay_method' => $method]);
+
+        return $payment;
+    }
+
     /** Envoie la demande à la passerelle et garde sa référence (la place réservée est libérée si ça échoue). */
     private function send(Payment $payment): void
     {
@@ -321,6 +332,13 @@ class PaymentService
             // Confirmé après avoir été abandonné : le crédit parrainage rendu est repris.
             $this->referrals->reapplyCredit($payment);
             $this->alertAdmins($payment);
+
+            // Part d'un cercle : place réglée pour un mois, part du créateur mise de côté.
+            if ($payment->circle_id) {
+                app(CircleService::class)->paid($payment);
+
+                return $payment->fresh();
+            }
 
             if ($payment->subscription_id === null) {
                 $this->joins->open($payment);

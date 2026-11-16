@@ -28,6 +28,8 @@ class PaymentResource extends JsonResource
             'method' => $this->method,
             'phone' => $this->phone,
             'serviceId' => $this->service?->slug,
+            // Part d'un cercle : l'app revient sur le cercle après le paiement.
+            'circleCode' => $this->circle_id ? $this->circle?->code : null,
             'hostName' => $this->hostOffer?->user?->shortName(),
             'joinStatus' => $this->joinRequest?->status,
             'subscriptionId' => $this->subscription_id ? (string) $this->subscription_id : null,
