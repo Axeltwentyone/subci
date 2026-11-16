@@ -28,10 +28,11 @@ class JekoGateway implements PaymentGateway
         'mtn' => 'mtn',
         'wave' => 'wave',
         'moov' => 'moov',
+        'djamo' => 'djamo',
     ];
 
     /** Moyens payés sans la page Jèko quand on connaît le numéro du client. */
-    private const DIRECT = ['wave', 'mtn', 'moov'];
+    private const DIRECT = ['wave', 'mtn', 'moov', 'djamo'];
 
     public function __construct(private array $config) {}
 
@@ -60,7 +61,7 @@ class JekoGateway implements PaymentGateway
         }
 
         $data = ['paymentMethod' => $method, 'successUrl' => $return, 'errorUrl' => $return];
-        // Mode direct : Jèko ne redemande pas le numéro. Wave renvoie directement son lien de paiement,
+        // Mode direct : Jèko ne redemande pas le numéro. Wave et Djamo renvoient directement leur lien de paiement,
         // MTN et Moov envoient la demande en USSD sur le téléphone. Orange garde la page Jèko.
         $direct = in_array($method, self::DIRECT, true) && preg_match('/^0[157]\d{8}$/', (string) $payment->phone);
         $response = $direct

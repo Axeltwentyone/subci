@@ -8,6 +8,7 @@ enum PayMethod: string
     case Wave = 'wave';
     case Mtn = 'mtn';
     case Moov = 'moov';
+    case Djamo = 'djamo';
     case Card = 'card';
 
     public function label(): string
@@ -17,6 +18,7 @@ enum PayMethod: string
             self::Wave => 'Wave',
             self::Mtn => 'MTN MoMo',
             self::Moov => 'Moov Money',
+            self::Djamo => 'Djamo',
             self::Card => 'Carte bancaire',
         };
     }

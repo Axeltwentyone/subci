@@ -92,6 +92,15 @@ class JekoTest extends TestCase
         $this->assertNotSame($sent[0]['reference'], $sent[1]['reference']);
     }
 
+    public function test_djamo_uses_direct_mode(): void
+    {
+        Http::fake(['jeko.test/*' => Http::response(['id' => 'pr_1', 'status' => 'pending', 'redirectUrl' => 'https://pay.djamo.com/x'])]);
+
+        $this->checkout('djamo')->assertCreated();
+        Http::assertSent(fn ($r) => $r['paymentDetails']['data']['paymentMethod'] === 'djamo'
+            && $r['paymentDetails']['data']['forceProviderDirect'] === true);
+    }
+
     public function test_orange_keeps_the_jeko_page(): void
     {
         Http::fake(['jeko.test/*' => Http::response(['id' => 'pr_1', 'status' => 'pending', 'redirectUrl' => 'https://pay.jeko.africa/pr_1'])]);

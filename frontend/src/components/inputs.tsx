@@ -129,7 +129,7 @@ export function PayMethodPicker({
   onChange,
   phone,
   onPhone,
-  methods = ['om', 'wave', 'mtn', 'moov', 'card'],
+  methods = ['om', 'wave', 'mtn', 'moov', 'djamo', 'card'],
 }: {
   value: PayMethodId
   onChange: (m: PayMethodId) => void

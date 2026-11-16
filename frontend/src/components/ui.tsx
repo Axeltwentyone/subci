@@ -126,7 +126,12 @@ export function ServiceLogo({ service, size = 44, radius, className }: { service
   )
 }
 
+const PAY_LOGOS = ['om', 'wave', 'mtn', 'moov', 'djamo']
+
 export function MethodLogo({ method, size = 40 }: { method: { mono: string; color: string; fg: string; id?: string }; size?: number }) {
+  // Logos officiels des moyens de paiement (public/pay).
+  if (method.id && PAY_LOGOS.includes(method.id))
+    return <img src={`/pay/${method.id}.png`} alt="" width={size} height={size} className="shrink-0 rounded-tile border border-line object-cover" style={{ width: size, height: size }} />
   const logo = method.id ? LOGOS[method.id] : undefined
   if (logo) return <BrandLogo logo={logo} size={size} radius={12} />
   return (

@@ -181,13 +181,14 @@ export function durationPrice(price: number, months: number): number {
   return Math.round(price * months * (1 - d))
 }
 
-export type PayMethodId = 'om' | 'wave' | 'mtn' | 'moov' | 'card'
+export type PayMethodId = 'om' | 'wave' | 'mtn' | 'moov' | 'djamo' | 'card'
 
 export const PAY_METHODS: { id: PayMethodId; name: string; short: string; mono: string; color: string; fg: string; ussd?: string }[] = [
   { id: 'om', name: 'Orange Money', short: 'Orange Money', mono: 'OM', color: '#FF7900', fg: '#fff', ussd: '#144#' },
   { id: 'wave', name: 'Wave', short: 'Wave', mono: 'W', color: '#1DC8F2', fg: '#0B0B0B' },
   { id: 'mtn', name: 'MTN MoMo', short: 'MTN MoMo', mono: 'MTN', color: '#FFCC00', fg: '#0B0B0B', ussd: '*133#' },
   { id: 'moov', name: 'Moov Money', short: 'Moov Money', mono: 'Moov', color: '#0055A5', fg: '#fff', ussd: '*155#' },
+  { id: 'djamo', name: 'Djamo', short: 'Djamo', mono: 'Dj', color: '#0B0B0B', fg: '#fff' },
   { id: 'card', name: 'Carte bancaire', short: 'Carte', mono: 'CB', color: '#16130F', fg: '#fff' },
 ]
 
