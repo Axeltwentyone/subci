@@ -48,6 +48,8 @@ export type Payment = {
   direction: 'out' | 'in'
   /** Remboursement ou retrait pas encore versé */
   pending?: boolean
+  /** Retrait ou remboursement en argent arrivé sur le mobile money */
+  sent?: boolean
   /** Remboursement d'une demande refusée : en attente du choix du membre, crédit ou argent */
   refundChoice?: 'pending' | 'credit' | 'cash' | null
   /** Numéro mobile money (remboursement, retrait) */

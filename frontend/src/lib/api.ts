@@ -142,6 +142,7 @@ export const toPayment = (p: ApiPayment): Payment => ({
   ref: p.ref,
   direction: p.direction,
   pending: p.status === 'pending',
+  sent: p.status === 'succeeded' && (p.type === 'withdrawal' || (p.type === 'refund' && p.refundChoice !== 'credit')),
   refundChoice: p.refundChoice ?? null,
   phone: p.phone,
 })

@@ -89,13 +89,19 @@ export function Payouts() {
             <HostChecks />
 
             <Panel title="Derniers versements faits" pad={false}>
-              <Table head={['Bénéficiaire', 'Type', 'Numéro', 'Montant', 'Versé']} empty={data.done.length === 0}>
+              <Table head={['Bénéficiaire', 'Type', 'Numéro', 'Montant', 'Statut', 'Versé']} empty={data.done.length === 0}>
                 {data.done.map((p) => (
                   <Tr key={p.id}>
                     <Td className="font-bold">{p.user?.name}</Td>
                     <Td className="font-semibold">{PAYMENT_TYPE[p.type]}</Td>
                     <Td className="tabular font-semibold">{phone(p.phone)}</Td>
                     <Td className="tabular font-bold">{fcfa(p.amount)}</Td>
+                    <Td>
+                      <span className="flex items-center gap-1.5">
+                        <Pill tone="ok">Envoyé</Pill>
+                        <span className="text-[12px] font-semibold text-muted">{p.transferId ? 'par Jèko' : 'à la main'}</span>
+                      </span>
+                    </Td>
                     <Td className="text-[13px] font-semibold text-muted">{dateTime(p.confirmedAt)}</Td>
                   </Tr>
                 ))}
