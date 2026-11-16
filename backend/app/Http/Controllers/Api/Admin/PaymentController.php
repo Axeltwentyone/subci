@@ -109,6 +109,22 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * Relance l'envoi automatique d'un versement bloqué. Seulement si aucun transfert n'a été créé chez Jèko :
+     * après une coupure réseau, vérifie d'abord dans le dashboard Jèko que rien n'est parti.
+     */
+    public function retryAutoPayout(Request $request, Payment $payment, \App\Services\JekoPayouts $payouts): JsonResponse
+    {
+        abort_unless($payment->status === PaymentStatus::Pending && in_array($payment->type, [PaymentType::Refund, PaymentType::Withdrawal], true), 409, 'Ce versement n’est pas en attente.');
+        abort_if($payment->provider_transaction_id !== null, 409, 'Un transfert existe déjà chez Jèko pour ce versement.');
+        abort_unless(\App\Services\JekoPayouts::handles($payment), 409, 'Cet opérateur n’est pas en envoi automatique.');
+        $payment->update(['payout_attempted_at' => null, 'payout_error' => null]);
+        $request->user()->log('payout.retry', $payment);
+        $payouts->send($payment->fresh());
+
+        return response()->json(['data' => Presenter::payment($payment->fresh(['user', 'service']))]);
+    }
+
     public function markPaid(Request $request, Payment $payment): JsonResponse
     {
         // fee : frais d'envoi réellement facturés par l'opérateur (sinon estimés dans la trésorerie).

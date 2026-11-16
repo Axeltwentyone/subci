@@ -20,7 +20,7 @@ export function Payouts() {
     <>
       <PageHeader
         title="Versements"
-        subtitle="Envoie chaque montant depuis le dashboard Jèko (Transferts), puis marque-le comme versé. La personne est prévenue."
+        subtitle="Les opérateurs en envoi automatique partent seuls par Jèko. Les autres : envoie depuis le dashboard Jèko, puis marque comme versé. La personne est prévenue."
       />
       {error && <ErrorBox message={error} onRetry={reload} />}
       {loading && !data ? (
@@ -72,9 +72,14 @@ export function Payouts() {
                       <span className="block text-[12px] text-subtle">demandé {ago(p.createdAt)}</span>
                     </Td>
                     <Td>
-                      <Button size="xs" block={false} onClick={() => setConfirm(p)}>
-                        J’ai envoyé l’argent
-                      </Button>
+                      <AutoPayout
+                        p={p}
+                        onManual={() => setConfirm(p)}
+                        onRetried={() => {
+                          reload()
+                          refresh()
+                        }}
+                      />
                     </Td>
                   </Tr>
                 ))}
@@ -121,6 +126,55 @@ export function Payouts() {
         />
       )}
     </>
+  )
+}
+
+/** Versement envoyé tout seul par Jèko : prévu, en cours, ou bloqué (à relancer ou envoyer à la main). */
+function AutoPayout({ p, onManual, onRetried }: { p: PaymentRow; onManual: () => void; onRetried: () => void }) {
+  const toast = useToast()
+  const [busy, setBusy] = useState(false)
+  const manual = (
+    <Button size="xs" block={false} variant={p.payoutAuto && !p.payoutError ? 'outline' : 'primary'} onClick={onManual}>
+      J’ai envoyé l’argent
+    </Button>
+  )
+  if (!p.payoutAuto) return manual
+  if (p.payoutError)
+    return (
+      <span className="flex max-w-[280px] flex-col gap-2">
+        <span className="text-[12px] font-semibold text-err-ink">Envoi auto bloqué : {p.payoutError}</span>
+        <span className="flex flex-wrap gap-2">
+          {!p.transferId && (
+            <Button
+              size="xs"
+              block={false}
+              variant="ink"
+              loading={busy}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  const r = await api.retryAutoPayout(p.id)
+                  toast({ tone: r.data.status === 'succeeded' ? 'success' : 'ink', text: r.data.status === 'succeeded' ? 'Envoyé par Jèko' : (r.data.payoutError ?? 'Envoi relancé') })
+                  onRetried()
+                } catch (e) {
+                  toast({ tone: 'error', text: errorText(e) })
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              Réessayer par Jèko
+            </Button>
+          )}
+          {manual}
+        </span>
+      </span>
+    )
+  return (
+    <span className="flex flex-col gap-1">
+      <Pill tone="info">{p.payoutAttemptedAt ? 'Envoi Jèko en cours' : 'Envoi automatique d’ici 1 min'}</Pill>
+      <span className="text-[12px] font-semibold text-muted">N’envoie pas à la main</span>
+    </span>
   )
 }
 

@@ -122,6 +122,11 @@ final class Presenter
             'refundedAt' => $p->refunded_at?->toIso8601String(),
             // Versement à faire : envoyable par Jèko ? à envoyer avant quand (délai annoncé) ?
             'payoutCheck' => in_array($p->type, [PaymentType::Withdrawal, PaymentType::Refund], true) ? PayoutCheck::check($p->method, $p->phone) : null,
+            // Envoi automatique Jèko : prévu, en cours (transfert créé), ou bloqué (erreur à traiter à la main).
+            'payoutAuto' => in_array($p->type, [PaymentType::Withdrawal, PaymentType::Refund], true) ? \App\Services\JekoPayouts::handles($p) : false,
+            'payoutAttemptedAt' => $p->payout_attempted_at?->toIso8601String(),
+            'payoutError' => $p->payout_error,
+            'transferId' => in_array($p->type, [PaymentType::Withdrawal, PaymentType::Refund], true) ? $p->provider_transaction_id : null,
             'dueAt' => match ($p->type) {
                 PaymentType::Withdrawal => $p->created_at->copy()->addHours((int) config('services.payments.withdrawal_delay_hours'))->toIso8601String(),
                 PaymentType::Refund => $p->created_at->copy()->addHours(48)->toIso8601String(),

@@ -140,7 +140,7 @@ export type State = {
   nextRelease: number | null
   withdrawLockedUntil: number | null
   /** Retraits : minimum et frais d'envoi à la charge de l'hôte. */
-  withdrawal: { min: number; feeFixed: number; feePercent: number; delayHours?: number }
+  withdrawal: { min: number; feeFixed: number; feePercent: number; delayHours?: number; auto?: boolean }
   /** Gains à venir, mois par mois */
   upcoming: { label: string; amount: number; at: number }[]
   trusted: boolean

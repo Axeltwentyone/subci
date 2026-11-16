@@ -111,6 +111,10 @@ export type HostPayoutCheck = {
 export type PaymentRow = {
   payoutCheck?: PayoutCheck | null
   dueAt?: string | null
+  payoutAuto?: boolean
+  payoutAttemptedAt?: string | null
+  payoutError?: string | null
+  transferId?: string | null
   id: number
   ref: string
   providerRef: string | null
@@ -404,6 +408,7 @@ export const api = {
   payment: (id: number) => call<{ data: PaymentRow & { split: PaymentSplit | null } }>('GET', `/payments/${id}`),
   hostPayoutChecks: () => call<{ data: HostPayoutCheck[]; summary: { total: number; ok: number; jeko: boolean }; delayHours: number }>('GET', '/payouts/hosts'),
   payouts: () => call<{ pending: PaymentRow[]; done: PaymentRow[]; total: number }>('GET', '/payouts'),
+  retryAutoPayout: (id: number) => call<{ data: PaymentRow }>('POST', `/payments/${id}/auto-send`),
   markPaid: (id: number, note?: string) => call<{ data: PaymentRow }>('POST', `/payments/${id}/paid`, { note }),
   reconcile: (id: number) => call<{ data: PaymentRow }>('POST', `/payments/${id}/reconcile`),
 

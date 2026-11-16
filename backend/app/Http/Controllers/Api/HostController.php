@@ -15,11 +15,13 @@ use App\Http\Resources\PaymentResource;
 use App\Models\HostOffer;
 use App\Models\JoinRequest;
 use App\Models\OfferMember;
+use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
 use App\Notifications\AppNotification;
 use App\Services\AdminAlerts;
 use App\Services\EarningService;
+use App\Services\JekoPayouts;
 use App\Services\JoinService;
 use App\Support\ImageSanitizer;
 use Carbon\CarbonInterface;
@@ -68,6 +70,8 @@ class HostController extends Controller
                 'feePercent' => (float) config('services.payments.withdrawal_fee_percent'),
                 // Retrait traité à la main : reçu sous N heures (0 = immédiat).
                 'delayHours' => config('services.payments.manual_payouts') ? (int) config('services.payments.withdrawal_delay_hours') : 0,
+                // Envoyé automatiquement par Jèko vers ce moyen de retrait : reçu en quelques minutes.
+                'auto' => JekoPayouts::handles(new Payment(['type' => PaymentType::Withdrawal, 'method' => $user->payout_method ?? PayMethod::Wave, 'phone' => $user->payout_phone ?? $user->phone])),
             ],
             'monthGain' => (int) $user->payments()->where('type', PaymentType::Earning)->whereIn('status', [PaymentStatus::Succeeded, PaymentStatus::Pending])->where('created_at', '>=', now()->startOfMonth())->sum('amount'),
             'offers' => HostOfferResource::collection($user->hostOffers()->with(self::RELATIONS)->orderByRaw("status = 'closed'")->latest()->get()),
@@ -374,13 +378,17 @@ class HostController extends Controller
                 'confirmed_at' => $manual ? null : now(),
             ]);
             $amount = number_format($data['amount'] - $fee, 0, ',', ' ').' FCFA';
-            if ($manual) {
+            // Envoi automatique par Jèko : rien à faire pour l'équipe, l'hôte reçoit en quelques minutes.
+            $auto = $manual && JekoPayouts::handles($payment);
+            if ($manual && ! $auto) {
                 AdminAlerts::send('payouts', "Retrait à verser · {$amount}",
                     $user->shortName().' · '.$method->label().' '.$payment->phone.' · à envoyer sous '.self::delayLabel(), '/payouts', 'payouts');
             }
-            $user->notify($manual
+            $user->notify($auto
+                ? new AppNotification('host', 'Retrait en cours', "{$amount} vers ".$method->label().', envoyé dans quelques minutes.')
+                : ($manual
                 ? new AppNotification('host', 'Retrait demandé', "{$amount} vers ".$method->label().', reçu sous '.self::delayLabel().'.')
-                : new AppNotification('host', 'Retrait envoyé', "{$amount} vers ".$method->label()));
+                : new AppNotification('host', 'Retrait envoyé', "{$amount} vers ".$method->label())));
 
             return $payment;
         });

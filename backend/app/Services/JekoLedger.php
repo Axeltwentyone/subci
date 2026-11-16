@@ -138,6 +138,11 @@ class JekoLedger
 
     private function matchPayout(JekoTransaction $t): ?Payment
     {
+        // Envoyé par l'API (versement automatique) : même identifiant de transfert.
+        if ($byId = Payment::where('provider_transaction_id', $t->jeko_id)->whereIn('type', [PaymentType::Withdrawal, PaymentType::Refund])->first()) {
+            return $byId;
+        }
+
         return $this->closest(Payment::whereIn('type', [PaymentType::Withdrawal, PaymentType::Refund])
             ->whereIn('status', [PaymentStatus::Pending, PaymentStatus::Succeeded])
             ->where(fn ($q) => $q->whereNull('refund_choice')->orWhere('refund_choice', 'cash'))

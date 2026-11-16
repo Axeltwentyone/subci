@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 #[Fillable([
     'user_id', 'service_id', 'subscription_id', 'host_offer_id', 'source_payment_id', 'type', 'status', 'reference', 'label', 'amount', 'service_fee', 'provider_fee', 'provider_transaction_id', 'credit_used', 'credit_restored_at', 'refund_choice', 'gross', 'months',
     'method', 'phone', 'invite_email', 'provider_reference', 'checkout_url', 'return_url', 'period_start', 'period_end', 'expires_at', 'available_at', 'held_at',
-    'confirmed_at', 'refunded_at',
+    'confirmed_at', 'refunded_at', 'payout_attempted_at', 'payout_error',
 ])]
 #[Hidden(['invite_email'])]
 class Payment extends Model
@@ -59,6 +59,7 @@ class Payment extends Model
             'expires_at' => 'datetime',
             'confirmed_at' => 'datetime',
             'refunded_at' => 'datetime',
+            'payout_attempted_at' => 'datetime',
         ];
     }
 

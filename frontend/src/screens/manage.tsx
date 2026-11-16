@@ -470,10 +470,12 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
     if (open) setAmount(state.balance)
   }, [open, state.balance])
 
-  const chips = [5000, 10000].filter((v) => v < state.balance && v >= state.withdrawal.min)
+  const chips = [1000, 2000, 5000, 10000].filter((v) => v < state.balance && v >= state.withdrawal.min).slice(0, 3)
   const { min, feeFixed, feePercent } = state.withdrawal
   // Délai annoncé par le serveur (retrait envoyé à la main) ; 48 h si l'API ne le donne pas encore.
   const delay = `${state.withdrawal.delayHours || 48} h`
+  // Envoyé automatiquement par Jèko vers ce moyen de retrait.
+  const arrives = state.withdrawal.auto ? 'Reçu en quelques minutes' : `Reçu sous ${delay}`
   const fee = Math.ceil(feeFixed + (amount * feePercent) / 100)
   const [change, setChange] = useState(false)
 
@@ -484,8 +486,22 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
       <div className="flex flex-col gap-[18px]">
         <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Retirer mes gains</h2>
         <div className="flex flex-col items-center gap-1.5 py-2">
-          <span className="font-display text-5xl leading-none font-extrabold tracking-[-0.03em]">{fcfa(amount)}</span>
-          <span className="text-sm font-bold text-muted">FCFA{amount === state.balance ? ' · tout le solde' : ''}</span>
+          {/* Montant libre, entre le minimum et le solde. */}
+          <input
+            inputMode="numeric"
+            aria-label="Montant à retirer"
+            value={amount ? String(amount) : ''}
+            placeholder="0"
+            onChange={(e) => setAmount(Number(e.target.value.replace(/\D/g, '').slice(0, 7)) || 0)}
+            className="w-full bg-transparent text-center font-display text-5xl leading-none font-extrabold tracking-[-0.03em] outline-none"
+          />
+          <span className={cx('text-sm font-bold', amount > state.balance || (amount > 0 && amount < min) ? 'text-err' : 'text-muted')}>
+            {amount > state.balance
+              ? `Ton solde est de ${fcfa(state.balance)} FCFA`
+              : amount < min
+                ? `Minimum ${fcfa(min)} FCFA`
+                : `FCFA${amount === state.balance ? ' · tout le solde' : ''} · touche pour modifier`}
+          </span>
         </div>
         <div className="flex justify-center gap-2">
           {chips.map((v) => (
@@ -516,18 +532,18 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
             <span>Tu reçois</span>
             <span>{fcfa(Math.max(0, amount - fee))} FCFA</span>
           </div>
-          <span className="text-[12px] text-muted">Reçu sous {delay} · retrait minimum {fcfa(min)} FCFA</span>
+          <span className="text-[12px] text-muted">{arrives} · retrait minimum {fcfa(min)} FCFA</span>
         </div>
         <Button
           loading={loading}
-          disabled={amount < min}
+          disabled={amount < min || amount > state.balance}
           onClick={async () => {
             setLoading(true)
             try {
               const instant = await actions.withdraw(amount)
               onClose()
               haptic(20)
-              toast({ tone: 'ink', text: instant ? `${fcfa(amount - fee)} FCFA envoyés` : `${fcfa(amount - fee)} FCFA demandés · reçus sous ${delay}` })
+              toast({ tone: 'ink', text: instant ? `${fcfa(amount - fee)} FCFA envoyés` : `${fcfa(amount - fee)} FCFA demandés · ${state.withdrawal.auto ? 'reçus dans quelques minutes' : `reçus sous ${delay}`}` })
             } catch (e) {
               toast({ tone: 'error', text: errorMessage(e) })
             } finally {

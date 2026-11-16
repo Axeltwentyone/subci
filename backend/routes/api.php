@@ -48,6 +48,7 @@ Route::prefix('v1')->group(function () {
             Route::get('payouts', [Admin\PaymentController::class, 'payouts']);
             Route::get('payouts/hosts', [Admin\PaymentController::class, 'hostPayoutChecks']);
             Route::post('payments/{payment}/paid', [Admin\PaymentController::class, 'markPaid']);
+            Route::post('payments/{payment}/auto-send', [Admin\PaymentController::class, 'retryAutoPayout'])->middleware('throttle:10,1');
             Route::post('payments/{payment}/reconcile', [Admin\PaymentController::class, 'reconcile']);
 
             Route::get('users', [Admin\UserController::class, 'index']);

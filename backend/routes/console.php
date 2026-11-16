@@ -154,3 +154,5 @@ Schedule::call(fn () => app(\App\Services\JekoLedger::class)->sync())->everyFift
 Artisan::command('jeko:ledger', function () {
     $this->line(json_encode(app(\App\Services\JekoLedger::class)->sync(), JSON_UNESCAPED_UNICODE));
 })->purpose('Relève le solde et les transactions du compte marchand Jèko');
+// Versements : retraits et remboursements envoyés automatiquement par Jèko (opérateurs activés), puis suivis.
+$every('payouts:jeko', fn () => app(\App\Services\JekoPayouts::class)->run());

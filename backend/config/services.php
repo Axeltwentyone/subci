@@ -88,6 +88,11 @@ return [
         // Commissions Jèko, pour estimer les frais tant que le montant réel n'est pas connu (%).
         'fee_in_percent' => (float) env('JEKO_FEE_IN_PERCENT', 1.5),
         'fee_out_percent' => (float) env('JEKO_FEE_OUT_PERCENT', 1.5),
+        // Versements envoyés automatiquement par l'API Jèko, opérateur par opérateur (les autres restent à la main).
+        // Valeurs : wave, om, mtn, moov, djamo. Vide = tout à la main.
+        'auto_payout_methods' => array_values(array_filter(array_map('trim', explode(',', (string) env('JEKO_AUTO_PAYOUT_METHODS', 'wave'))))),
+        // Nom de l'opérateur côté Jèko (bénéficiaires).
+        'payout_method_names' => ['wave' => 'wave', 'om' => env('JEKO_ORANGE_METHOD', 'orange'), 'mtn' => 'mtn', 'moov' => 'moov', 'djamo' => 'djamo'],
     ],
 
     'offers' => [
