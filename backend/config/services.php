@@ -60,6 +60,8 @@ return [
         // Remboursement d'une demande refusée : sans choix du membre après N jours, renvoyé en argent.
         'refund_choice_days' => (int) env('REFUND_CHOICE_DAYS', 7),
         'withdrawal_min' => (int) env('WITHDRAWAL_MIN', 2000),
+        // Délai annoncé à l'hôte pour recevoir un retrait envoyé à la main (heures).
+        'withdrawal_delay_hours' => (int) env('WITHDRAWAL_DELAY_HOURS', 48),
         'withdrawal_fee_fixed' => (int) env('WITHDRAWAL_FEE_FIXED', 0),
         'withdrawal_fee_percent' => (float) env('WITHDRAWAL_FEE_PERCENT', 1),
         'payout_change_lock_hours' => (int) env('PAYOUT_CHANGE_LOCK_HOURS', 24),

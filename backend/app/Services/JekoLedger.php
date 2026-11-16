@@ -157,6 +157,29 @@ class JekoLedger
             ->first();
     }
 
+    /** Numéros des bénéficiaires déjà enregistrés chez Jèko (null si Jèko n'est pas joignable). */
+    public function contactNumbers(): ?array
+    {
+        if (! self::configured()) {
+            return null;
+        }
+
+        return \Illuminate\Support\Facades\Cache::remember('jeko:contacts', 300, function () {
+            try {
+                $response = $this->http()->get('/partner_api/contacts');
+            } catch (\Throwable) {
+                return null;
+            }
+            $rows = $response->json();
+            if (! $response->successful() || ! is_array($rows)) {
+                return null;
+            }
+            $rows = array_is_list($rows) ? $rows : (array) ($rows['data'] ?? []);
+
+            return array_values(array_filter(array_map(fn ($c) => is_array($c) ? ($c['identifier']['number'] ?? null) : null, $rows)));
+        });
+    }
+
     /** « +2250143998478 » → « 0143998478 ». */
     public static function localPhone(?string $counterpart): ?string
     {

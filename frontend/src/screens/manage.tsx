@@ -472,6 +472,8 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
 
   const chips = [5000, 10000].filter((v) => v < state.balance && v >= state.withdrawal.min)
   const { min, feeFixed, feePercent } = state.withdrawal
+  // Délai annoncé par le serveur (retrait envoyé à la main) ; 48 h si l'API ne le donne pas encore.
+  const delay = `${state.withdrawal.delayHours || 48} h`
   const fee = Math.ceil(feeFixed + (amount * feePercent) / 100)
   const [change, setChange] = useState(false)
 
@@ -514,7 +516,7 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
             <span>Tu reçois</span>
             <span>{fcfa(Math.max(0, amount - fee))} FCFA</span>
           </div>
-          <span className="text-[12px] text-muted">Reçu sous 48 h · retrait minimum {fcfa(min)} FCFA</span>
+          <span className="text-[12px] text-muted">Reçu sous {delay} · retrait minimum {fcfa(min)} FCFA</span>
         </div>
         <Button
           loading={loading}
@@ -525,7 +527,7 @@ function WithdrawSheet({ open, onClose }: { open: boolean; onClose: () => void }
               const instant = await actions.withdraw(amount)
               onClose()
               haptic(20)
-              toast({ tone: 'ink', text: instant ? `${fcfa(amount - fee)} FCFA envoyés` : `${fcfa(amount - fee)} FCFA demandés · reçus sous 48 h` })
+              toast({ tone: 'ink', text: instant ? `${fcfa(amount - fee)} FCFA envoyés` : `${fcfa(amount - fee)} FCFA demandés · reçus sous ${delay}` })
             } catch (e) {
               toast({ tone: 'error', text: errorMessage(e) })
             } finally {

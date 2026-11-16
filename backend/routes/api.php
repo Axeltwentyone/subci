@@ -46,6 +46,7 @@ Route::prefix('v1')->group(function () {
             Route::get('payments', [Admin\PaymentController::class, 'index']);
             Route::get('payments/{payment}', [Admin\PaymentController::class, 'show']);
             Route::get('payouts', [Admin\PaymentController::class, 'payouts']);
+            Route::get('payouts/hosts', [Admin\PaymentController::class, 'hostPayoutChecks']);
             Route::post('payments/{payment}/paid', [Admin\PaymentController::class, 'markPaid']);
             Route::post('payments/{payment}/reconcile', [Admin\PaymentController::class, 'reconcile']);
 

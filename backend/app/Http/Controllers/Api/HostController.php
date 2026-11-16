@@ -66,10 +66,18 @@ class HostController extends Controller
                 'min' => (int) config('services.payments.withdrawal_min'),
                 'feeFixed' => (int) config('services.payments.withdrawal_fee_fixed'),
                 'feePercent' => (float) config('services.payments.withdrawal_fee_percent'),
+                // Retrait traité à la main : reçu sous N heures (0 = immédiat).
+                'delayHours' => config('services.payments.manual_payouts') ? (int) config('services.payments.withdrawal_delay_hours') : 0,
             ],
             'monthGain' => (int) $user->payments()->where('type', PaymentType::Earning)->whereIn('status', [PaymentStatus::Succeeded, PaymentStatus::Pending])->where('created_at', '>=', now()->startOfMonth())->sum('amount'),
             'offers' => HostOfferResource::collection($user->hostOffers()->with(self::RELATIONS)->orderByRaw("status = 'closed'")->latest()->get()),
         ];
+    }
+
+    /** « 2 h », « 48 h » : délai annoncé pour un retrait traité à la main. */
+    public static function delayLabel(): string
+    {
+        return (int) config('services.payments.withdrawal_delay_hours').' h';
     }
 
     /** Frais d'envoi d'un retrait, à la charge de l'hôte. */
@@ -368,10 +376,10 @@ class HostController extends Controller
             $amount = number_format($data['amount'] - $fee, 0, ',', ' ').' FCFA';
             if ($manual) {
                 AdminAlerts::send('payouts', "Retrait à verser · {$amount}",
-                    $user->shortName().' · '.$method->label().' '.$payment->phone, '/payouts', 'payouts');
+                    $user->shortName().' · '.$method->label().' '.$payment->phone.' · à envoyer sous '.self::delayLabel(), '/payouts', 'payouts');
             }
             $user->notify($manual
-                ? new AppNotification('host', 'Retrait demandé', "{$amount} vers ".$method->label().', reçu sous 48 h.')
+                ? new AppNotification('host', 'Retrait demandé', "{$amount} vers ".$method->label().', reçu sous '.self::delayLabel().'.')
                 : new AppNotification('host', 'Retrait envoyé', "{$amount} vers ".$method->label()));
 
             return $payment;

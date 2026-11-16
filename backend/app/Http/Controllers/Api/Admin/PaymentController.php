@@ -7,7 +7,10 @@ use App\Enums\PaymentType;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Notifications\AppNotification;
+use App\Services\JekoLedger;
 use App\Services\PaymentService;
+use App\Support\PayoutCheck;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +65,47 @@ class PaymentController extends Controller
             'pending' => $pending->map(fn ($p) => Presenter::payment($p)),
             'done' => $done->map(fn ($p) => Presenter::payment($p)),
             'total' => (int) $pending->sum('amount'),
+        ]);
+    }
+
+    /**
+     * Hôtes : chacun peut-il recevoir ses retraits par Jèko ?
+     * Moyen de retrait accepté par Jèko, numéro mobile ivoirien cohérent avec l'opérateur,
+     * et bénéficiaire déjà enregistré chez Jèko (sinon il sera créé au premier envoi).
+     */
+    public function hostPayoutChecks(JekoLedger $ledger): JsonResponse
+    {
+        $contacts = $ledger->contactNumbers();
+        $hosts = User::query()
+            ->where(fn ($q) => $q->whereHas('hostOffers')->orWhere('balance', '>', 0))
+            ->withSum(['payments as escrow' => fn ($q) => $q->escrowed()], 'amount')
+            ->withCount(['payments as withdrawals_pending' => fn ($q) => $q->where('type', PaymentType::Withdrawal)->where('status', PaymentStatus::Pending)])
+            ->orderByDesc('balance')->get()
+            ->map(function (User $u) use ($contacts) {
+                $check = PayoutCheck::check($u->payout_method, $u->payout_phone ?? $u->phone);
+
+                return [
+                    'id' => $u->id,
+                    'name' => $u->shortName(),
+                    'phone' => $u->phone,
+                    'payoutPhone' => $check['phone'],
+                    'ownNumber' => $u->payout_phone === null,
+                    'method' => $check['method'],
+                    'methodLabel' => \App\Enums\PayMethod::from($check['method'])->label(),
+                    'defaulted' => $check['defaulted'],
+                    'ok' => $check['ok'],
+                    'issues' => $check['issues'],
+                    'balance' => (int) $u->balance,
+                    'escrow' => (int) $u->escrow,
+                    'withdrawalsPending' => (int) $u->withdrawals_pending,
+                    'jekoContact' => $contacts === null ? null : in_array('+225'.$check['phone'], $contacts, true),
+                ];
+            });
+
+        return response()->json([
+            'data' => $hosts->sortBy('ok')->values(),
+            'summary' => ['total' => $hosts->count(), 'ok' => $hosts->where('ok', true)->count(), 'jeko' => $contacts !== null],
+            'delayHours' => (int) config('services.payments.withdrawal_delay_hours'),
         ]);
     }
 

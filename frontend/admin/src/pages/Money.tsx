@@ -20,7 +20,7 @@ export function Payouts() {
     <>
       <PageHeader
         title="Versements"
-        subtitle="GeniusPay ne verse pas automatiquement : envoie chaque montant depuis ton compte marchand, puis marque-le comme versé. La personne est prévenue."
+        subtitle="Envoie chaque montant depuis le dashboard Jèko (Transferts), puis marque-le comme versé. La personne est prévenue."
       />
       {error && <ErrorBox message={error} onRetry={reload} />}
       {loading && !data ? (
@@ -38,12 +38,12 @@ export function Payouts() {
               </div>
               <div className="flex items-center lg:col-span-2 rounded-card bg-surface p-5 text-[13px] leading-relaxed font-semibold text-muted">
                 Les remboursements concernent des demandes refusées, expirées ou annulées : le membre a payé et n’a pas eu de place. Les retraits sont les gains que les hôtes
-                demandent. Délai annoncé dans l’app : 48 h.
+                demandent. Envoie avant l’heure indiquée : c’est le délai annoncé dans l’app.
               </div>
             </div>
 
             <Panel title="À verser" pad={false}>
-              <Table head={['Bénéficiaire', 'Type', 'Numéro', 'Opérateur', 'Montant', 'Depuis', '']} empty={data.pending.length === 0}>
+              <Table head={['Bénéficiaire', 'Type', 'Numéro', 'Opérateur', 'Montant', 'À envoyer avant', '']} empty={data.pending.length === 0}>
                 {data.pending.map((p) => (
                   <Tr key={p.id}>
                     <Td>
@@ -59,9 +59,18 @@ export function Payouts() {
                     <Td>
                       <span className="tabular font-bold">{phone(p.phone)}</span> {p.phone && <Copy text={p.phone} />}
                     </Td>
-                    <Td className="font-semibold">{p.methodLabel}</Td>
+                    <Td>
+                      <span className="flex flex-col items-end gap-1 lg:items-start">
+                        <span className="font-semibold">{p.methodLabel}</span>
+                        {p.payoutCheck &&
+                          (p.payoutCheck.ok ? <Pill tone="ok">Envoyable par Jèko</Pill> : <span title={p.payoutCheck.issues.join(' ')}><Pill tone="err">{p.payoutCheck.issues[0]}</Pill></span>)}
+                      </span>
+                    </Td>
                     <Td className="tabular font-display text-base font-extrabold">{fcfa(p.amount)}</Td>
-                    <Td className={cx('text-[13px] font-semibold', Date.now() - Date.parse(p.createdAt) > 36 * 3600e3 ? 'text-err' : 'text-muted')}>{ago(p.createdAt)}</Td>
+                    <Td className={cx('text-[13px] font-semibold', p.dueAt && Date.parse(p.dueAt) < Date.now() ? 'text-err' : 'text-muted')}>
+                      {p.dueAt ? `${dateTime(p.dueAt)}${Date.parse(p.dueAt) < Date.now() ? ' · en retard' : ''}` : ago(p.createdAt)}
+                      <span className="block text-[12px] text-subtle">demandé {ago(p.createdAt)}</span>
+                    </Td>
                     <Td>
                       <Button size="xs" block={false} onClick={() => setConfirm(p)}>
                         J’ai envoyé l’argent
@@ -71,6 +80,8 @@ export function Payouts() {
                 ))}
               </Table>
             </Panel>
+
+            <HostChecks />
 
             <Panel title="Derniers versements faits" pad={false}>
               <Table head={['Bénéficiaire', 'Type', 'Numéro', 'Montant', 'Versé']} empty={data.done.length === 0}>
@@ -110,6 +121,53 @@ export function Payouts() {
         />
       )}
     </>
+  )
+}
+
+/** Chaque hôte peut-il recevoir ses retraits par Jèko ? */
+function HostChecks() {
+  const { data, error, loading, reload } = useAsync(() => api.hostPayoutChecks(), [])
+  return (
+    <Panel
+      title="Hôtes · retraits par Jèko"
+      pad={false}
+      action={data && <span className={cx('text-[13px] font-bold', data.summary.ok === data.summary.total ? 'text-ok-ink' : 'text-warn-ink')}>{data.summary.ok}/{data.summary.total} prêts</span>}
+    >
+      <p className="px-5 pb-3 text-[13px] font-medium text-muted">
+        Jèko envoie vers Wave, Orange Money (07), MTN (05) et Moov (01). Délai annoncé aux hôtes : {data ? `${data.delayHours} h` : '…'}.
+        {data && !data.summary.jeko && ' Jèko n’est pas joignable ici : bénéficiaires non vérifiés.'}
+      </p>
+      {error && <ErrorBox message={error} onRetry={reload} />}
+      {loading && !data && <Loading />}
+      {data && (
+        <Table head={['Hôte', 'Retrait vers', 'Solde', 'Séquestre', 'Bénéficiaire Jèko', 'Statut']} empty={data.data.length === 0}>
+          {data.data.map((h) => (
+            <Tr key={h.id}>
+              <Td>
+                <Link to={`/users/${h.id}`} className="flex items-center gap-2.5 font-bold hover:underline">
+                  <Avatar name={h.name} size={28} />
+                  {h.name}
+                </Link>
+              </Td>
+              <Td>
+                <span className="flex flex-col">
+                  <span className="tabular font-bold">
+                    {h.methodLabel} · {phone(h.payoutPhone)}
+                  </span>
+                  <span className="text-[12px] font-medium text-muted">
+                    {[h.defaulted && 'Wave par défaut', h.ownNumber && 'numéro du compte'].filter(Boolean).join(' · ') || 'choisi par l’hôte'}
+                  </span>
+                </span>
+              </Td>
+              <Td className="tabular font-bold">{fcfa(h.balance)} F</Td>
+              <Td className="tabular">{fcfa(h.escrow)} F</Td>
+              <Td>{h.jekoContact === null ? '—' : h.jekoContact ? <Pill tone="info">Déjà enregistré</Pill> : <span className="text-[12px] font-semibold text-muted">à créer au 1er envoi</span>}</Td>
+              <Td>{h.ok ? <Pill tone="ok">Prêt</Pill> : <span className="text-[13px] font-semibold text-err-ink">{h.issues.join(' ')}</span>}</Td>
+            </Tr>
+          ))}
+        </Table>
+      )}
+    </Panel>
   )
 }
 

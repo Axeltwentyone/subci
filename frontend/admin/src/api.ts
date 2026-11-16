@@ -89,7 +89,28 @@ export type AdminUser = {
 
 export type Reliability = { memberSince: string | null; paidCount: number; removalsCount: number }
 
+export type PayoutCheck = { ok: boolean; issues: string[]; method: string; phone: string | null; defaulted: boolean }
+
+export type HostPayoutCheck = {
+  id: number
+  name: string
+  phone: string
+  payoutPhone: string | null
+  ownNumber: boolean
+  method: string
+  methodLabel: string
+  defaulted: boolean
+  ok: boolean
+  issues: string[]
+  balance: number
+  escrow: number
+  withdrawalsPending: number
+  jekoContact: boolean | null
+}
+
 export type PaymentRow = {
+  payoutCheck?: PayoutCheck | null
+  dueAt?: string | null
   id: number
   ref: string
   providerRef: string | null
@@ -381,6 +402,7 @@ export const api = {
 
   payments: (p: { status?: string; type?: string; q?: string; page?: number; userId?: number }) => call<Page<PaymentRow>>('GET', `/payments${qs(p)}`),
   payment: (id: number) => call<{ data: PaymentRow & { split: PaymentSplit | null } }>('GET', `/payments/${id}`),
+  hostPayoutChecks: () => call<{ data: HostPayoutCheck[]; summary: { total: number; ok: number; jeko: boolean }; delayHours: number }>('GET', '/payouts/hosts'),
   payouts: () => call<{ pending: PaymentRow[]; done: PaymentRow[]; total: number }>('GET', '/payouts'),
   markPaid: (id: number, note?: string) => call<{ data: PaymentRow }>('POST', `/payments/${id}/paid`, { note }),
   reconcile: (id: number) => call<{ data: PaymentRow }>('POST', `/payments/${id}/reconcile`),

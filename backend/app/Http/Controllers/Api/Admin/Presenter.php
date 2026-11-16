@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Support\PayoutCheck;
 use App\Enums\JoinStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentType;
@@ -119,6 +120,13 @@ final class Presenter
                 ? ['id' => $p->source->id, 'ref' => $p->source->reference, 'user' => $p->source->user?->shortName()]
                 : null,
             'refundedAt' => $p->refunded_at?->toIso8601String(),
+            // Versement à faire : envoyable par Jèko ? à envoyer avant quand (délai annoncé) ?
+            'payoutCheck' => in_array($p->type, [PaymentType::Withdrawal, PaymentType::Refund], true) ? PayoutCheck::check($p->method, $p->phone) : null,
+            'dueAt' => match ($p->type) {
+                PaymentType::Withdrawal => $p->created_at->copy()->addHours((int) config('services.payments.withdrawal_delay_hours'))->toIso8601String(),
+                PaymentType::Refund => $p->created_at->copy()->addHours(48)->toIso8601String(),
+                default => null,
+            },
             'confirmedAt' => $p->confirmed_at?->toIso8601String(),
             'createdAt' => $p->created_at->toIso8601String(),
         ];
