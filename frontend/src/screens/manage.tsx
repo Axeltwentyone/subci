@@ -605,7 +605,7 @@ function PayoutSheet({ open, onClose, onDone }: { open: boolean; onClose: () => 
         <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Où recevoir tes gains</h2>
         {step === 'form' ? (
           <>
-            <PayMethodPicker value={method} onChange={setMethod} phone={phone} onPhone={setPhone} methods={['wave', 'om', 'mtn', 'moov']} />
+            <PayMethodPicker value={method} onChange={setMethod} phone={phone} onPhone={setPhone} methods={['wave', 'om', 'mtn', 'moov', 'djamo']} />
             <p className="text-[13px] leading-snug font-semibold text-muted">
               Par sécurité, on t’envoie un code {state.otpChannel === 'whatsapp' ? 'sur WhatsApp' : 'par SMS'} au {maskPhone(state.user?.phone ?? '')}, et les retraits sont bloqués 24 h après le changement.
             </p>

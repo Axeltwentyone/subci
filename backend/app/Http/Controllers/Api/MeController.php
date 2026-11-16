@@ -59,7 +59,7 @@ class MeController extends Controller
             // Lettres (accents compris), espaces, tirets, apostrophes.
             'firstName' => ['required_with:lastName', 'string', 'max:40', "regex:/^[\\pL][\\pL\\s'’-]*$/u"],
             'lastName' => ['required_with:firstName', 'string', 'max:40', "regex:/^[\\pL][\\pL\\s'’-]*$/u"],
-            'payout.method' => ['sometimes', Rule::enum(PayMethod::class)->except([PayMethod::Card, PayMethod::Djamo])],
+            'payout.method' => ['sometimes', Rule::enum(PayMethod::class)->except([PayMethod::Card])],
             'payout.phone' => ['sometimes', 'digits:10'],
             // Changer où partent les gains exige un code SMS envoyé au numéro du compte.
             'payout.code' => ['required_with:payout', 'digits:6'],

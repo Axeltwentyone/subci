@@ -194,7 +194,7 @@ function HostChecks() {
       action={data && <span className={cx('text-[13px] font-bold', data.summary.ok === data.summary.total ? 'text-ok-ink' : 'text-warn-ink')}>{data.summary.ok}/{data.summary.total} prêts</span>}
     >
       <p className="px-5 pb-3 text-[13px] font-medium text-muted">
-        Jèko envoie vers Wave, Orange Money (07), MTN (05) et Moov (01). Délai annoncé aux hôtes : {data ? `${data.delayHours} h` : '…'}.
+        Jèko envoie vers Wave, Djamo, Orange Money (07), MTN (05) et Moov (01). Délai annoncé aux hôtes : {data ? `${data.delayHours} h` : '…'}.
         {data && !data.summary.jeko && ' Jèko n’est pas joignable ici : bénéficiaires non vérifiés.'}
       </p>
       {error && <ErrorBox message={error} onRetry={reload} />}

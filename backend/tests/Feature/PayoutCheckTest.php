@@ -24,6 +24,9 @@ class PayoutCheckTest extends TestCase
         $this->assertTrue(PayoutCheck::check(PayMethod::Moov, '0101020304')['ok']);
         $this->assertFalse(PayoutCheck::check(PayMethod::Wave, '2721000000')['ok']);
         $this->assertFalse(PayoutCheck::check(PayMethod::Wave, null)['ok']);
+        // Djamo : tout mobile ivoirien.
+        $this->assertTrue(PayoutCheck::check(PayMethod::Djamo, '0501020304')['ok']);
+        $this->assertFalse(PayoutCheck::check(PayMethod::Card, '0501020304')['ok']);
     }
 
     public function test_admin_sees_each_host_and_whether_jeko_knows_the_number(): void
