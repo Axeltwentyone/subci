@@ -97,7 +97,7 @@ export type ApiUser = {
   payout: { method: PayMethodId; phone: string }; lastMethod: PayMethodId; settings: Settings
   referral?: Referral
 }
-/** Parrainage : code à partager, crédit Sub.ci, filleuls, frais offerts (filleul). */
+/** Parrainage : code à partager, crédit Subci, filleuls, frais offerts (filleul). */
 export type Referral = {
   code: string; credit: number; reward: number; friends: number; pending: number
   feeWaived: boolean; referredBy: string | null; canApply: boolean

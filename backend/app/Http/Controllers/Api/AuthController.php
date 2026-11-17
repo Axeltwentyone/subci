@@ -46,7 +46,7 @@ class AuthController extends Controller
         if ($user->wasRecentlyCreated) {
             AdminAlerts::send('signups', 'Nouvelle inscription', 'Le '.$user->phone.' vient de créer son compte.', "/users/{$user->id}", 'signups');
         }
-        abort_if($user->suspended_at !== null, 403, 'Ton compte est suspendu. Contacte le support Sub.ci.');
+        abort_if($user->suspended_at !== null, 403, 'Ton compte est suspendu. Contacte le support Subci.');
         $user->forceFill(['phone_verified_at' => now()])->save();
 
         return response()->json([

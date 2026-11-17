@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
-/** Bénéfices et trésorerie Sub.ci : tableau de bord, journal, retraits de bénéfices, charges, rapprochement Jèko. */
+/** Bénéfices et trésorerie Subci : tableau de bord, journal, retraits de bénéfices, charges, rapprochement Jèko. */
 class TreasuryController extends Controller
 {
     public function __construct(private Treasury $treasury) {}
@@ -209,7 +209,7 @@ class TreasuryController extends Controller
         return response()->json(['data' => ['id' => $b->id]], 201);
     }
 
-    /** Classe une ligne du relevé Jèko : paiement Sub.ci, retrait de bénéfices, ou hors Sub.ci. */
+    /** Classe une ligne du relevé Jèko : paiement Subci, retrait de bénéfices, ou hors Subci. */
     public function classify(Request $request, JekoTransaction $transaction, JekoLedger $ledger): JsonResponse
     {
         $data = $request->validate([

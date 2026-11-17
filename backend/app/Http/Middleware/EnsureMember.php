@@ -17,7 +17,7 @@ class EnsureMember
         abort_unless($user instanceof User, 403, 'Accès réservé aux membres.');
         if ($user->suspended_at) {
             $user->currentAccessToken()?->delete();
-            abort(403, 'Ton compte est suspendu. Contacte le support Sub.ci.');
+            abort(403, 'Ton compte est suspendu. Contacte le support Subci.');
         }
         // Session glissante : 90 jours sans ouvrir l'app → reconnexion par SMS.
         $token = $user->currentAccessToken();

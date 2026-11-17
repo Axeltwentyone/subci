@@ -13,7 +13,7 @@ export function offerShareLink(offer: HostOffer, referralCode?: string): { url: 
   const url = `${window.location.origin}/service/${offer.serviceId}?${params}`
   const free = offer.seats - offer.members.length
   const text =
-    `Rejoins mon ${svc?.name ?? 'abonnement'} (${offer.planLabel}) sur Sub.ci : ${fcfa(offer.price)} FCFA/mois au lieu de payer tout seul. ` +
+    `Rejoins mon ${svc?.name ?? 'abonnement'} (${offer.planLabel}) sur Subci : ${fcfa(offer.price)} FCFA/mois au lieu de payer tout seul. ` +
     `${free > 1 ? `${free} places libres` : 'Plus qu’une place'}, paiement Wave ou Orange Money.`
   return { url, text }
 }
@@ -23,7 +23,7 @@ export async function shareOffer(offer: HostOffer, referralCode?: string): Promi
   const { url, text } = offerShareLink(offer, referralCode)
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'Sub.ci', text, url })
+      await navigator.share({ title: 'Subci', text, url })
       return 'shared'
     }
     await navigator.clipboard.writeText(`${text} ${url}`)

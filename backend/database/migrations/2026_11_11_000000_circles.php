@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('name', 40);
             // Code du lien d'invitation (sub.ci/c/CODE) : le connaître = être invité.
             $table->string('code', 12)->unique();
-            // Ouvert : les places libres sont proposées aux autres utilisateurs de Sub.ci.
+            // Ouvert : les places libres sont proposées aux autres utilisateurs de Subci.
             $table->boolean('is_open')->default(false);
             $table->unsignedTinyInteger('seats');
             // Prix réel de l'abonnement par mois, partagé entre les membres.

@@ -63,7 +63,7 @@ final class Presenter
         ];
     }
 
-    /** Où va l'argent d'un paiement de membre : commission Sub.ci + versements à l'hôte (mois par mois). */
+    /** Où va l'argent d'un paiement de membre : commission Subci + versements à l'hôte (mois par mois). */
     public static function split(Payment $p): ?array
     {
         if ($p->type !== PaymentType::Subscription || $p->status !== PaymentStatus::Succeeded) {

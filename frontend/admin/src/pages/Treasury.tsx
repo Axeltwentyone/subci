@@ -4,9 +4,9 @@ import { useToast } from '../../../src/components/Toast'
 import { api, errorText, type JekoLedger, type Treasury as Data, type TreasuryPeriod, type TreasuryWithdrawal } from '../api'
 import { Button, Confirm, Drawer, ErrorBox, Loading, PageHeader, Pager, Panel, Pill, Segments, Stat, Table, Td, Tr, cx, dateTime, fcfa, useAsync } from '../kit'
 
-/* Bénéfices & trésorerie Sub.ci.
-   Deux chiffres à ne jamais confondre : le bénéfice net (ce que Sub.ci a gagné, frais déduits)
-   et la trésorerie disponible (ce qui est réellement sur le compte Jèko et n'appartient qu'à Sub.ci). */
+/* Bénéfices & trésorerie Subci.
+   Deux chiffres à ne jamais confondre : le bénéfice net (ce que Subci a gagné, frais déduits)
+   et la trésorerie disponible (ce qui est réellement sur le compte Jèko et n'appartient qu'à Subci). */
 
 type Query = { period: TreasuryPeriod; from?: string; to?: string }
 
@@ -54,7 +54,7 @@ export function Treasury() {
     <>
       <PageHeader
         title="Bénéfices & trésorerie"
-        subtitle="Ce que Sub.ci a gagné, ce qui appartient aux hôtes et aux membres, et ce qui peut être retiré."
+        subtitle="Ce que Subci a gagné, ce qui appartient aux hôtes et aux membres, et ce qui peut être retiré."
         actions={
           <>
             {data?.config.jeko && (
@@ -189,15 +189,15 @@ function Detail({ data, onJeko }: { data: Data; onJeko: () => void }) {
   return (
     <>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel title="1 · Bénéfice net Sub.ci" action={<span className="text-[12px] font-semibold text-muted">sur la période</span>}>
+        <Panel title="1 · Bénéfice net Subci" action={<span className="text-[12px] font-semibold text-muted">sur la période</span>}>
           <p className="mb-2 text-[13px] font-medium text-muted">
-            {fcfa(p.gross)} F encaissés auprès des membres. Seule la part de Sub.ci compte ici : le prix des places reste aux hôtes.
+            {fcfa(p.gross)} F encaissés auprès des membres. Seule la part de Subci compte ici : le prix des places reste aux hôtes.
           </p>
           <div className="flex flex-col divide-y divide-line-soft">
             <Line label="Frais de service collectés" value={p.serviceFees} hint="payés par les membres, hors paiements remboursés ou en attente de l’hôte" />
             <Line label="Commission sur les gains des hôtes" value={p.commission} />
             <Line label="Frais de retrait facturés aux hôtes" value={p.hostWithdrawalFees} />
-            <Line label="Revenus Sub.ci" value={p.revenue} strong />
+            <Line label="Revenus Subci" value={p.revenue} strong />
             <Line label="Commissions Jèko à l’encaissement" value={p.feesIn} minus hint={est(p.feesInEstimated)} />
             <Line label="Commissions Jèko à l’envoi" value={p.feesOut} minus hint={p.feesOutEstimated ? `dont ${fcfa(p.feesOutEstimated)} F estimés (${pct(data.config.feeOutPercent)})` : 'reversements aux hôtes et remboursements'} />
             <Line label="Frais de retrait des bénéfices" value={p.withdrawalFees} minus />
@@ -208,7 +208,7 @@ function Detail({ data, onJeko }: { data: Data; onJeko: () => void }) {
           <p className="mt-2 text-[12px] font-medium text-muted">Un retrait de bénéfices n’est pas une charge : seuls ses frais le sont.</p>
         </Panel>
 
-        <Panel title="2 · Trésorerie disponible Sub.ci" action={<span className="text-[12px] font-semibold text-muted">aujourd’hui</span>}>
+        <Panel title="2 · Trésorerie disponible Subci" action={<span className="text-[12px] font-semibold text-muted">aujourd’hui</span>}>
           <div className="flex flex-col divide-y divide-line-soft">
             <Line
               label="Solde réel du compte Jèko"
@@ -227,14 +227,14 @@ function Detail({ data, onJeko }: { data: Data; onJeko: () => void }) {
             <Line label="Trésorerie disponible" value={data.available.confirmed} strong tone={data.available.confirmed !== null && data.available.confirmed < 0 ? 'err' : 'ok'} />
           </div>
           <div className="mt-3 rounded-tile bg-sand px-3 py-2.5 text-[13px] font-semibold text-muted">
-            Estimation sur le solde calculé par Sub.ci ({fcfa(data.cash.theoretical)} F) : <b className="tabular text-ink">{signed(data.available.estimated)} F</b>. Ce n’est pas un solde confirmé
+            Estimation sur le solde calculé par Subci ({fcfa(data.cash.theoretical)} F) : <b className="tabular text-ink">{signed(data.available.estimated)} F</b>. Ce n’est pas un solde confirmé
             par Jèko.
           </div>
         </Panel>
       </div>
 
       <Panel title="Rapprochement du compte Jèko" action={r.unclassified ? <button type="button" onClick={onJeko} className="text-[13px] font-bold text-warn-ink">{r.unclassified} transaction(s) à classer →</button> : null}>
-        <Table head={['', 'Calculé par Sub.ci', 'Relevé Jèko']}>
+        <Table head={['', 'Calculé par Subci', 'Relevé Jèko']}>
           <Tr>
             <Td>Encaissements</Td>
             <Td>{fcfa(r.subci.collections)} F</Td>
@@ -282,7 +282,7 @@ function Detail({ data, onJeko }: { data: Data; onJeko: () => void }) {
           </p>
         )}
         {r.unmatchedPayments > 0 && r.jeko.synced && (
-          <p className="mt-1 text-[12px] font-medium text-muted">{r.unmatchedPayments} paiement(s) Sub.ci sans transaction Jèko rattachée : leur commission est estimée.</p>
+          <p className="mt-1 text-[12px] font-medium text-muted">{r.unmatchedPayments} paiement(s) Subci sans transaction Jèko rattachée : leur commission est estimée.</p>
         )}
       </Panel>
 
@@ -298,7 +298,7 @@ const CHARTS: { value: string; label: string; keys: (keyof Serie)[]; names: stri
   { value: 'net', label: 'Bénéfice net', keys: ['net'], names: ['Bénéfice net'] },
   { value: 'fees', label: 'Frais Jèko', keys: ['fees'], names: ['Frais'] },
   { value: 'balance', label: 'Trésorerie', keys: ['balance'], names: ['Solde calculé'] },
-  { value: 'gross', label: 'Brut vs net', keys: ['gross', 'revenue'], names: ['Encaissé', 'Revenu Sub.ci'] },
+  { value: 'gross', label: 'Brut vs net', keys: ['gross', 'revenue'], names: ['Encaissé', 'Revenu Subci'] },
   { value: 'withdrawn', label: 'Retraits', keys: ['withdrawn'], names: ['Retiré'] },
 ]
 const COLORS = ['bg-ink', 'bg-brand']
@@ -370,7 +370,7 @@ function Charts({ series }: { series: Serie[] }) {
           </div>
         )}
       </div>
-      {chart === 'balance' && <p className="mt-2 text-[12px] font-medium text-muted">Solde calculé par Sub.ci en fin de période, pas un solde confirmé par Jèko.</p>}
+      {chart === 'balance' && <p className="mt-2 text-[12px] font-medium text-muted">Solde calculé par Subci en fin de période, pas un solde confirmé par Jèko.</p>}
     </Panel>
   )
 }
@@ -384,7 +384,7 @@ const KINDS: Record<string, string> = {
   payout: 'Reversement propriétaire',
   refund: 'Remboursement',
   fee_out: 'Frais de reversement',
-  withdrawal: 'Retrait Sub.ci',
+  withdrawal: 'Retrait Subci',
   withdrawal_fee: 'Frais de retrait',
   charge: 'Charge',
   adjustment: 'Ajustement manuel',
@@ -787,14 +787,14 @@ function Ledger({ data: summary, onChange }: { data: Data; onChange: () => void 
                           {t.payment.reference}
                         </Link>
                       ) : t.withdrawalId ? (
-                        <Pill tone="ok">Retrait Sub.ci</Pill>
+                        <Pill tone="ok">Retrait Subci</Pill>
                       ) : t.ignored ? (
-                        <span className="text-[12px] font-semibold text-muted">Hors Sub.ci · {t.ignored}</span>
+                        <span className="text-[12px] font-semibold text-muted">Hors Subci · {t.ignored}</span>
                       ) : open ? (
                         <span className="flex flex-wrap items-center gap-2">
                           <Pill tone="warn">À classer</Pill>
                           <button type="button" className="text-[13px] font-bold underline" onClick={() => setClassify({ t, as: 'payment' })}>
-                            Paiement Sub.ci
+                            Paiement Subci
                           </button>
                           {t.type !== 'payment' && (
                             <button type="button" className="text-[13px] font-bold underline" onClick={() => setClassify({ t, as: 'withdrawal' })}>
@@ -802,7 +802,7 @@ function Ledger({ data: summary, onChange }: { data: Data; onChange: () => void 
                             </button>
                           )}
                           <button type="button" className="text-[13px] font-bold text-muted underline" onClick={() => setClassify({ t, as: 'ignore' })}>
-                            Hors Sub.ci
+                            Hors Subci
                           </button>
                         </span>
                       ) : (
@@ -867,10 +867,10 @@ function ClassifyDialog({ t, as, onClose, onDone }: { t: Txn; as: 'payment' | 'w
   const amount = `${fcfa(t.amount)} F (+${fcfa(t.fee)} F de frais)`
   return (
     <Confirm
-      title={as === 'payment' ? 'Rattacher à un paiement Sub.ci' : as === 'withdrawal' ? 'C’est un retrait de bénéfices ?' : 'Transaction hors Sub.ci'}
+      title={as === 'payment' ? 'Rattacher à un paiement Subci' : as === 'withdrawal' ? 'C’est un retrait de bénéfices ?' : 'Transaction hors Subci'}
       text={
         as === 'payment'
-          ? `${amount}. Indique la référence du paiement Sub.ci (SUB-XXXX-00) : ${t.type === 'payment' ? 'un abonnement' : 'un retrait d’hôte ou un remboursement'}.`
+          ? `${amount}. Indique la référence du paiement Subci (SUB-XXXX-00) : ${t.type === 'payment' ? 'un abonnement' : 'un retrait d’hôte ou un remboursement'}.`
           : as === 'withdrawal'
             ? `${amount} vers ${t.counterpart ?? '—'}. Un retrait confirmé est créé avec les frais réels de Jèko.`
             : `${amount}. Elle sera exclue du rapprochement (test, espèces…).`

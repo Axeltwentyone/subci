@@ -310,7 +310,7 @@ export function ServicePage() {
   const availableDevices = DEVICES.map((d) => d.id).filter((d) => offers?.some((o) => o.devices.includes(d)))
 
   const share = async () => {
-    const data = { title: `${s.name} sur Sub.ci`, text: `${s.name} dès ${fcfa(cheapest)} FCFA/mois sur Sub.ci`, url: location.href }
+    const data = { title: `${s.name} sur Subci`, text: `${s.name} dès ${fcfa(cheapest)} FCFA/mois sur Subci`, url: location.href }
     try {
       if (navigator.share) await navigator.share(data)
       else {

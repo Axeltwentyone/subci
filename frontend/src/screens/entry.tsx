@@ -236,7 +236,7 @@ export function Login() {
           </Button>
           <p className="text-center text-xs leading-normal font-medium text-muted">
             En continuant, tu acceptes les{' '}
-            <Link to="/conditions" className="underline decoration-brand hover:text-brand-ink">conditions</Link> de Sub.ci.
+            <Link to="/conditions" className="underline decoration-brand hover:text-brand-ink">conditions</Link> de Subci.
           </p>
         </div>
       </form>

@@ -59,12 +59,12 @@ export function Checkout() {
   }, [current, offerId, offer, id, navigate, toast])
 
   if (!s) return <NotFound />
-  // Nouvel arrivant sans offre choisie (hors musique, attribuée par Sub.ci) : retour au choix.
+  // Nouvel arrivant sans offre choisie (hors musique, attribuée par Subci) : retour au choix.
   if (!current && !offerId && s.chooseOffer) return <Navigate to={`/service/${id}`} replace />
 
   const monthly = current ? current.price : s.chooseOffer ? offer?.price : s.price
   const subtotal = monthly ? durationPrice(monthly, months) : 0
-  // Frais de service Sub.ci (offerts au filleul), moins le crédit parrainage (le serveur recalcule tout).
+  // Frais de service Subci (offerts au filleul), moins le crédit parrainage (le serveur recalcule tout).
   const feeWaived = !!state.referral?.feeWaived
   // Frais plus bas à partir de 3 mois (un seul paiement pour plusieurs mois).
   const baseFee = months >= 3 ? state.serviceFeeLong : state.serviceFee
@@ -113,7 +113,7 @@ export function Checkout() {
               <ServiceLogo service={s} size={40} />
               <span className="flex flex-1 flex-col gap-0.5">
                 <span className="text-[15px] font-bold">{s.name} · ton propre compte</span>
-                <span className="text-[13px] font-semibold text-muted">Groupe attribué par Sub.ci · tous appareils</span>
+                <span className="text-[13px] font-semibold text-muted">Groupe attribué par Subci · tous appareils</span>
               </span>
             </Card>
             <p className="px-1 text-[13px] leading-normal font-medium text-muted">
@@ -181,7 +181,7 @@ export function Checkout() {
         <div className="flex gap-3 rounded-card bg-ok-soft p-4 text-[13px] leading-[1.45] font-semibold text-ok-ink">
           <IconLock size={18} className="mt-0.5 shrink-0" />
           <span>
-            <b>Paiement protégé.</b> Sub.ci garde ton argent et le verse à l’hôte mois par mois. Si l’accès ne marche pas, signale un souci : tu es remboursé·e du temps restant.
+            <b>Paiement protégé.</b> Subci garde ton argent et le verse à l’hôte mois par mois. Si l’accès ne marche pas, signale un souci : tu es remboursé·e du temps restant.
           </span>
         </div>
       </div>
@@ -193,7 +193,7 @@ export function Checkout() {
           </div>
           {baseFee > 0 && (
             <div className="flex justify-between">
-              <span>Frais de service Sub.ci{feeWaived ? ' · offerts (parrainage)' : ''}</span>
+              <span>Frais de service Subci{feeWaived ? ' · offerts (parrainage)' : ''}</span>
               <span className="tabular-nums">{feeWaived ? <s>{fcfa(baseFee)} FCFA</s> : `${fcfa(fee)} FCFA`}</span>
             </div>
           )}
@@ -202,7 +202,7 @@ export function Checkout() {
           )}
           {credit > 0 && (
             <div className="flex justify-between text-ok-ink">
-              <span>Crédit Sub.ci</span>
+              <span>Crédit Subci</span>
               <span className="tabular-nums">−{fcfa(credit)} FCFA</span>
             </div>
           )}
@@ -525,7 +525,7 @@ export function PaymentReturn() {
         <div className="flex flex-col gap-2">
           <h1 className="t-title">Paiement envoyé</h1>
           <p className="text-base leading-normal font-medium text-pretty text-muted">
-            Retourne sur l’app <b className="text-ink">Sub.ci</b> depuis ton écran d’accueil : la confirmation s’y affiche toute seule.
+            Retourne sur l’app <b className="text-ink">Subci</b> depuis ton écran d’accueil : la confirmation s’y affiche toute seule.
           </p>
         </div>
         <p className="text-[13px] font-semibold text-muted">Tu peux fermer cette page.</p>

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         // Parrainage : le filleul ne paie pas les frais de service tant qu'il n'a pas été accepté par un hôte ;
-        // le parrain reçoit alors un crédit Sub.ci, déduit de ses prochains paiements (non retirable).
+        // le parrain reçoit alors un crédit Subci, déduit de ses prochains paiements (non retirable).
         Schema::create('referrals', function (Blueprint $table) {
             $table->id();
             $table->foreignId('referrer_id')->constrained('users')->cascadeOnDelete();
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->unsignedInteger('referral_credit')->default(0)->after('balance');
         });
 
-        // Crédit utilisé sur un paiement (pris en charge par Sub.ci, jamais sur la part de l'hôte).
+        // Crédit utilisé sur un paiement (pris en charge par Subci, jamais sur la part de l'hôte).
         Schema::table('payments', function (Blueprint $table) {
             $table->unsignedInteger('credit_used')->default(0)->after('service_fee');
             $table->timestamp('credit_restored_at')->nullable()->after('credit_used');

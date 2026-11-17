@@ -30,7 +30,7 @@ class CircleResource extends JsonResource
             // Prix d'une place fixé par le créateur (cercle ouvert), sinon la part égale.
             'seatPrice' => $this->seat_price,
             'memberPrice' => $this->memberPrice(),
-            // À payer chaque mois par un membre : sa part + les frais de service Sub.ci.
+            // À payer chaque mois par un membre : sa part + les frais de service Subci.
             'serviceFee' => \App\Services\PaymentService::serviceFee(1),
             'total' => \App\Services\CircleService::total($this->resource),
             // Ma part : réglée jusqu'à quand, et faut-il payer (nouveau, échéance proche ou passée).

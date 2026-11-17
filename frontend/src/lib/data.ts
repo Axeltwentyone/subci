@@ -26,7 +26,7 @@ export type Service = {
   invite?: 'link' | 'email' | null
   /** Nombre d'offres d'hôtes ouvertes */
   offers: number
-  /** false pour la musique : Sub.ci attribue l'offre, pas de choix */
+  /** false pour la musique : Subci attribue l'offre, pas de choix */
   chooseOffer: boolean
 }
 

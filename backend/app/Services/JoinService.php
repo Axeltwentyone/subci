@@ -150,7 +150,7 @@ class JoinService
             $this->referrals->restoreCredit($payment);
             $member->payments()->create([
                 'type' => PaymentType::Refund,
-                // Le membre choisit : crédit Sub.ci immédiat ou argent sous 48 h (RefundService).
+                // Le membre choisit : crédit Subci immédiat ou argent sous 48 h (RefundService).
                 'status' => PaymentStatus::Pending,
                 'refund_choice' => 'pending',
                 'service_id' => $payment->service_id,
@@ -164,7 +164,7 @@ class JoinService
             $short = Str::before($offer->service->name, ' ');
             $amount = number_format($payment->amount, 0, ',', ' ').' FCFA';
             $host = $offer->user->shortName();
-            $refund = "Tes {$amount} te reviennent : en crédit Sub.ci tout de suite, ou sur ton mobile money sous 48 h. À toi de choisir.";
+            $refund = "Tes {$amount} te reviennent : en crédit Subci tout de suite, ou sur ton mobile money sous 48 h. À toi de choisir.";
             [$title, $body] = match ($status) {
                 JoinStatus::Declined => ["{$host} n’a pas pu t’accepter", $refund],
                 JoinStatus::Expired => ["Pas de réponse de {$host}", $refund],

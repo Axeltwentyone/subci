@@ -48,7 +48,7 @@ export function HostPitch() {
             <span className="font-bold text-ink">{fcfa(gross)}</span>
           </div>
           <div className="flex justify-between text-sm font-semibold text-muted">
-            <span>Frais Sub.ci ({HOST_FEE * 100} %)</span>
+            <span>Frais Subci ({HOST_FEE * 100} %)</span>
             <span>– {fcfa(fee)}</span>
           </div>
           <div className="flex items-baseline justify-between border-t border-line pt-3">
@@ -59,7 +59,7 @@ export function HostPitch() {
           </div>
         </div>
         <Steps
-          items={['Tu choisis le service et le nombre de places', 'Sub.ci trouve les membres et encaisse pour toi', 'Tu retires sur Wave ou Orange Money']}
+          items={['Tu choisis le service et le nombre de places', 'Subci trouve les membres et encaisse pour toi', 'Tu retires sur Wave ou Orange Money']}
         />
         <PayoutRules dark />
       </div>
@@ -73,7 +73,7 @@ export function HostPitch() {
         <div className="flex flex-col gap-4">
           <h2 className="font-display text-2xl font-bold tracking-[-0.02em]">Comment ça marche ?</h2>
           {[
-            ['Qui paie ?', 'Chaque membre paie sa place d’avance à Sub.ci en mobile money. L’argent est garanti : tu n’as jamais à relancer personne.'],
+            ['Qui paie ?', 'Chaque membre paie sa place d’avance à Subci en mobile money. L’argent est garanti : tu n’as jamais à relancer personne.'],
             ['Quand suis-je payé ?', 'Mois par mois : chaque mois payé arrive dans ton solde 48 h après son début (24 h quand tu deviens Hôte fiable). Un membre qui paie 3 mois te rapporte 3 versements, un par mois.'],
             ['Et pour retirer ?', 'Tu retires ton solde quand tu veux vers Wave, Orange Money, MTN ou Moov, à partir de 2 000 FCFA. Frais d’envoi d’environ 1 %, affichés avant de confirmer. Reçu sous 48 h.'],
             ['Pourquoi ce délai ?', 'Pour protéger les membres : si l’accès ne marche pas, ils signalent un souci et sont remboursés du temps pas encore versé. C’est ce qui leur donne confiance… et te ramène des membres.'],
@@ -97,7 +97,7 @@ export function HostPitch() {
 /** Comment l'hôte est payé : à montrer avant qu'il se lance, pas après. */
 function PayoutRules({ dark }: { dark?: boolean }) {
   const steps = [
-    ['Le membre paie d’avance', 'Sub.ci encaisse et garde l’argent en sécurité.'],
+    ['Le membre paie d’avance', 'Subci encaisse et garde l’argent en sécurité.'],
     ['48 h après le début du mois', 'Le mois arrive dans ton solde. 3 mois payés = 3 versements, un par mois.'],
     ['Tu retires quand tu veux', 'Vers Wave, Orange Money, MTN ou Moov. Reçu sous 48 h.'],
   ]
@@ -721,7 +721,7 @@ export function ManageOffer() {
           <section className="flex flex-col gap-2.5 rounded-card bg-brand-tint p-4">
             <span className="text-base font-bold">Trouve tes membres toi-même</span>
             <span className="text-[13px] leading-snug font-semibold text-muted">
-              Partage le lien de ton offre à tes proches sur WhatsApp. Nouveaux sur Sub.ci, chacun qui revient payer une 2e fois te rapporte {fcfa(state.referral?.reward ?? 300)} F de crédit.
+              Partage le lien de ton offre à tes proches sur WhatsApp. Nouveaux sur Subci, chacun qui revient payer une 2e fois te rapporte {fcfa(state.referral?.reward ?? 300)} F de crédit.
             </span>
             <Button
               size="md"

@@ -16,7 +16,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Jèko (https://developer.jeko.africa) : demande de paiement « redirect », le client valide
- * dans son appli mobile money puis revient sur /retour/{référence Sub.ci}. Confirmation par
+ * dans son appli mobile money puis revient sur /retour/{référence Subci}. Confirmation par
  * webhook signé (TRANSACTION_COMPLETED) et, en secours, par lecture du statut.
  * Pas d'environnement de test chez Jèko : tester sur une boutique dédiée, avec de petits montants.
  */

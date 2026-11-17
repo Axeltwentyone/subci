@@ -349,7 +349,7 @@ function HostDashboard() {
               {push === 'install'
                 ? 'Sur iPhone, installe l’app pour être prévenu·e des demandes : tu as 24 h pour répondre à chacune.'
                 : push === 'denied'
-                  ? 'Notifications bloquées : tu ne sauras pas quand un membre veut rejoindre. Réactive-les dans les réglages de ton téléphone (Réglages → Notifications → Sub.ci).'
+                  ? 'Notifications bloquées : tu ne sauras pas quand un membre veut rejoindre. Réactive-les dans les réglages de ton téléphone (Réglages → Notifications → Subci).'
                   : 'Active les notifications : tu as 24 h pour accepter chaque demande, sinon le membre est remboursé.'}
             </span>
             {push !== 'denied' && (
@@ -916,7 +916,7 @@ export function SubDetail() {
         {sub.issue ? (
           <div className="flex flex-col gap-2 rounded-[14px] bg-info-soft px-3.5 py-3 text-[13px] leading-[1.45] font-semibold text-info">
             <span>
-              <b>Souci signalé le {shortDate(sub.issue.at)}.</b> Ton hôte est prévenu·e et l’équipe Sub.ci suit ton dossier. Si ça ne s’arrange pas, tu es remboursé·e du temps restant.
+              <b>Souci signalé le {shortDate(sub.issue.at)}.</b> Ton hôte est prévenu·e et l’équipe Subci suit ton dossier. Si ça ne s’arrange pas, tu es remboursé·e du temps restant.
             </span>
             <button
               type="button"

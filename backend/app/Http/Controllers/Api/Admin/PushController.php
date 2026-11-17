@@ -65,7 +65,7 @@ class PushController extends Controller
     {
         $subs = PushSubscription::where('admin_id', $request->user()->id)->get();
         abort_if($subs->isEmpty(), 422, 'Aucun appareil abonné. Active les notifications d’abord.');
-        $sender->send($subs, ['title' => 'Sub.ci Admin', 'body' => 'Les notifications fonctionnent sur cet appareil.', 'url' => '/', 'tag' => 'test']);
+        $sender->send($subs, ['title' => 'Subci Admin', 'body' => 'Les notifications fonctionnent sur cet appareil.', 'url' => '/', 'tag' => 'test']);
 
         return response()->json(['ok' => true, 'devices' => $subs->count()]);
     }

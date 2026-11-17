@@ -60,7 +60,7 @@ class PaymentController extends Controller
         $pending = Payment::with('user', 'service')->toPayOut()->oldest()->get();
         $done = Payment::with('user', 'service')->where('status', PaymentStatus::Succeeded)
             ->whereIn('type', [PaymentType::Refund, PaymentType::Withdrawal])
-            // Remboursement transformé en crédit Sub.ci : rien n'a été envoyé.
+            // Remboursement transformé en crédit Subci : rien n'a été envoyé.
             ->where(fn ($q) => $q->whereNull('refund_choice')->orWhere('refund_choice', '!=', 'credit'))
             ->latest('confirmed_at')->limit(20)->get();
 

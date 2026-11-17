@@ -47,7 +47,7 @@ export function Alerts() {
 
   return (
     <>
-      <PageHeader title="Notifications" subtitle="Reçois une alerte sur ton téléphone quand quelque chose se passe sur Sub.ci." />
+      <PageHeader title="Notifications" subtitle="Reçois une alerte sur ton téléphone quand quelque chose se passe sur Subci." />
 
       <Panel title="Cet appareil">
         <div className="flex flex-col gap-4">
@@ -222,7 +222,7 @@ function InstallHint() {
       <ol className="flex list-decimal flex-col gap-1 pl-5 text-muted">
         <li>Touche le bouton Partager de Safari</li>
         <li>« Sur l’écran d’accueil », puis Ajouter</li>
-        <li>Ouvre Sub.ci Admin depuis l’icône orange et reviens ici</li>
+        <li>Ouvre Subci Admin depuis l’icône orange et reviens ici</li>
       </ol>
     </div>
   )

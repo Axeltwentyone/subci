@@ -41,7 +41,7 @@ class JekoWebhookController extends Controller
 
         $handled = is_string($requestId) && $payments->handleWebhook($requestId);
         if (! $handled && $subReference) {
-            // Repli : le paiement Sub.ci, relu à partir de sa dernière demande chez Jèko.
+            // Repli : le paiement Subci, relu à partir de sa dernière demande chez Jèko.
             $payment = Payment::where('reference', $subReference)->where('type', PaymentType::Subscription)->first();
             $handled = $payment?->provider_reference && $payments->handleWebhook($payment->provider_reference);
         }

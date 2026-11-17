@@ -258,7 +258,7 @@ export function Payments() {
     <>
       <PageHeader
         title="Paiements"
-        subtitle="Payés par les membres : l’argent qui entre. Gains des hôtes : ce que Sub.ci leur reverse, mois par mois, 48 h après le début de chaque mois payé."
+        subtitle="Payés par les membres : l’argent qui entre. Gains des hôtes : ce que Subci leur reverse, mois par mois, 48 h après le début de chaque mois payé."
       />
       <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
         <Segments
@@ -321,7 +321,7 @@ export function Payments() {
   )
 }
 
-/** Où va l'argent payé par le membre : commission Sub.ci + un versement à l'hôte par mois. */
+/** Où va l'argent payé par le membre : commission Subci + un versement à l'hôte par mois. */
 function Split({ id, amount }: { id: number; amount: number }) {
   const { data, loading } = useAsync(() => api.payment(id).then((r) => r.data.split), [id])
   if (loading && !data) return <Loading />
@@ -337,12 +337,12 @@ function Split({ id, amount }: { id: number; amount: number }) {
         </div>
         {data.serviceFee > 0 && (
           <div className="flex justify-between font-semibold">
-            <span className="text-muted">Frais de service Sub.ci</span>
+            <span className="text-muted">Frais de service Subci</span>
             <span className="tabular font-bold">{fcfa(data.serviceFee)} FCFA</span>
           </div>
         )}
         <div className="flex justify-between font-semibold">
-          <span className="text-muted">Commission Sub.ci</span>
+          <span className="text-muted">Commission Subci</span>
           <span className="tabular font-bold">{fcfa(data.commission)} FCFA</span>
         </div>
         {data.refunded > 0 && (

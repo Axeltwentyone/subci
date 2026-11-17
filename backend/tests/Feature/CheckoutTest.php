@@ -377,7 +377,7 @@ class CheckoutTest extends TestCase
         $this->assertSame(2400 + 300, $payment->amount);
     }
 
-    /** Refus : le membre choisit crédit Sub.ci (immédiat) ou argent (versement admin) ; sans choix, argent après 7 jours. */
+    /** Refus : le membre choisit crédit Subci (immédiat) ou argent (versement admin) ; sans choix, argent après 7 jours. */
     public function test_declined_member_chooses_credit_or_cash_refund(): void
     {
         config(['services.payments.manual_payouts' => true]);

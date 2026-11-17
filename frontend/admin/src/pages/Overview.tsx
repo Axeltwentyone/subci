@@ -65,7 +65,7 @@ export function Overview() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4 [&>:first-child]:max-lg:col-span-2">
         <Stat tone="ink" label={current ? 'Encaissé ce mois' : `Encaissé · ${label}`} value={fcfa(kpis.gmv.value)} unit="FCFA" current={kpis.gmv.value} previous={kpis.gmv.previous} hint={current ? 'vs même période le mois dernier' : `vs ${prevLabel}`} />
         <Stat
-          label="Revenu Sub.ci"
+          label="Revenu Subci"
           value={fcfa(kpis.commission.value)}
           unit="FCFA"
           current={kpis.commission.value}
@@ -260,7 +260,7 @@ function GmvChart({ series }: { series: Data['series'] }) {
   )
 }
 
-/** Un mois par barre : encaissé ; info-bulle avec revenu Sub.ci et inscriptions ; clic = afficher ce mois. */
+/** Un mois par barre : encaissé ; info-bulle avec revenu Subci et inscriptions ; clic = afficher ce mois. */
 function MonthlyChart({ months, selected, onSelect }: { months: NonNullable<Data['monthly']>; selected?: string; onSelect: (m: string) => void }) {
   const [hover, setHover] = useState<number | null>(null)
   const max = niceMax(Math.max(1, ...months.map((m) => m.gmv)))
@@ -299,7 +299,7 @@ function MonthlyChart({ months, selected, onSelect }: { months: NonNullable<Data
           <span className="text-ink-muted capitalize">{monthName(d.month)}</span>
           <span className="tabular text-sm font-extrabold">{fcfa(d.gmv)} FCFA encaissés</span>
           <span className="text-ink-muted">
-            {fcfa(d.revenue)} F de revenu Sub.ci · {d.users} inscription{d.users > 1 ? 's' : ''}
+            {fcfa(d.revenue)} F de revenu Subci · {d.users} inscription{d.users > 1 ? 's' : ''}
           </span>
         </div>
       )}

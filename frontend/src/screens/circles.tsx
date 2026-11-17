@@ -44,11 +44,11 @@ async function inviteToCircle(circle: Circle): Promise<'shared' | 'copied' | nul
   const svc = getService(circle.serviceId)
   const url = `${window.location.origin}/circles/${circle.code}`
   const text =
-    `Rejoins mon cercle « ${circle.name} » sur Sub.ci pour partager ${svc?.name ?? 'un abonnement'} : ` +
+    `Rejoins mon cercle « ${circle.name} » sur Subci pour partager ${svc?.name ?? 'un abonnement'} : ` +
     `${fcfa(circle.memberPrice)} FCFA/mois la place. Code : ${circle.code}`
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'Sub.ci', text, url })
+      await navigator.share({ title: 'Subci', text, url })
       return 'shared'
     }
     await navigator.clipboard.writeText(`${text} ${url}`)
@@ -133,7 +133,7 @@ export function ShareTab() {
             <section className="mt-3 flex flex-col gap-2.5">
               <div className="flex flex-col gap-0.5">
                 <h2 className="t-section">Cercles ouverts</h2>
-                <span className="text-sm font-medium text-muted">Des utilisateurs de Sub.ci qui cherchent des membres.</span>
+                <span className="text-sm font-medium text-muted">Des utilisateurs de Subci qui cherchent des membres.</span>
               </div>
               {data.open.length === 0 ? (
                 <Card className="p-4 text-sm leading-normal font-medium text-muted">
@@ -158,7 +158,7 @@ export function ShareTab() {
         >
           <span className="flex flex-1 flex-col gap-0.5">
             <span className="text-[15px] font-bold">Tu revends des accès ?</span>
-            <span className="text-[13px] font-medium text-muted">Publie une offre : Sub.ci trouve les clients et encaisse.</span>
+            <span className="text-[13px] font-medium text-muted">Publie une offre : Subci trouve les clients et encaisse.</span>
           </span>
           <span className="text-muted">
             <IconChevronRight size={18} />
@@ -346,7 +346,7 @@ export function CreateCircle() {
             <Visibility
               selected={open}
               title="Cercle ouvert"
-              body="Tes places libres sont aussi proposées aux autres utilisateurs de Sub.ci."
+              body="Tes places libres sont aussi proposées aux autres utilisateurs de Subci."
               onClick={() => {
                 setOpen(true)
                 // Point de départ : la part égale, que le créateur ajuste.
@@ -602,7 +602,7 @@ export function CircleDetail() {
           <Card className="mt-2 flex items-center gap-3 py-3 pr-3 pl-4">
             <span className="flex flex-1 flex-col gap-0.5">
               <span className="text-[15px] font-bold">Proposer les places libres</span>
-              <span className="text-[13px] leading-snug font-medium text-muted">Les autres utilisateurs de Sub.ci verront ton cercle et pourront le rejoindre.</span>
+              <span className="text-[13px] leading-snug font-medium text-muted">Les autres utilisateurs de Subci verront ton cercle et pourront le rejoindre.</span>
             </span>
             <Toggle
               label="Proposer les places libres"
@@ -796,9 +796,9 @@ function payNote(circle: Circle): string {
   if (circle.isOwner)
     return circle.potReached
       ? 'Tout le cercle a payé ce mois : l’argent est dans ton solde, à retirer quand tu veux.'
-      : 'Chaque membre paie sa part par Sub.ci. Tu reçois l’argent dans ton solde dès que tout le cercle a payé (au plus tard 7 jours après chaque paiement).'
+      : 'Chaque membre paie sa part par Subci. Tu reçois l’argent dans ton solde dès que tout le cercle a payé (au plus tard 7 jours après chaque paiement).'
   if (circle.isMember && circle.paidUntil && !circle.mustPay) return `Ta part est payée jusqu’au ${shortDate(Date.parse(circle.paidUntil))}. On te rappelle 3 jours avant.`
-  return `Tu paies ta part (${fcfa(circle.memberPrice)} F) + ${fcfa(circle.serviceFee ?? 0)} F de frais Sub.ci, chaque mois. Si le cercle ferme avant que ${circle.owner} ait reçu l’argent, tu es remboursé.`
+  return `Tu paies ta part (${fcfa(circle.memberPrice)} F) + ${fcfa(circle.serviceFee ?? 0)} F de frais Subci, chaque mois. Si le cercle ferme avant que ${circle.owner} ait reçu l’argent, tu es remboursé.`
 }
 
 /** Payer sa part : mobile money, puis « Valide sur ton téléphone ». */
@@ -821,7 +821,7 @@ function CirclePaySheet({ open, circle, onClose }: { open: boolean; circle: Circ
             <span>{fcfa(circle.memberPrice)} F</span>
           </div>
           <div className="flex justify-between text-muted">
-            <span>Frais de service Sub.ci</span>
+            <span>Frais de service Subci</span>
             <span>{fcfa(circle.serviceFee ?? 0)} F</span>
           </div>
           <div className="flex justify-between font-bold">

@@ -1,4 +1,4 @@
-# API Sub.ci (Laravel) pour Render : Nginx + PHP-FPM + file d'attente + planificateur, un seul conteneur.
+# API Subci (Laravel) pour Render : Nginx + PHP-FPM + file d'attente + planificateur, un seul conteneur.
 FROM php:8.4-fpm-alpine AS base
 
 RUN apk add --no-cache nginx supervisor postgresql-libs libpng libjpeg-turbo libwebp freetype icu-libs libzip gmp \

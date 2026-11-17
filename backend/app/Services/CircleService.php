@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Cercles payants (« J'ai déjà l'abonnement ») : le créateur partage son compte,
- * chaque membre paie sa part + les frais de service Sub.ci, chaque mois.
+ * chaque membre paie sa part + les frais de service Subci, chaque mois.
  *
  * L'argent revient au créateur dès que tout le cercle a payé le mois (pot atteint),
  * au plus tard RELEASE_DAYS jours après chaque paiement. Avant, il reste en séquestre :
@@ -106,7 +106,7 @@ class CircleService
         }
         $payment->update(['period_start' => $from, 'period_end' => $until]);
 
-        // Part du créateur (sans commission Sub.ci : seuls les frais de service sont pris).
+        // Part du créateur (sans commission Subci : seuls les frais de service sont pris).
         $share = $payment->amount - (int) $payment->service_fee;
         $owner = $circle->owner;
         $owner->payments()->create([
@@ -205,7 +205,7 @@ class CircleService
     {
         $source->user->payments()->create([
             'type' => PaymentType::Refund,
-            // Le membre choisit : crédit Sub.ci tout de suite ou argent (RefundService).
+            // Le membre choisit : crédit Subci tout de suite ou argent (RefundService).
             'status' => PaymentStatus::Pending,
             'refund_choice' => 'pending',
             'service_id' => $source->service_id,
@@ -216,7 +216,7 @@ class CircleService
             'phone' => $source->phone,
         ]);
         $source->user->notify(new AppNotification('pay', 'Remboursement',
-            AdminAlerts::fcfa($amount)." te reviennent ({$why}) : en crédit Sub.ci tout de suite, ou sur ton mobile money. À toi de choisir.",
+            AdminAlerts::fcfa($amount)." te reviennent ({$why}) : en crédit Subci tout de suite, ou sur ton mobile money. À toi de choisir.",
             ['label' => 'Choisir', 'to' => '/home']));
     }
 }

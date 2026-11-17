@@ -14,9 +14,9 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'badge-96.png'],
       manifest: {
         id: '/?app=admin',
-        name: 'Sub.ci Admin',
-        short_name: 'Sub.ci Admin',
-        description: 'Piloter Sub.ci : offres, paiements, versements.',
+        name: 'Subci Admin',
+        short_name: 'Subci Admin',
+        description: 'Piloter Subci : offres, paiements, versements.',
         lang: 'fr',
         display: 'standalone',
         theme_color: '#16130F',

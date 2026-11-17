@@ -46,7 +46,7 @@ return [
         'request_ttl' => (int) env('PAYMENTS_REQUEST_TTL', 102),
         // GeniusPay n'expose pas d'API de remboursement ni de versement à un tiers :
         // remboursements et retraits des hôtes sont alors traités à la main (payouts:*).
-        // Frais de service Sub.ci ajoutés à chaque paiement de membre (couvrent les frais fixes de la passerelle).
+        // Frais de service Subci ajoutés à chaque paiement de membre (couvrent les frais fixes de la passerelle).
         // Plus élevés sur un paiement d'1 mois (les frais fixes de la passerelle reviennent chaque mois).
         'service_fee' => (int) env('SERVICE_FEE', 300),
         // Paiement de 3 mois ou plus.
@@ -109,7 +109,7 @@ return [
     ],
 
     'referral' => [
-        // Crédit Sub.ci du parrain au 2e paiement abouti de son filleul (déduit de ses paiements, non retirable).
+        // Crédit Subci du parrain au 2e paiement abouti de son filleul (déduit de ses paiements, non retirable).
         'reward' => (int) env('REFERRAL_REWARD', 300),
         'monthly_cap' => (int) env('REFERRAL_MONTHLY_CAP', 10),
         // Frais de service offerts au filleul jusqu'à sa première acceptation (coûte plus qu'il ne rapporte : coupé).

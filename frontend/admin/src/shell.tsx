@@ -188,7 +188,7 @@ export function Login() {
             </button>
           }
         >
-          <p className="text-[15px] font-semibold text-muted">Ouvre ton application d’authentification (Google Authenticator…) et saisis le code « Sub.ci Admin ».</p>
+          <p className="text-[15px] font-semibold text-muted">Ouvre ton application d’authentification (Google Authenticator…) et saisis le code « Subci Admin ».</p>
           <CodeField value={code} onChange={setCode} />
         </AuthCard>
       </SubmitCtx.Provider>
@@ -212,7 +212,7 @@ export function Login() {
           <span className="text-[13px] font-bold text-muted">Mot de passe</span>
           <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className={field} />
         </label>
-        <p className="text-center text-[12px] font-medium text-muted">Accès réservé à l’équipe Sub.ci. Double authentification obligatoire. Toutes les actions sont journalisées.</p>
+        <p className="text-center text-[12px] font-medium text-muted">Accès réservé à l’équipe Subci. Double authentification obligatoire. Toutes les actions sont journalisées.</p>
       </AuthCard>
     </SubmitCtx.Provider>
   )

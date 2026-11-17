@@ -43,7 +43,7 @@ class UserController extends Controller
         ]);
     }
 
-    /** Fiche complète : tout ce que la personne fait sur Sub.ci. */
+    /** Fiche complète : tout ce que la personne fait sur Subci. */
     public function show(User $user): JsonResponse
     {
         $user->load([

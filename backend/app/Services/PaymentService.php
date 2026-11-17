@@ -55,7 +55,7 @@ class PaymentService
                 }
                 $offerId = match (true) {
                     $offerId !== null => $offerId,
-                    // Musique : pas de choix, Sub.ci attribue la meilleure offre ouverte.
+                    // Musique : pas de choix, Subci attribue la meilleure offre ouverte.
                     ! $service->choosesOffer() => $this->availability->bestOffer($service, $user)?->id
                         ?? throw ValidationException::withMessages(['service' => 'Plus de place libre sur ce service. Rejoins la liste d’attente.']),
                     default => throw ValidationException::withMessages(['offerId' => 'Choisis une offre pour ce service.']),
@@ -74,7 +74,7 @@ class PaymentService
                 }
             }
 
-            // Prix de l'hôte + frais de service Sub.ci (offerts au filleul), moins le crédit parrainage.
+            // Prix de l'hôte + frais de service Subci (offerts au filleul), moins le crédit parrainage.
             $subtotal = Service::durationPrice($offer->price, $months);
             $fee = $this->referrals->waivesFee($user) ? 0 : self::serviceFee($months);
             $credit = $this->referrals->reserveCredit($user, $subtotal + $fee - (int) config('services.referral.min_payable'));
@@ -140,7 +140,7 @@ class PaymentService
         }
         // Crédit déjà dépensé ailleurs : relancer offrirait la remise une seconde fois.
         if (! $this->referrals->canReapply($payment)) {
-            throw ValidationException::withMessages(['payment' => 'Ton crédit Sub.ci a déjà servi pour un autre paiement. Lance un nouveau paiement.']);
+            throw ValidationException::withMessages(['payment' => 'Ton crédit Subci a déjà servi pour un autre paiement. Lance un nouveau paiement.']);
         }
         $payment->status = PaymentStatus::Pending;
         $payment->expires_at = now()->addSeconds(config('services.payments.request_ttl'));
@@ -150,7 +150,7 @@ class PaymentService
         return $payment;
     }
 
-    /** Frais de service Sub.ci : 1 mois ou 3 mois et plus. */
+    /** Frais de service Subci : 1 mois ou 3 mois et plus. */
     public static function serviceFee(int $months): int
     {
         return (int) config($months >= 3 ? 'services.payments.service_fee_long' : 'services.payments.service_fee');
@@ -214,7 +214,7 @@ class PaymentService
             $ref = $payment ? $this->ensureReference($payment) : null;
         }
         if (! $ref && $subReference) {
-            // Webhook signé : la référence GeniusPay est rattachée au paiement Sub.ci, puis relue à la source.
+            // Webhook signé : la référence GeniusPay est rattachée au paiement Subci, puis relue à la source.
             $payment = Payment::where('reference', $subReference)->where('type', PaymentType::Subscription)->first();
             $ref = $payment?->references()->firstOrCreate(['reference' => $reference])->setRelation('payment', $payment);
         }

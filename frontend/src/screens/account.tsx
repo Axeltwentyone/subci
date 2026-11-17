@@ -190,9 +190,9 @@ export function Profile() {
 
   const share = async () => {
     const url = `${location.origin}/?ref=${encodeURIComponent(code)}`
-    const text = `Rejoins-moi sur Sub.ci : tes abonnements (Netflix, Spotify…) à prix partagé, en mobile money. Avec mon code ${code}, on est parrainés ensemble.`
+    const text = `Rejoins-moi sur Subci : tes abonnements (Netflix, Spotify…) à prix partagé, en mobile money. Avec mon code ${code}, on est parrainés ensemble.`
     try {
-      if (navigator.share) await navigator.share({ title: 'Sub.ci', text, url })
+      if (navigator.share) await navigator.share({ title: 'Subci', text, url })
       else {
         await navigator.clipboard.writeText(`${text} ${url}`)
         toast({ tone: 'ink', text: 'Code copié', action: { label: 'OK', onClick: () => {} } })
@@ -247,7 +247,7 @@ export function Profile() {
           <ListLink label="Partager & gagner" hint={state.offers.length ? `${fcfa(state.balance)} FCFA` : undefined} onClick={() => navigate(state.offers.length ? '/subs?mode=host' : '/host', { viewTransition: true })} />
           <ListLink label="Moyens de paiement" hint={getMethod(state.lastMethod).name} onClick={() => navigate('/settings', { viewTransition: true })} />
           <ListLink label="Historique des paiements" onClick={() => navigate('/activity?tab=payments')} />
-          {supportWhatsApp() && <ListLink label="Aide & WhatsApp" onClick={() => window.open(supportWhatsApp('Bonjour, j’ai besoin d’aide sur Sub.ci')!, '_blank', 'noopener')} />}
+          {supportWhatsApp() && <ListLink label="Aide & WhatsApp" onClick={() => window.open(supportWhatsApp('Bonjour, j’ai besoin d’aide sur Subci')!, '_blank', 'noopener')} />}
           <ListLink label="Paramètres" onClick={() => navigate('/settings', { viewTransition: true })} />
         </Card>
         <div className="h-2" />
@@ -414,7 +414,7 @@ function ReferralCard({ code, onShare }: { code: string; onShare: () => void }) 
       <div className="flex flex-col gap-1">
         <span className="font-display text-xl leading-[1.15] font-bold">Invite un ami, gagne {fcfa(reward)} FCFA</span>
         <span className="text-[13px] leading-snug font-semibold text-ink/75">
-          Quand ton ami paie une 2e fois sur Sub.ci (un renouvellement, par exemple), tu reçois {fcfa(reward)} F de crédit, déduits de ton prochain paiement.
+          Quand ton ami paie une 2e fois sur Subci (un renouvellement, par exemple), tu reçois {fcfa(reward)} F de crédit, déduits de ton prochain paiement.
         </span>
       </div>
       <div className="flex gap-2">

@@ -100,7 +100,7 @@ class JekoLedger
         return $count;
     }
 
-    /** Rattache les transactions Jèko aux paiements Sub.ci, et reporte les frais réels. */
+    /** Rattache les transactions Jèko aux paiements Subci, et reporte les frais réels. */
     public function link(): int
     {
         $linked = 0;

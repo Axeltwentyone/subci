@@ -28,7 +28,7 @@ class EarningService
     {
         $host = $offer->user;
         $months = max(1, (int) $payment->months);
-        // L'hôte touche 95 % du prix de son offre ; les frais de service restent à Sub.ci.
+        // L'hôte touche 95 % du prix de son offre ; les frais de service restent à Subci.
         $total = $payment->offerAmount();
         $base = intdiv($total, $months);
         $hold = $host->holdHours();
@@ -101,7 +101,7 @@ class EarningService
         }
 
         $gross = (int) $earnings->sum('gross');
-        // Part payée avec du crédit Sub.ci (parrainage, remboursement en crédit) : rendue en crédit, jamais en argent.
+        // Part payée avec du crédit Subci (parrainage, remboursement en crédit) : rendue en crédit, jamais en argent.
         $credit = (int) $earnings->sum(function (Payment $e) {
             $src = $e->source;
             $base = $src ? $src->offerAmount() : 0;
@@ -128,7 +128,7 @@ class EarningService
             'service_id' => $sub->service_id,
             'host_offer_id' => $earnings->first()->host_offer_id,
             'subscription_id' => $sub->id,
-            'label' => "Remboursement {$why}".($credit > 0 ? ' (+ '.self::fcfa($credit).' en crédit Sub.ci)' : ''),
+            'label' => "Remboursement {$why}".($credit > 0 ? ' (+ '.self::fcfa($credit).' en crédit Subci)' : ''),
             'amount' => $cash,
             'method' => $source?->method ?? PayMethod::Wave,
             'phone' => $source?->phone ?? $sub->user->phone,

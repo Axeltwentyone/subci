@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * GeniusPay (https://pay.genius.ci/doc) : le client valide sur la page de
- * paiement GeniusPay puis revient sur /pay/{référence Sub.ci}. Confirmation par
+ * paiement GeniusPay puis revient sur /pay/{référence Subci}. Confirmation par
  * webhook signé et, en secours, par lecture du statut.
  */
 class GeniusPayGateway implements PaymentGateway
@@ -36,10 +36,10 @@ class GeniusPayGateway implements PaymentGateway
         $body = array_filter([
             'amount' => $payment->amount,
             'currency' => 'XOF',
-            'description' => "Sub.ci · {$payment->label}",
+            'description' => "Subci · {$payment->label}",
             'payment_method' => self::METHODS[$payment->method->value] ?? null,
             'customer' => array_filter([
-                'name' => $payment->user->name ?? 'Membre Sub.ci',
+                'name' => $payment->user->name ?? 'Membre Subci',
                 'phone' => $payment->phone ? '+225'.$payment->phone : null,
                 'country' => 'CI',
             ]),

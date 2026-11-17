@@ -67,7 +67,7 @@ Route::prefix('v1')->group(function () {
 
             Route::get('audit', [Admin\MiscController::class, 'audit']);
 
-            // Bénéfices & trésorerie Sub.ci.
+            // Bénéfices & trésorerie Subci.
             Route::get('treasury', [Admin\TreasuryController::class, 'summary']);
             Route::get('treasury/journal', [Admin\TreasuryController::class, 'journal']);
             Route::get('treasury/withdrawals', [Admin\TreasuryController::class, 'withdrawals']);

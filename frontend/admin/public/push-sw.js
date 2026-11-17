@@ -1,15 +1,15 @@
-/* Sub.ci Admin — alertes push (paiement reçu, offre à valider, versement à faire). Importé par le SW Workbox. */
+/* Subci Admin — alertes push (paiement reçu, offre à valider, versement à faire). Importé par le SW Workbox. */
 
 self.addEventListener('push', (event) => {
   let data = {}
   try {
     data = event.data ? event.data.json() : {}
   } catch {
-    data = { title: 'Sub.ci Admin', body: event.data ? event.data.text() : '' }
+    data = { title: 'Subci Admin', body: event.data ? event.data.text() : '' }
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Sub.ci Admin', {
+    self.registration.showNotification(data.title || 'Subci Admin', {
       body: data.body || '',
       icon: '/pwa-192.png',
       badge: '/badge-96.png',

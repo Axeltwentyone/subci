@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
  * Envoi automatique des versements (retraits des hôtes, remboursements en argent) par l'API Jèko.
  *
  * Sécurité : un versement n'est tenté qu'UNE fois (payout_attempted_at posé avant l'appel, sous verrou),
- * et la référence Jèko du transfert est celle du paiement Sub.ci (unique chez Jèko : un doublon est refusé).
+ * et la référence Jèko du transfert est celle du paiement Subci (unique chez Jèko : un doublon est refusé).
  * Au moindre doute (réseau, refus), on n'envoie plus rien : le versement reste à faire à la main, l'équipe est alertée.
  */
 class JekoPayouts
@@ -86,7 +86,7 @@ class JekoPayouts
                 'amountCents' => $payment->amount * 100,
                 'currency' => 'XOF',
                 'reference' => $payment->reference,
-                'description' => mb_substr(($payment->type === PaymentType::Withdrawal ? 'Retrait Sub.ci ' : 'Remboursement Sub.ci ').$payment->reference, 0, 255),
+                'description' => mb_substr(($payment->type === PaymentType::Withdrawal ? 'Retrait Subci ' : 'Remboursement Subci ').$payment->reference, 0, 255),
             ]);
         } catch (\Throwable $e) {
             // Réseau coupé pendant l'envoi : on ne sait pas si Jèko l'a reçu → jamais de nouvelle tentative auto.
@@ -168,7 +168,7 @@ class JekoPayouts
             return (string) $existing['id'];
         }
         $response = $this->http()->post('/partner_api/contacts', [
-            'name' => mb_substr($payment->user->shortName().' · Sub.ci', 0, 80),
+            'name' => mb_substr($payment->user->shortName().' · Subci', 0, 80),
             'paymentMethod' => $method,
             'identifier' => ['number' => $number],
         ]);

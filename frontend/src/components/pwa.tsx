@@ -50,12 +50,12 @@ export function InstallSheet({ open, onClose }: { open: boolean; onClose: () => 
   }
 
   return (
-    <Sheet open={open} onClose={later} label="Installer Sub.ci">
+    <Sheet open={open} onClose={later} label="Installer Subci">
       <div className="flex flex-col gap-5">
         <div className="flex items-center gap-3.5">
           <LogoMark size={64} />
           <div className="flex flex-col gap-1">
-            <h2 className="font-display text-2xl leading-[1.1] font-bold tracking-[-0.02em]">Installe Sub.ci</h2>
+            <h2 className="font-display text-2xl leading-[1.1] font-bold tracking-[-0.02em]">Installe Subci</h2>
             <p className="text-sm font-semibold text-muted">Moins de 1 Mo · sans store</p>
           </div>
         </div>
@@ -86,7 +86,7 @@ export function InstallSheet({ open, onClose }: { open: boolean; onClose: () => 
                 if (install.canPrompt) {
                   const ok = await install.prompt()
                   onClose()
-                  if (ok) toast({ tone: 'success', text: 'Sub.ci est installée sur ton écran d’accueil' })
+                  if (ok) toast({ tone: 'success', text: 'Subci est installée sur ton écran d’accueil' })
                 } else {
                   toast({ tone: 'ink', text: 'Menu du navigateur → « Installer l’application »' })
                   onClose()
@@ -116,7 +116,7 @@ function inAppBrowser() {
 }
 
 /**
- * Premier lancement sur mobile, dans le navigateur : écran plein « Installe Sub.ci ».
+ * Premier lancement sur mobile, dans le navigateur : écran plein « Installe Subci ».
  * Une fois installée, l'app s'ouvre en plein écran, sans barre ni geste de retour du navigateur.
  */
 export function InstallGate() {
@@ -138,12 +138,12 @@ function InstallScreen() {
   const later = () => actions.installDismissed()
 
   return (
-    <div className="scheme-dark fixed inset-0 z-[60] overflow-y-auto bg-ink text-sand" role="dialog" aria-modal="true" aria-label="Installer Sub.ci">
+    <div className="scheme-dark fixed inset-0 z-[60] overflow-y-auto bg-ink text-sand" role="dialog" aria-modal="true" aria-label="Installer Subci">
       <div className="pt-safe mx-auto flex min-h-dvh w-full max-w-[440px] flex-col px-6 pb-[calc(env(safe-area-inset-bottom)+28px)]">
         <div className="flex flex-1 flex-col justify-center gap-7 py-10">
           <div className="flex flex-col items-center gap-4 text-center">
             <LogoMark size={88} tone="brand" />
-            <h1 className="font-display text-[34px] leading-[1.05] font-bold tracking-[-0.03em] text-balance">Installe Sub.ci sur ton téléphone</h1>
+            <h1 className="font-display text-[34px] leading-[1.05] font-bold tracking-[-0.03em] text-balance">Installe Subci sur ton téléphone</h1>
             <p className="text-[15px] font-semibold text-ink-muted">Gratuit, moins de 1 Mo, sans passer par un store.</p>
           </div>
           <ul className="flex flex-col gap-3.5">
@@ -159,18 +159,18 @@ function InstallScreen() {
 
           {inApp ? (
             <Steps
-              steps={['Touche ⋯ en haut à droite', 'Choisis « Ouvrir dans le navigateur » (Safari ou Chrome)', 'Installe Sub.ci depuis là']}
+              steps={['Touche ⋯ en haut à droite', 'Choisis « Ouvrir dans le navigateur » (Safari ou Chrome)', 'Installe Subci depuis là']}
             />
           ) : install.ios ? (
             <Steps
               steps={[
                 <>Touche <IconShare size={16} className="inline -mt-1" /> <b>Partager</b> en bas de l’écran</>,
                 <>Choisis <b>Sur l’écran d’accueil</b> (fais défiler si besoin)</>,
-                <>Touche <b>Ajouter</b>, puis ouvre Sub.ci depuis l’icône</>,
+                <>Touche <b>Ajouter</b>, puis ouvre Subci depuis l’icône</>,
               ]}
             />
           ) : !install.canPrompt ? (
-            <Steps steps={[<>Ouvre le menu <b>⋮</b> du navigateur</>, <>Choisis <b>Installer l’application</b> (ou « Ajouter à l’écran d’accueil »)</>, 'Ouvre Sub.ci depuis l’icône']} />
+            <Steps steps={[<>Ouvre le menu <b>⋮</b> du navigateur</>, <>Choisis <b>Installer l’application</b> (ou « Ajouter à l’écran d’accueil »)</>, 'Ouvre Subci depuis l’icône']} />
           ) : null}
         </div>
 
@@ -178,7 +178,7 @@ function InstallScreen() {
           {!install.ios && install.canPrompt && !inApp && (
             <Button
               onClick={async () => {
-                if (await install.prompt()) toast({ tone: 'success', text: 'Sub.ci est installée : ouvre-la depuis ton écran d’accueil' })
+                if (await install.prompt()) toast({ tone: 'success', text: 'Subci est installée : ouvre-la depuis ton écran d’accueil' })
               }}
             >
               Installer l’app
@@ -215,7 +215,7 @@ export function InstallBanner({ onOpen }: { onOpen: () => void }) {
     <div className="flex items-center gap-3 scheme-card rounded-card bg-ink p-3.5 pr-2 text-sand">
       <LogoMark size={40} tone="brand" />
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 flex-col text-left">
-        <span className="text-[15px] font-bold">Installe l’app Sub.ci</span>
+        <span className="text-[15px] font-bold">Installe l’app Subci</span>
         <span className="text-[13px] font-semibold text-ink-muted">Plus rapide, et tes accès même hors ligne</span>
       </button>
       <button type="button" onClick={onOpen} className="pressable h-10 rounded-[12px] bg-brand px-4 text-sm font-bold text-on-accent">
@@ -251,7 +251,7 @@ export function NotifSheet({ open, onClose, host }: { open: boolean; onClose: ()
         <div className="flex items-center gap-2.5 rounded-btn bg-sand p-3">
           <LogoMark size={36} />
           <div className="flex flex-col gap-0.5">
-            <span className="text-[13px] font-bold">Sub.ci · maintenant</span>
+            <span className="text-[13px] font-bold">Subci · maintenant</span>
             <span className="text-[13px] font-medium text-muted">
               {host ? 'Aya K. veut rejoindre ton Netflix. Réponds sous 24 h.' : 'Netflix expire dans 3 jours. Renouvelle en 1 tap.'}
             </span>

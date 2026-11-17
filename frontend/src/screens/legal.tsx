@@ -7,23 +7,23 @@ import { supportWhatsApp } from '../lib/support'
  */
 const SECTIONS: { title: string; body: string[] }[] = [
   {
-    title: 'Ce qu’est Sub.ci',
+    title: 'Ce qu’est Subci',
     body: [
-      'Sub.ci met en relation des personnes qui partagent les places libres de leurs abonnements (les hôtes) et des personnes qui veulent une place à prix partagé (les membres).',
-      'Sub.ci n’est affilié à aucun des services proposés (Netflix, Spotify, Apple, Google…). Chaque utilisateur reste responsable du respect des conditions du service qu’il partage ou utilise.',
+      'Subci met en relation des personnes qui partagent les places libres de leurs abonnements (les hôtes) et des personnes qui veulent une place à prix partagé (les membres).',
+      'Subci n’est affilié à aucun des services proposés (Netflix, Spotify, Apple, Google…). Chaque utilisateur reste responsable du respect des conditions du service qu’il partage ou utilise.',
     ],
   },
   {
     title: 'Paiement et frais',
     body: [
-      'Le membre paie sa place d’avance, en mobile money ou par carte, via notre prestataire de paiement. Des frais de service Sub.ci sont ajoutés à chaque paiement et affichés avant de payer.',
-      'L’hôte reçoit 95 % du prix de son offre ; Sub.ci garde 5 % et les frais de service, et paie les frais de la plateforme de paiement.',
+      'Le membre paie sa place d’avance, en mobile money ou par carte, via notre prestataire de paiement. Des frais de service Subci sont ajoutés à chaque paiement et affichés avant de payer.',
+      'L’hôte reçoit 95 % du prix de son offre ; Subci garde 5 % et les frais de service, et paie les frais de la plateforme de paiement.',
     ],
   },
   {
     title: 'Acceptation et remboursements',
     body: [
-      'Après le paiement, l’hôte a 24 h pour accepter le membre. S’il refuse ou ne répond pas, le membre récupère l’intégralité de ce qu’il a payé, frais compris, au choix : en crédit Sub.ci utilisable tout de suite, ou sur son compte mobile money sous 48 h. Sans choix de sa part sous 7 jours, le montant est renvoyé sur son mobile money.',
+      'Après le paiement, l’hôte a 24 h pour accepter le membre. S’il refuse ou ne répond pas, le membre récupère l’intégralité de ce qu’il a payé, frais compris, au choix : en crédit Subci utilisable tout de suite, ou sur son compte mobile money sous 48 h. Sans choix de sa part sous 7 jours, le montant est renvoyé sur son mobile money.',
       'L’argent est versé à l’hôte mois par mois, quelques jours après le début de chaque mois payé. Si l’accès ne fonctionne pas, le membre signale un souci depuis l’app : les versements à l’hôte pour ce membre sont suspendus le temps de régler le problème, et le temps non encore versé peut être remboursé.',
       'Les retraits des hôtes et les remboursements sont envoyés sur le compte mobile money indiqué (Wave, Orange Money, MTN, Moov ou Djamo), en général en quelques minutes et au plus tard sous 48 h. Les retraits des hôtes sont possibles à partir de 500 FCFA ; les frais d’envoi (environ 1 %) sont déduits du montant retiré et affichés avant de confirmer.',
     ],
@@ -32,21 +32,21 @@ const SECTIONS: { title: string; body: string[] }[] = [
     title: 'Engagements de l’hôte',
     body: [
       'L’hôte garde son abonnement actif pendant toute la durée payée par ses membres, et ne modifie pas l’accès sans prévenir.',
-      'Une preuve d’abonnement est demandée et vérifiée avant la mise en ligne d’une offre. Sub.ci peut suspendre une offre ou un compte en cas d’abus.',
+      'Une preuve d’abonnement est demandée et vérifiée avant la mise en ligne d’une offre. Subci peut suspendre une offre ou un compte en cas d’abus.',
     ],
   },
   {
     title: 'Tes données',
     body: [
       'Nous gardons ton numéro de téléphone, ton prénom et ton nom, tes paiements, et pour les hôtes les identifiants des comptes partagés. Ces identifiants sont chiffrés et ne sont visibles que par les membres acceptés.',
-      'Les autres utilisateurs ne voient que ton prénom et l’initiale de ton nom. Tes données servent uniquement au fonctionnement de Sub.ci ; elles ne sont ni vendues ni partagées à des fins publicitaires.',
+      'Les autres utilisateurs ne voient que ton prénom et l’initiale de ton nom. Tes données servent uniquement au fonctionnement de Subci ; elles ne sont ni vendues ni partagées à des fins publicitaires.',
       'Tu peux demander la suppression de ton compte et de tes données en nous contactant.',
     ],
   },
 ]
 
 export function Conditions() {
-  const help = supportWhatsApp('Bonjour, j’ai une question sur les conditions de Sub.ci')
+  const help = supportWhatsApp('Bonjour, j’ai une question sur les conditions de Subci')
   return (
     <Screen>
       <div className="flex items-center gap-3 px-4 pt-1">

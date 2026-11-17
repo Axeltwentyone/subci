@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
  * Parrainage.
  * - Le filleul saisit le code d'un ami avant son premier paiement (frais offerts seulement si waive_fee).
  * - Au 2e paiement abouti du filleul (renouvellement ou 2e abonnement accepté), le parrain reçoit un crédit
- *   Sub.ci (plafonné par mois), déduit de ses prochains paiements, jamais retirable.
+ *   Subci (plafonné par mois), déduit de ses prochains paiements, jamais retirable.
  *   Crédit repris si le filleul est remboursé dans les 30 jours.
  */
 class ReferralService
@@ -145,7 +145,7 @@ class ReferralService
         $referral->update(['status' => 'rewarded', 'reward' => $reward, 'rewarded_at' => now()]);
         User::whereKey($referral->referrer_id)->increment('referral_credit', $reward);
         $referral->referrer->notify(new AppNotification('ok', '+'.EarningService::fcfa($reward).' de crédit',
-            $referee->shortName().' a rejoint Sub.ci grâce à toi. Ton crédit est déduit de ton prochain paiement.',
+            $referee->shortName().' a rejoint Subci grâce à toi. Ton crédit est déduit de ton prochain paiement.',
             ['label' => 'Voir', 'to' => '/profile']));
     }
 

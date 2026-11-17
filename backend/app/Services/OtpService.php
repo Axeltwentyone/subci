@@ -64,7 +64,7 @@ class OtpService
         }
         // Code en clair dans les logs : uniquement en local (en prod, quiconque lit les logs pourrait se connecter).
         if (app()->environment('local', 'testing')) {
-            Log::info("OTP Sub.ci ({$purpose}) pour {$phone} : {$code}");
+            Log::info("OTP Subci ({$purpose}) pour {$phone} : {$code}");
         }
 
         return $code;

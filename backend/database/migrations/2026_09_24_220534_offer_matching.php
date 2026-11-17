@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Le paiement réserve une place dans l'offre choisie par Sub.ci.
+        // Le paiement réserve une place dans l'offre choisie par Subci.
         Schema::table('payments', function (Blueprint $table) {
             $table->foreignId('host_offer_id')->nullable()->after('subscription_id')->constrained()->nullOnDelete();
         });

@@ -36,7 +36,7 @@ class Service extends Model
     /**
      * Le membre choisit-il son offre ? Non pour la musique : chacun garde son
      * propre compte dans un groupe famille, toutes les offres se valent —
-     * Sub.ci attribue la meilleure, l'hôte valide ensuite.
+     * Subci attribue la meilleure, l'hôte valide ensuite.
      */
     public function choosesOffer(): bool
     {

@@ -18,10 +18,10 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 /**
- * Bénéfices et trésorerie Sub.ci.
+ * Bénéfices et trésorerie Subci.
  *
  * Tout part d'une liste de mouvements datés. Chacun a deux effets distincts :
- *  - « profit » : effet sur le bénéfice net Sub.ci (frais de service, commission, frais payés…) ;
+ *  - « profit » : effet sur le bénéfice net Subci (frais de service, commission, frais payés…) ;
  *  - « cash »   : effet sur le compte marchand (encaissement, reversement, retrait…).
  * Les fonds des hôtes et des membres passent dans « cash » sans jamais toucher « profit ».
  * Un retrait de bénéfices est un mouvement de trésorerie : seuls ses frais sont une charge.
@@ -78,7 +78,7 @@ class Treasury
                 $push('fee_in', $at, 'Commission Jèko · double '.$p->reference, -$fee, -$fee, true, $p);
             });
 
-        // Commission Sub.ci sur les gains des hôtes (gain annulé par un remboursement = commission annulée).
+        // Commission Subci sur les gains des hôtes (gain annulé par un remboursement = commission annulée).
         $between(Payment::where('type', PaymentType::Earning)->whereIn('status', [PaymentStatus::Succeeded, PaymentStatus::Pending]), 'created_at')
             ->get(['id', 'reference', 'amount', 'gross', 'created_at'])->each(function (Payment $p) use ($push) {
                 $commission = (int) ($p->gross ?? $p->amount) - $p->amount;
@@ -94,7 +94,7 @@ class Treasury
         // Reversements envoyés (retraits des hôtes, remboursements en argent) et leurs frais d'envoi.
         $between(Payment::with('user')->whereIn('type', [PaymentType::Withdrawal, PaymentType::Refund])
             ->where('status', PaymentStatus::Succeeded)
-            // Remboursement transformé en crédit Sub.ci : rien n'est sorti du compte.
+            // Remboursement transformé en crédit Subci : rien n'est sorti du compte.
             ->where(fn ($q) => $q->whereNull('refund_choice')->orWhere('refund_choice', '!=', 'credit')), 'confirmed_at')
             ->get()->each(function (Payment $p) use ($push) {
                 $who = $p->user?->shortName() ?? '';
@@ -120,7 +120,7 @@ class Treasury
             }
         });
 
-        // Crédits de parrainage offerts : un coût marketing pour Sub.ci (le compte n'est touché qu'à l'utilisation).
+        // Crédits de parrainage offerts : un coût marketing pour Subci (le compte n'est touché qu'à l'utilisation).
         $between(Referral::where('status', 'rewarded')->where('reward', '>', 0), 'rewarded_at')
             ->get(['id', 'reward', 'rewarded_at'])->each(fn (Referral $r) => $push('referral', $r->rewarded_at, 'Crédit de parrainage offert', 0, -(int) $r->reward));
 
@@ -158,13 +158,13 @@ class Treasury
         ];
     }
 
-    /** Solde du compte marchand tel que Sub.ci le calcule (jamais présenté comme confirmé). */
+    /** Solde du compte marchand tel que Subci le calcule (jamais présenté comme confirmé). */
     public function theoreticalBalance(CarbonInterface $at): int
     {
         return (int) $this->events(null, $at)->sum('cash');
     }
 
-    /** Ce que Sub.ci doit aujourd'hui (argent qui n'est pas à Sub.ci). */
+    /** Ce que Subci doit aujourd'hui (argent qui n'est pas à Subci). */
     public function liabilities(): array
     {
         $toPayOut = Payment::toPayOut();
@@ -181,7 +181,7 @@ class Treasury
             // Payé, en attente de la réponse de l'hôte : rendu en cas de refus.
             'held' => (int) Payment::where('type', PaymentType::Subscription)->where('status', PaymentStatus::Succeeded)->whereNull('refunded_at')
                 ->whereHas('joinRequest', fn ($q) => $q->where('status', JoinStatus::Pending))->sum('amount'),
-            // Crédits Sub.ci des membres (remboursements en crédit + parrainage) : à honorer au prochain paiement.
+            // Crédits Subci des membres (remboursements en crédit + parrainage) : à honorer au prochain paiement.
             'memberCredit' => (int) User::sum('referral_credit'),
         ];
         $sendingFees = self::feeOut($toSend + $awaitingChoice);
@@ -297,7 +297,7 @@ class Treasury
         }, $buckets);
     }
 
-    /** Rapprochement : ce que Sub.ci a enregistré face au relevé Jèko. */
+    /** Rapprochement : ce que Subci a enregistré face au relevé Jèko. */
     private function reconciliation(Collection $all, ?MerchantBalance $real): array
     {
         $p = $this->profit($all);

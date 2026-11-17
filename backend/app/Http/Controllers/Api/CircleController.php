@@ -19,7 +19,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * Partage : cercles d'amis autour d'un abonnement. Cercle privé (sur invitation, par lien)
- * ou ouvert (ses places libres sont proposées aux autres utilisateurs de Sub.ci).
+ * ou ouvert (ses places libres sont proposées aux autres utilisateurs de Subci).
  */
 class CircleController extends Controller
 {

@@ -22,7 +22,7 @@ class JoinRequestResource extends JsonResource
             'offerId' => (string) $this->host_offer_id,
             'serviceId' => $this->offer->service->slug,
             'status' => $this->status,
-            // Ce qui revient au cercle (sans les frais de service Sub.ci).
+            // Ce qui revient au cercle (sans les frais de service Subci).
             'amount' => $this->payment->offerAmount(),
             'months' => $this->payment->months,
             'expiresAt' => $this->expires_at->toIso8601String(),

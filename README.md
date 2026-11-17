@@ -1,4 +1,4 @@
-# Sub.ci
+# Subci
 
 PWA mobile (React + Tailwind v4), tableau de bord admin, et API Laravel 13 (MySQL en local, Postgres en production).
 

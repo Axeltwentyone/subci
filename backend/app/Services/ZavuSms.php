@@ -31,7 +31,7 @@ class ZavuSms
             $request = $request->withHeaders(['Zavu-Sender' => $c['sender']]);
         }
         // Sans accents ni emoji : un seul SMS de 160 caractères (GSM-7), donc un seul crédit.
-        // « Subci » sans point : Zavu prend « Sub.ci » pour un lien et retient le SMS (pending_url_verification).
+        // « Subci » sans point : Zavu prend « Subci » pour un lien et retient le SMS (pending_url_verification).
         $response = $request->post('https://api.zavu.dev/v1/messages', [
             'to' => '+225'.$phone,
             // « sms_oneway » : sans numéro attribué chez Zavu (« sms » l'exige) ; on n'attend pas de réponse.

@@ -147,7 +147,7 @@ export type State = {
   upcoming: { label: string; amount: number; at: number }[]
   trusted: boolean
   holdHours: number
-  /** Frais de service Sub.ci ajoutés à chaque paiement */
+  /** Frais de service Subci ajoutés à chaque paiement */
   serviceFee: number
   /** Frais de service pour 3 mois ou plus. */
   serviceFeeLong: number
@@ -412,7 +412,7 @@ function makeActions(dispatch: (a: Action) => void, get: () => State) {
     },
     resendPayment: async (ref: string) => toPending((await api.resendPayment(ref)).data),
     cancelPayment: (ref: string) => api.cancelPayment(ref).catch(() => {}),
-    /** Remboursement : crédit Sub.ci immédiat ou argent sous 48 h. */
+    /** Remboursement : crédit Subci immédiat ou argent sous 48 h. */
     async chooseRefund(ref: string, choice: 'credit' | 'cash') {
       await api.refundChoice(ref, choice)
       await sync().catch(() => {})
@@ -609,7 +609,7 @@ export function byUrgency(a: UserSub, b: UserSub) {
   return d !== 0 ? d : a.endAt - b.endAt
 }
 
-/** Gain de l'hôte : prix × places, moins la commission Sub.ci (même taux que HostOffer::FEE côté serveur). */
+/** Gain de l'hôte : prix × places, moins la commission Subci (même taux que HostOffer::FEE côté serveur). */
 export function hostNet(price: number, seats: number) {
   const gross = price * seats
   const fee = Math.round(gross * HOST_FEE)

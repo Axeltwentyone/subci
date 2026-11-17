@@ -142,7 +142,7 @@ export function Home() {
             <DueRow key={s.id} sub={s} />
           ))}
           <div className="mt-auto flex flex-col gap-2.5 rounded-card bg-sand p-[18px]">
-            <span className="text-base font-bold">Sub.ci sur ton téléphone</span>
+            <span className="text-base font-bold">Subci sur ton téléphone</span>
             <span className="text-[13px] leading-normal font-medium text-muted">Scanne pour installer l’app et recevoir tes rappels.</span>
             <InstallQr />
           </div>
@@ -158,7 +158,7 @@ export function Home() {
   )
 }
 
-/** Demande refusée / sans réponse : le membre choisit crédit Sub.ci (immédiat) ou argent (sous 48 h). */
+/** Demande refusée / sans réponse : le membre choisit crédit Subci (immédiat) ou argent (sous 48 h). */
 function RefundChoice({ payment }: { payment: Payment }) {
   const { actions } = useStore()
   const toast = useToast()
@@ -195,7 +195,7 @@ function RefundChoice({ payment }: { payment: Payment }) {
         className="pressable flex items-center gap-3 rounded-btn border-[1.5px] border-ok bg-ok-soft p-3.5 text-left disabled:opacity-60"
       >
         <span className="flex flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-bold text-ok-ink">Crédit Sub.ci · tout de suite</span>
+          <span className="text-[15px] font-bold text-ok-ink">Crédit Subci · tout de suite</span>
           <span className="text-[13px] font-semibold text-muted">Choisis une autre offre maintenant, sans rien repayer.</span>
         </span>
         {busy === 'credit' ? <Spinner /> : <span className="text-ok-ink">›</span>}
@@ -340,5 +340,5 @@ function InstallQr() {
       .then(setSrc)
       .catch(() => setSrc(null))
   }, [])
-  return src ? <img src={src} alt="QR code pour ouvrir Sub.ci sur ton téléphone" width={88} height={88} className="rounded-tile" /> : null
+  return src ? <img src={src} alt="QR code pour ouvrir Subci sur ton téléphone" width={88} height={88} className="rounded-tile" /> : null
 }

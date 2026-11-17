@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/** Remboursement d'une demande refusée : le membre choisit crédit Sub.ci (immédiat) ou argent (sous 48 h). */
+/** Remboursement d'une demande refusée : le membre choisit crédit Subci (immédiat) ou argent (sous 48 h). */
 return new class extends Migration
 {
     public function up(): void

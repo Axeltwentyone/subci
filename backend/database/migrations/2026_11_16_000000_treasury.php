@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Trésorerie Sub.ci : frais réels de la passerelle, relevé Jèko, retraits de bénéfices,
+ * Trésorerie Subci : frais réels de la passerelle, relevé Jèko, retraits de bénéfices,
  * charges et ajustements (jamais modifiés ni supprimés), soldes relevés pour le rapprochement.
  */
 return new class extends Migration
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->index('provider_transaction_id');
         });
 
-        // Retraits de bénéfices Sub.ci (mouvement de trésorerie, pas une charge : seuls les frais en sont une).
+        // Retraits de bénéfices Subci (mouvement de trésorerie, pas une charge : seuls les frais en sont une).
         Schema::create('treasury_withdrawals', function (Blueprint $table) {
             $table->id();
             $table->foreignId('admin_id')->nullable()->constrained()->nullOnDelete();
@@ -83,7 +83,7 @@ return new class extends Migration
             $table->timestamp('executed_at');
             $table->foreignId('payment_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('treasury_withdrawal_id')->nullable()->constrained()->nullOnDelete();
-            // Hors Sub.ci (test, espèces…) : exclu du rapprochement, avec la raison.
+            // Hors Subci (test, espèces…) : exclu du rapprochement, avec la raison.
             $table->string('ignored_reason', 160)->nullable();
             $table->timestamps();
             $table->index(['type', 'executed_at']);

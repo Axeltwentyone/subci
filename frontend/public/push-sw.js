@@ -1,14 +1,14 @@
-/* Sub.ci — notifications push, importé par le service worker Workbox (vite.config.ts). */
+/* Subci — notifications push, importé par le service worker Workbox (vite.config.ts). */
 
 self.addEventListener('push', (event) => {
   let data = {}
   try {
     data = event.data ? event.data.json() : {}
   } catch {
-    data = { title: 'Sub.ci', body: event.data ? event.data.text() : '' }
+    data = { title: 'Subci', body: event.data ? event.data.text() : '' }
   }
 
-  const title = data.title || 'Sub.ci'
+  const title = data.title || 'Subci'
   event.waitUntil(
     Promise.all([
       // App ouverte : elle se met à jour tout de suite (demande acceptée, gains versés…).

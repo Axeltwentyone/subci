@@ -24,8 +24,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'badge-96.png'],
       manifest: {
-        name: 'Sub.ci',
-        short_name: 'Sub.ci',
+        name: 'Subci',
+        short_name: 'Subci',
         description: 'Tes abonnements, à plusieurs. Paie ta place en mobile money.',
         lang: 'fr',
         display: 'standalone',

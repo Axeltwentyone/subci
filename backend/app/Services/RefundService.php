@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * Remboursement d'une demande refusée, expirée ou annulée : le membre choisit
- * - crédit Sub.ci : immédiat, déduit de ses prochains paiements (pas de frais d'envoi pour Sub.ci) ;
+ * - crédit Subci : immédiat, déduit de ses prochains paiements (pas de frais d'envoi pour Subci) ;
  * - argent : renvoyé sur son mobile money, sous 48 h (versement manuel).
  * Sans choix après quelques jours : argent.
  */
@@ -49,8 +49,8 @@ class RefundService
     private function toCredit(Payment $refund): Payment
     {
         User::whereKey($refund->user_id)->increment('referral_credit', $refund->amount);
-        $refund->update(['refund_choice' => 'credit', 'status' => PaymentStatus::Succeeded, 'confirmed_at' => now(), 'label' => 'Crédit Sub.ci · '.$refund->label]);
-        $refund->user->notify(new AppNotification('pay', '+'.EarningService::fcfa($refund->amount).' de crédit Sub.ci',
+        $refund->update(['refund_choice' => 'credit', 'status' => PaymentStatus::Succeeded, 'confirmed_at' => now(), 'label' => 'Crédit Subci · '.$refund->label]);
+        $refund->user->notify(new AppNotification('pay', '+'.EarningService::fcfa($refund->amount).' de crédit Subci',
             'Déjà disponible : il est déduit de ton prochain paiement.', ['label' => 'Choisir une offre', 'to' => '/explore']));
 
         return $refund;

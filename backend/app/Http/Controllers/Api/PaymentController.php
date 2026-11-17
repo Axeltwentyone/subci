@@ -106,7 +106,7 @@ class PaymentController extends Controller
         return in_array($origin, config('app.frontend_origins'), true) ? $origin : rtrim(config('app.frontend_url'), '/');
     }
 
-    /** Remboursement d'une demande refusée : crédit Sub.ci immédiat ou argent sous 48 h. */
+    /** Remboursement d'une demande refusée : crédit Subci immédiat ou argent sous 48 h. */
     public function refundChoice(Request $request, Payment $payment, RefundService $refunds): PaymentResource
     {
         $this->authorizeOwner($request, $payment);

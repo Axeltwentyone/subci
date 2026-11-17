@@ -21,7 +21,7 @@ final class Totp
         return implode('', array_map(fn ($chunk) => self::ALPHABET[bindec(str_pad($chunk, 5, '0'))], str_split($bits, 5)));
     }
 
-    public static function uri(string $secret, string $account, string $issuer = 'Sub.ci Admin'): string
+    public static function uri(string $secret, string $account, string $issuer = 'Subci Admin'): string
     {
         return 'otpauth://totp/'.rawurlencode("{$issuer}:{$account}").'?'.http_build_query([
             'secret' => $secret, 'issuer' => $issuer, 'algorithm' => 'SHA1', 'digits' => 6, 'period' => 30,

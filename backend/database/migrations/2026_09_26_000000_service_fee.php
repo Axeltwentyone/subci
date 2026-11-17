@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Frais de service Sub.ci payés par le membre, inclus dans « amount » (jamais reversés à l'hôte).
+        // Frais de service Subci payés par le membre, inclus dans « amount » (jamais reversés à l'hôte).
         Schema::table('payments', function (Blueprint $table) {
             $table->unsignedInteger('service_fee')->default(0)->after('amount');
         });

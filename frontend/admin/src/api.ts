@@ -132,7 +132,7 @@ export type PaymentRow = {
   joinStatus: string | null
   /** Gain d'hôte : mois couvert, versement au solde, gel, paiement du membre d'origine. */
   gross: number | null
-  /** Frais de service Sub.ci inclus dans amount (paiement de membre) */
+  /** Frais de service Subci inclus dans amount (paiement de membre) */
   serviceFee: number
   periodStart: string | null
   availableAt: string | null

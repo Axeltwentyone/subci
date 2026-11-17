@@ -89,7 +89,7 @@ class Payment extends Model
         $query->where('type', PaymentType::Earning)->where('status', PaymentStatus::Pending);
     }
 
-    /** Part qui revient au cercle (prix de l'hôte), hors frais de service et avant crédit parrainage (pris en charge par Sub.ci). */
+    /** Part qui revient au cercle (prix de l'hôte), hors frais de service et avant crédit parrainage (pris en charge par Subci). */
     public function offerAmount(): int
     {
         return $this->amount - (int) $this->service_fee + (int) $this->credit_used;

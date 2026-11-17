@@ -92,7 +92,7 @@ class OverviewController extends Controller
             'monthly' => $monthly,
             'kpis' => [
                 'gmv' => ['value' => $collected($month, $to), 'previous' => $collected($prev, $prevTo)],
-                // Revenu Sub.ci = commission sur les gains des hôtes + frais de service.
+                // Revenu Subci = commission sur les gains des hôtes + frais de service.
                 'commission' => ['value' => $commissionOf($month, $to) + $fees($month, $to), 'previous' => $commissionOf($prev, $prevTo) + $fees($prev, $prevTo)],
                 'fees' => ['value' => $fees($month, $to), 'previous' => $fees($prev, $prevTo)],
                 'members' => ['value' => Subscription::where('status', '!=', SubscriptionStatus::Expired)->distinct('user_id')->count('user_id')],
@@ -107,7 +107,7 @@ class OverviewController extends Controller
                 'escrow' => (int) Payment::escrowed()->sum('amount'),
                 'escrowHeld' => (int) Payment::escrowed()->whereNotNull('held_at')->sum('amount'),
                 'payoutsPending' => (int) (clone $pendingPayouts)->sum('amount'),
-                // Crédits parrainage non encore utilisés (coût futur pour Sub.ci) et parrainages récompensés ce mois.
+                // Crédits parrainage non encore utilisés (coût futur pour Subci) et parrainages récompensés ce mois.
                 'referralCredit' => (int) User::sum('referral_credit'),
                 'referralsMonth' => \App\Models\Referral::where('status', 'rewarded')->whereBetween('rewarded_at', [$month, $to])->count(),
             ],
