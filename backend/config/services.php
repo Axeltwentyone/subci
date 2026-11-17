@@ -109,7 +109,7 @@ return [
 
     'referral' => [
         // Crédit Subci du parrain au 2e paiement abouti de son filleul (déduit de ses paiements, non retirable).
-        'reward' => (int) env('REFERRAL_REWARD', 300),
+        'reward' => (int) env('REFERRAL_REWARD', 100),
         'monthly_cap' => (int) env('REFERRAL_MONTHLY_CAP', 10),
         // Frais de service offerts au filleul jusqu'à sa première acceptation (coûte plus qu'il ne rapporte : coupé).
         'waive_fee' => (bool) env('REFERRAL_WAIVE_FEE', false),
