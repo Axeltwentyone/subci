@@ -196,7 +196,7 @@ export function getMethod(id: PayMethodId) {
   return PAY_METHODS.find((m) => m.id === id) ?? PAY_METHODS[0]
 }
 
-export const HOST_FEE = 0.05
+export const HOST_FEE = 0
 
 /** Formules partageables côté hôte */
 export const HOST_PLANS: Record<string, { label: string; maxShare: number; own: number; reco: [number, number]; mode: 'credentials' | 'family' }> = {

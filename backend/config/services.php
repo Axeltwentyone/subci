@@ -46,11 +46,9 @@ return [
         'request_ttl' => (int) env('PAYMENTS_REQUEST_TTL', 102),
         // GeniusPay n'expose pas d'API de remboursement ni de versement à un tiers :
         // remboursements et retraits des hôtes sont alors traités à la main (payouts:*).
-        // Frais de service Subci ajoutés à chaque paiement de membre (couvrent les frais fixes de la passerelle).
-        // Plus élevés sur un paiement d'1 mois (les frais fixes de la passerelle reviennent chaque mois).
-        'service_fee' => (int) env('SERVICE_FEE', 300),
-        // Paiement de 3 mois ou plus.
-        'service_fee_long' => (int) env('SERVICE_FEE_LONG', 200),
+        // Frais de service Subci payés par le membre, par mois réglé (3 mois = 3 × ce montant).
+        // C'est le seul revenu de Subci sur une place : l'hôte touche 100 % de son prix.
+        'service_fee' => (int) env('SERVICE_FEE', 100),
         // Séquestre : chaque mois payé est versé à l'hôte au début du mois + ce délai (litige possible avant).
         'hold_hours' => (int) env('PAYMENTS_HOLD_HOURS', 48),
         // Hôte fiable (3 mois d'activité, 3 mois déjà versés, aucun souci fondé depuis 90 jours) : délai réduit.
@@ -63,7 +61,8 @@ return [
         // Délai annoncé à l'hôte pour recevoir un retrait envoyé à la main (heures).
         'withdrawal_delay_hours' => (int) env('WITHDRAWAL_DELAY_HOURS', 48),
         'withdrawal_fee_fixed' => (int) env('WITHDRAWAL_FEE_FIXED', 0),
-        'withdrawal_fee_percent' => (float) env('WITHDRAWAL_FEE_PERCENT', 1),
+        // Couvre les frais d'envoi Jèko (1,5 %) : l'hôte reçoit son retrait moins ces frais.
+        'withdrawal_fee_percent' => (float) env('WITHDRAWAL_FEE_PERCENT', 1.5),
         'payout_change_lock_hours' => (int) env('PAYOUT_CHANGE_LOCK_HOURS', 24),
         // Délai minimal entre deux lectures du statut chez la passerelle pour un même paiement.
         'poll_interval' => (int) env('PAYMENTS_POLL_INTERVAL', 3),

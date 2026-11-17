@@ -123,7 +123,7 @@ function AuthCard({ children, onSubmit, footer }: { children: ReactNode; onSubmi
           <LogoMark size={44} tone="brand" />
           <div className="flex flex-col">
             <span className="font-display text-2xl leading-none font-extrabold tracking-[-0.03em]">
-              sub<span className="text-brand">.</span>ci
+              subci
             </span>
             <span className="text-[13px] font-bold text-muted">Administration</span>
           </div>
@@ -331,7 +331,7 @@ export function Shell() {
             <LogoMark size={34} tone="sand" />
             <span className="flex flex-col">
               <span className="font-display text-[20px] leading-none font-extrabold tracking-[-0.03em]">
-                sub<span className="text-brand">.</span>ci
+                subci
               </span>
               <span className="text-[11px] font-bold tracking-wider text-ink-muted uppercase">Admin</span>
             </span>

@@ -66,8 +66,8 @@ export function Checkout() {
   const subtotal = monthly ? durationPrice(monthly, months) : 0
   // Frais de service Subci (offerts au filleul), moins le crédit parrainage (le serveur recalcule tout).
   const feeWaived = !!state.referral?.feeWaived
-  // Frais plus bas à partir de 3 mois (un seul paiement pour plusieurs mois).
-  const baseFee = months >= 3 ? state.serviceFeeLong : state.serviceFee
+  // Frais fixes par mois réglé (3 mois = 3 × les frais).
+  const baseFee = state.serviceFee * months
   const fee = feeWaived ? 0 : baseFee
   const credit = subtotal ? Math.max(0, Math.min(state.referral?.credit ?? 0, subtotal + fee - 200)) : 0
   const amount = subtotal ? subtotal + fee - credit : 0
@@ -196,9 +196,6 @@ export function Checkout() {
               <span>Frais de service Subci{feeWaived ? ' · offerts (parrainage)' : ''}</span>
               <span className="tabular-nums">{feeWaived ? <s>{fcfa(baseFee)} FCFA</s> : `${fcfa(fee)} FCFA`}</span>
             </div>
-          )}
-          {!feeWaived && months < 3 && state.serviceFee > state.serviceFeeLong && (
-            <span className="text-[12px] text-ok-ink">Frais réduits à {fcfa(state.serviceFeeLong)} FCFA en payant 3 mois ou plus</span>
           )}
           {credit > 0 && (
             <div className="flex justify-between text-ok-ink">

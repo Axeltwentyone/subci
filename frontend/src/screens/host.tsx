@@ -48,8 +48,8 @@ export function HostPitch() {
             <span className="font-bold text-ink">{fcfa(gross)}</span>
           </div>
           <div className="flex justify-between text-sm font-semibold text-muted">
-            <span>Frais Subci ({HOST_FEE * 100} %)</span>
-            <span>– {fcfa(fee)}</span>
+            <span>{HOST_FEE ? `Frais Subci (${HOST_FEE * 100} %)` : 'Commission Subci'}</span>
+            <span>{fee ? `– ${fcfa(fee)}` : 'Aucune'}</span>
           </div>
           <div className="flex items-baseline justify-between border-t border-line pt-3">
             <span className="text-[15px] font-bold">Tu reçois</span>
@@ -75,7 +75,7 @@ export function HostPitch() {
           {[
             ['Qui paie ?', 'Chaque membre paie sa place d’avance à Subci en mobile money. L’argent est garanti : tu n’as jamais à relancer personne.'],
             ['Quand suis-je payé ?', 'Mois par mois : chaque mois payé arrive dans ton solde 48 h après son début (24 h quand tu deviens Hôte fiable). Un membre qui paie 3 mois te rapporte 3 versements, un par mois.'],
-            ['Et pour retirer ?', 'Tu retires ton solde quand tu veux vers Wave, Orange Money, MTN ou Moov, à partir de 2 000 FCFA. Frais d’envoi d’environ 1 %, affichés avant de confirmer. Reçu sous 48 h.'],
+            ['Et pour retirer ?', 'Tu retires ton solde quand tu veux vers Wave, Orange Money, MTN, Moov ou Djamo, à partir de 500 FCFA. Seuls les frais d’envoi mobile money (1,5 %) sont déduits, affichés avant de confirmer. Reçu en quelques minutes, 48 h au plus.'],
             ['Pourquoi ce délai ?', 'Pour protéger les membres : si l’accès ne marche pas, ils signalent un souci et sont remboursés du temps pas encore versé. C’est ce qui leur donne confiance… et te ramène des membres.'],
             ['Et si un membre part ?', 'Sa place est remise en ligne automatiquement. Si c’est toi qui le retires, il est remboursé des mois pas encore versés.'],
             ['Mes identifiants ?', 'Chiffrés, visibles uniquement par les membres que tu acceptes.'],

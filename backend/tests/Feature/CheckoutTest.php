@@ -93,44 +93,44 @@ class CheckoutTest extends TestCase
         $this->assertSame('active', $sub->status->value);
         $this->assertSame('host-secret', $sub->access_password);
         $this->assertNotSame('host-secret', DB::table('subscriptions')->value('access_password'));
-        // Séquestre : 3 gains de 2 166 (2 280 − 5 %), un par mois, chacun disponible 72 h après le début de son mois.
+        // Séquestre : 3 gains de 2 280 (100 % du prix), un par mois, chacun disponible 72 h après le début de son mois.
         $this->assertSame(0, $this->host->fresh()->balance);
-        $this->assertSame(6498, $this->getJson('/api/v1/host')->json('data.pending'));
+        $this->assertSame(6840, $this->getJson('/api/v1/host')->json('data.pending'));
         $this->postJson("/api/v1/host/requests/{$request->id}/accept")->assertStatus(409);
 
         $this->travel(73)->hours();
         app(EarningService::class)->release();
-        $this->assertSame(2166, $this->host->fresh()->balance);
+        $this->assertSame(2280, $this->host->fresh()->balance);
         $this->travel(1)->months();
         app(EarningService::class)->release();
-        $this->assertSame(4332, $this->host->fresh()->balance);
+        $this->assertSame(4560, $this->host->fresh()->balance);
     }
 
     public function test_service_fee_is_paid_by_member_kept_by_subci_and_refunded_if_declined(): void
     {
-        config(['services.payments.service_fee' => 300, 'services.payments.service_fee_long' => 200]);
+        config(['services.payments.service_fee' => 100]);
         $offer = $this->offer();
         $member = User::factory()->create();
         $this->actingAs($member);
-        $this->getJson('/api/v1/bootstrap')->assertJsonPath('config.serviceFee', 300)->assertJsonPath('config.serviceFeeLong', 200);
+        $this->getJson('/api/v1/bootstrap')->assertJsonPath('config.serviceFee', 100)->assertJsonPath('config.serviceFeePerMonth', true);
 
-        // 3 mois à 2 400 : 6 840 pour le cercle + 200 de frais de service = 7 040 payés.
+        // 3 mois à 2 400 : 6 840 pour le cercle + 3 × 100 de frais de service = 7 140 payés.
         $request = $this->payFor($offer, 3);
         $payment = $request->payment;
-        $this->assertSame(7040, $payment->amount);
-        $this->assertSame(200, $payment->service_fee);
+        $this->assertSame(7140, $payment->amount);
+        $this->assertSame(300, $payment->service_fee);
         $this->asHost()->getJson('/api/v1/host')->assertJsonPath('data.offers.0.requests.0.amount', 6840);
 
-        // L'hôte touche 95 % du prix de son offre, sans rien sur les frais.
+        // L'hôte touche 100 % du prix de son offre, sans rien sur les frais.
         $this->postJson("/api/v1/host/requests/{$request->id}/accept")->assertOk();
-        $this->assertSame(6498, $this->getJson('/api/v1/host')->json('data.pending'));
+        $this->assertSame(6840, $this->getJson('/api/v1/host')->json('data.pending'));
 
         // Refusé : le membre récupère tout, frais compris.
         $other = User::factory()->create();
         $this->actingAs($other);
         $second = $this->payFor($offer, 1);
         $this->asHost()->postJson("/api/v1/host/requests/{$second->id}/decline")->assertOk();
-        $this->assertSame(2700, $other->payments()->where('type', 'refund')->value('amount')); // 2 400 + 300 de frais (1 mois)
+        $this->assertSame(2500, $other->payments()->where('type', 'refund')->value('amount')); // 2 400 + 100 de frais (1 mois)
     }
 
     public function test_decline_refunds_member_and_frees_seat(): void
@@ -366,15 +366,15 @@ class CheckoutTest extends TestCase
         $this->assertSame(0, $member->subscriptions()->count()); // l'hôte doit encore accepter
     }
 
-    public function test_one_month_payment_has_higher_service_fee_than_three_months(): void
+    public function test_service_fee_is_charged_per_month_paid(): void
     {
-        config(['services.payments.service_fee' => 300, 'services.payments.service_fee_long' => 200]);
+        config(['services.payments.service_fee' => 100]);
         $offer = $this->offer();
         $this->actingAs(User::factory()->create());
 
         $payment = $this->payFor($offer, 1)->payment;
-        $this->assertSame(300, $payment->service_fee);
-        $this->assertSame(2400 + 300, $payment->amount);
+        $this->assertSame(100, $payment->service_fee);
+        $this->assertSame(2400 + 100, $payment->amount);
     }
 
     /** Refus : le membre choisit crédit Subci (immédiat) ou argent (versement admin) ; sans choix, argent après 7 jours. */

@@ -27,7 +27,7 @@ class ReferralTest extends TestCase
     {
         parent::setUp();
         $this->seed(ServiceSeeder::class);
-        config(['services.payments.fake_delay' => 0, 'services.payments.service_fee' => 200, 'services.payments.service_fee_long' => 200]);
+        config(['services.payments.fake_delay' => 0, 'services.payments.service_fee' => 200]);
         $this->host = User::factory()->create(['first_name' => 'Koffi', 'last_name' => 'Yao']);
         $this->offer = $this->host->hostOffers()->create([
             'service_id' => Service::where('slug', 'netflix')->value('id'), 'plan' => 'premium', 'plan_label' => 'Premium · 4 écrans',
@@ -99,12 +99,12 @@ class ReferralTest extends TestCase
         $this->assertSame(300, $alice->fresh()->referral_credit);
         $this->assertSame('rewarded', Referral::sole()->status);
 
-        // Parrain : 2 400 + 200 de frais − 300 de crédit = 2 300 payés ; l'hôte touche toujours 95 % de 2 400.
+        // Parrain : 2 400 + 200 de frais − 300 de crédit = 2 300 payés ; l'hôte touche toujours ses 2 400.
         $second = $this->payAndAccept($alice);
         $this->assertSame(2300, $second->amount);
         $this->assertSame(300, $second->credit_used);
         $this->assertSame(0, $alice->fresh()->referral_credit);
-        $this->assertSame(2280, Payment::where('source_payment_id', $second->id)->value('amount'));
+        $this->assertSame(2400, Payment::where('source_payment_id', $second->id)->value('amount'));
     }
 
     public function test_credit_returns_if_payment_is_abandoned_or_declined_and_is_taken_again_if_paid_late(): void

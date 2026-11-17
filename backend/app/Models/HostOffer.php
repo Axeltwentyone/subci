@@ -20,9 +20,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Hidden(['access_email', 'access_password', 'proof_path'])]
 class HostOffer extends Model
 {
-    /** Frais Subci prélevés sur les gains de l'hôte. */
-    /** Commission Subci sur le prix de l'offre (l'hôte garde 95 %). */
-    public const FEE = 0.05;
+    /** Commission Subci sur le prix de l'offre : aucune, l'hôte touche 100 % (Subci vit des frais de service). */
+    public const FEE = 0.0;
 
     protected function casts(): array
     {

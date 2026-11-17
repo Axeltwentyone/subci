@@ -28,7 +28,7 @@ class EarningService
     {
         $host = $offer->user;
         $months = max(1, (int) $payment->months);
-        // L'hôte touche 95 % du prix de son offre ; les frais de service restent à Subci.
+        // L'hôte touche le prix de son offre (moins HostOffer::FEE) ; les frais de service restent à Subci.
         $total = $payment->offerAmount();
         $base = intdiv($total, $months);
         $hold = $host->holdHours();

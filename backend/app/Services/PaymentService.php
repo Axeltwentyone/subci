@@ -150,10 +150,10 @@ class PaymentService
         return $payment;
     }
 
-    /** Frais de service Subci : 1 mois ou 3 mois et plus. */
+    /** Frais de service Subci : un montant fixe par mois réglé. */
     public static function serviceFee(int $months): int
     {
-        return (int) config($months >= 3 ? 'services.payments.service_fee_long' : 'services.payments.service_fee');
+        return (int) config('services.payments.service_fee') * max(1, $months);
     }
 
     /**

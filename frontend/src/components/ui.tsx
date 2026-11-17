@@ -85,7 +85,7 @@ export function LogoMark({ size = 56, tone = 'ink' }: { size?: number; tone?: 'i
 export function Wordmark({ className, dark }: { className?: string; dark?: boolean }) {
   return (
     <span className={cx('font-display font-extrabold leading-none tracking-[-0.03em]', dark ? 'text-sand' : 'text-ink', className)}>
-      sub<span className="text-brand">.</span>ci
+      subci
     </span>
   )
 }
